@@ -1,0 +1,67 @@
+app-id: io.github.ether4o4.MorsVitaEst
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: morsvitaest-wrapper
+
+finish-args:
+  - --share=network
+  - --socket=x11
+  - --socket=wayland
+  - --share=ipc
+  - --device=dri
+  - --socket=pulseaudio
+  - --persist= .morsvitaest
+  - --persist=.java
+
+modules:
+  - name: morsvitaest
+    buildsystem: simple
+    build-commands:
+      # Extract and install the application
+      - tar xf MorsVitaEst-linux-x86_64.tar.gz
+      - mkdir -p /app/lib/morsvitaest
+      - cp -r MorsVitaEst/* /app/lib/morsvitaest/
+
+      # Install wrapper script
+      - install -Dm755 morsvitaest-wrapper.sh /app/bin/morsvitaest-wrapper
+
+      # Install desktop file
+      - install -Dm644 io.github.ether4o4.MorsVitaEst.desktop /app/share/applications/io.github.ether4o4.MorsVitaEst.desktop
+
+      # Install metainfo
+      - install -Dm644 io.github.ether4o4.MorsVitaEst.metainfo.xml /app/share/metainfo/io.github.ether4o4.MorsVitaEst.metainfo.xml
+
+      # Install icons
+      - install -Dm644 icon.svg /app/share/icons/hicolor/scalable/apps/io.github.ether4o4.MorsVitaEst.svg
+      - install -Dm644 icon.png /app/share/icons/hicolor/512x512/apps/io.github.ether4o4.MorsVitaEst.png
+
+    sources:
+      - type: file
+        url: https://github.com/ether4o4/MorsVitaEst/releases/download/v2.6.2/MorsVitaEst-2.6.2-linux-x86_64.tar.gz
+        sha256: 27b772999c7f5ae960b990b784620a33dece1789f2f9e2b433388cb87f1dcf0d
+        dest-filename: MorsVitaEst-linux-x86_64.tar.gz
+        x-checker-data:
+          type: json
+          url: https://api.github.com/repos/ether4o4/MorsVitaEst/releases/latest
+          version-query: .tag_name | sub("^v"; "")
+          url-query: .assets[] | select(.name | test("linux-x86_64\\.tar\\.gz$")) | .browser_download_url
+
+      - type: file
+        path: io.github.ether4o4.MorsVitaEst.desktop
+
+      - type: file
+        path: io.github.ether4o4.MorsVitaEst.metainfo.xml
+
+      - type: file
+        path: ../composeApp/icon.svg
+
+      - type: file
+        path: ../composeApp/icon.png
+
+      - type: script
+        dest-filename: morsvitaest-wrapper.sh
+        commands:
+          - export PATH="/app/lib/morsvitaest/bin:${PATH}"
+          - export LD_LIBRARY_PATH="/app/lib/morsvitaest/lib/runtime/lib:${LD_LIBRARY_PATH}"
+          - exec /app/lib/morsvitaest/bin/MorsVitaEst "$@"

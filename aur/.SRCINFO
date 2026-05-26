@@ -1,0 +1,15 @@
+pkgbase = morsvitaest-bin
+	pkgdesc = AI assistant powered by Ollama, Gemini, ChatGPT and more
+	pkgver = 2.6.2
+	pkgrel = 1
+	url = https://github.com/ether4o4/MorsVitaEst
+	arch = x86_64
+	license = Apache-2.0
+	depends = hicolor-icon-theme
+	provides = kai
+	conflicts = kai
+	options = !strip
+	source = MorsVitaEst-2.6.2-linux-x86_64.tar.gz::https://github.com/ether4o4/MorsVitaEst/releases/download/v2.6.2/MorsVitaEst-2.6.2-linux-x86_64.tar.gz
+	sha256sums = 27b772999c7f5ae960b990b784620a33dece1789f2f9e2b433388cb87f1dcf0d
+
+pkgname = morsvitaest-bin

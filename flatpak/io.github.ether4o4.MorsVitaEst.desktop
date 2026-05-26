@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=MorsVitaEst
+Comment=AI assistant powered by Ollama, Gemini, ChatGPT and more
+Exec=morsvitaest-wrapper
+Icon=io.github.ether4o4.MorsVitaEst
+Type=Application
+Categories=Utility;Network;
+Keywords=AI;Chat;Ollama;Gemini;LLM;Assistant;
+StartupWMClass=compose-window
+Terminal=false
