@@ -4,10 +4,6 @@
 <div align="center">
 
 <br>
-<img src="site/img/logo_animation.gif" height="80">
-<br>
-<br>
-
 An **open-source AI assistant with persistent memory** that runs on **Android, iOS, Windows, Mac, Linux, and Web**.
 
 **[Website](https://github.com/ether4o4/MorsVitaEst)** - **[Documentation](https://github.com/ether4o4/MorsVitaEst/tree/main/docs/)**
