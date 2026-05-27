@@ -76,7 +76,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.milliseconds
 
-internal val TerminalDarkBg = Color(0xFF1E1E1E)
+internal val TerminalDarkBg = Color(0xFF101416)
+private const val TERMINAL_PROMPT = "mve\$"
 
 private data class TerminalColors(
     val bg: Color,
@@ -98,11 +99,11 @@ private fun terminalColors(darkBackground: Boolean = false): TerminalColors {
     if (darkBackground) {
         return TerminalColors(
             bg = TerminalDarkBg,
-            inputBg = Color(0xFF252525),
-            text = Color(0xFFD4D4D4),
-            prompt = Color(0xFF6CB6FF),
-            error = Color(0xFFF48771),
-            dimText = Color(0xFF666666),
+            inputBg = Color(0xFF151B1E),
+            text = Color(0xFFD7E1DF),
+            prompt = Color(0xFF43D9AD),
+            error = Color(0xFFFF7A70),
+            dimText = Color(0xFF6F7E7A),
         )
     }
     val colorScheme = MaterialTheme.colorScheme
@@ -231,7 +232,7 @@ fun TerminalContent(
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "Alpine Linux",
+                    text = "MorsVitaEst Shell",
                     style = monoStyle(12.sp, colors.text.copy(alpha = 0.5f)),
                 )
             }
@@ -262,7 +263,7 @@ fun TerminalContent(
                         is TerminalLine.Command -> {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "$ ${line.text}",
+                                text = "$TERMINAL_PROMPT ${line.text}",
                                 style = monoStyle(13.sp, colors.prompt),
                             )
                         }
@@ -330,7 +331,7 @@ fun TerminalContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "$",
+                text = TERMINAL_PROMPT,
                 style = monoStyle(14.sp, colors.prompt),
                 modifier = Modifier.padding(start = 8.dp),
             )

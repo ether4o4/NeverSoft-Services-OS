@@ -235,7 +235,7 @@ internal fun FreeSettings(
 
             TextButton(
                 onClick = {
-                    uriHandler.openUri("https://schubert-simon.de")
+                    uriHandler.openUri("https://github.com/ether4o4/MorsVitaEst")
                 },
                 Modifier
                     .handCursor(),

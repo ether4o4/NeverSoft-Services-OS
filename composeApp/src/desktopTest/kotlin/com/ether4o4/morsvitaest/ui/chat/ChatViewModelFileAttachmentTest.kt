@@ -50,7 +50,7 @@ class ChatViewModelFileAttachmentTest {
     }
 
     private fun tempPlatformFile(extension: String): PlatformFile {
-        val file = File.createTempFile("kai-test-", ".$extension")
+        val file = File.createTempFile("morsvitaest-test-", ".$extension")
         file.deleteOnExit()
         return PlatformFile(file)
     }

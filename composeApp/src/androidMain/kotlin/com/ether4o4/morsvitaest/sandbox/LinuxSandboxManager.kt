@@ -303,7 +303,7 @@ class LinuxSandboxManager(
                 }
                 // Seed ~/.ssh/config with ControlMaster + keepalive defaults so any
                 // manual `ssh user@host` from now on multiplexes. Idempotent —
-                // skips when the kai:defaults block is already present. Failures
+                // skips when the morsvitaest:defaults block is already present. Failures
                 // here are non-fatal: openssh works without the defaults, just
                 // without the held-connection optimization.
                 runCatching { SshConfigManager(java.io.File(homePath)).ensureDefaults() }

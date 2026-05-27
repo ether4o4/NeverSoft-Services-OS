@@ -124,7 +124,7 @@ internal fun ExportImportSection(
                 scope.launch {
                     saveFileToDevice(
                         bytes = json.encodeToByteArray(),
-                        baseName = "kai-settings",
+                        baseName = "morsvitaest-settings",
                         extension = "json",
                     )
                 }

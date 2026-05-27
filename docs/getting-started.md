@@ -2,33 +2,9 @@
 
 ## Installation
 
-### App Stores
-
-- [**App Store**](https://apps.apple.com/us/app/morsvitaest/id6758148023) (iOS)
-- [**Google Play**](https://play.google.com/store/apps/details?id=com.ether4o4.morsvitaest) (Android)
-- [**F-Droid**](https://f-droid.org/en/packages/com.ether4o4.morsvitaest/) (Android)
-
 ### Web
 
 Try MorsVitaEst directly in your browser at [ether4o4.github.io/MorsVitaEst](https://ether4o4.github.io/MorsVitaEst).
-
-### Homebrew (macOS)
-
-```bash
-brew install --cask ether4o4/tap/morsvitaest
-```
-
-### AUR (Arch Linux)
-
-```bash
-yay -S morsvitaest-bin
-```
-
-### Winget (Windows)
-
-```bash
-winget install ether4o4.MorsVitaEst
-```
 
 ### Direct Downloads
 

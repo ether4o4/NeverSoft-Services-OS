@@ -1,18 +1,18 @@
 # MorsVitaEst
 
-An **open-source AI assistant with persistent memory** that runs on **Android, iOS, Windows, Mac, Linux, and Web**.
+An **open-source, mobile-first agent infrastructure app** for local models, API providers, tool execution, memory, heartbeat workflows, and extensible runtimes.
 
 [:material-download: Get Started](getting-started.md){ .md-button .md-button--primary }
 [:material-github: GitHub](https://github.com/ether4o4/MorsVitaEst){ .md-button }
 
 ## Overview
 
-MorsVitaEst is built with Kotlin Multiplatform and Compose Multiplatform. It connects to 11+ LLM providers with automatic fallback, remembers important details across conversations, and can act autonomously via scheduled heartbeats and tool execution.
+MorsVitaEst is built with Kotlin Multiplatform and Compose Multiplatform. It connects to local and remote LLM providers, hosts agent profiles across different runtimes, and keeps tool execution in the infrastructure instead of depending on every model to know how to act.
 
 ## Key Features
 
-- **Persistent memory** — MorsVitaEst remembers important details across conversations and uses them automatically
-- **Customizable soul** — Define the AI's personality and behavior with an editable system prompt
+- **Persistent context** — MorsVitaEst keeps useful continuity across conversations without making every detail visible
+- **Agent identity** — Define the system's personality, behavior, and role boundaries with editable prompts
 - **Multi-service fallback** — Configure multiple providers; MorsVitaEst automatically tries the next one on failure
 - **Tool execution** — Web search, notifications, calendar events, shell commands, and more
 - **Autonomous heartbeat** — Periodic self-checks that surface anything needing attention
@@ -94,11 +94,11 @@ Plus a built-in **Free** tier that requires no API key.
 
 | Platform | Distribution |
 |---|---|
-| Android | Google Play, F-Droid, APK |
-| iOS | App Store |
-| macOS | Homebrew, DMG |
+| Android | APK |
+| iOS | Planned |
+| macOS | DMG |
 | Windows | MSI |
-| Linux | DEB, RPM, AppImage, AUR |
+| Linux | DEB, RPM, AppImage |
 | Web | Browser |
 
 ## Feature Documentation

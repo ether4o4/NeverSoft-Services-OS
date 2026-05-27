@@ -17,7 +17,7 @@ Users can backup and restore all MorsVitaEst settings via a human-readable JSON 
   - SMS — only if SMS receive or send is enabled
   - MCP — only if at least one server is configured
   - TOOLS — only if at least one tool override is recorded
-- Confirming the dialog opens a native file-save dialog and writes `kai-settings.json` containing only the selected sections (plus a `"version": 1` field for forward-compatibility).
+- Confirming the dialog opens a native file-save dialog and writes `morsvitaest-settings.json` containing only the selected sections (plus a `"version": 1` field for forward-compatibility).
 - Cancelling the dialog discards the export without writing a file.
 - Sections listed under **Excluded** below are never exported.
 

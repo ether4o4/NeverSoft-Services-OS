@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kai9000.com/sitemap.xml
-Sitemap: https://kai9000.com/docs/sitemap.xml
+Sitemap: https://ether4o4.github.io/MorsVitaEst/sitemap.xml
+Sitemap: https://ether4o4.github.io/MorsVitaEst/docs/sitemap.xml
