@@ -36,6 +36,7 @@ import com.ether4o4.morsvitaest.network.dtos.anthropic.AnthropicChatRequestDto
 import com.ether4o4.morsvitaest.network.dtos.anthropic.extractText
 import com.ether4o4.morsvitaest.network.dtos.gemini.extractText
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.extractInlineToolCalls
+import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleModelResponseDto
 import com.ether4o4.morsvitaest.network.toUiError
 import com.ether4o4.morsvitaest.network.tools.Tool
 import com.ether4o4.morsvitaest.network.tools.ToolInfo
@@ -440,9 +441,39 @@ class RemoteDataRepository(
 
     private suspend fun fetchOpenAICompatibleModelsForInstance(service: Service, instanceId: String) {
         val creds = instanceCredentials(instanceId, service)
-        val response = requests.getOpenAICompatibleModels(service, creds).getOrThrow()
+        val runningModels = if (service == Service.OpenAICompatible) {
+            requests.getOpenAICompatibleRunningModels(creds).getOrDefault(emptyList())
+                .mapNotNull { running ->
+                    running.effectiveId?.let { id ->
+                        OpenAICompatibleModelResponseDto.Model(
+                            id = id,
+                            name = running.name?.takeIf { it.isNotBlank() && it != id },
+                            owned_by = RUNNING_ON_PHONE_SUBTITLE,
+                        )
+                    }
+                }
+                .distinctBy { it.id }
+        } else {
+            emptyList()
+        }
+        val response = requests.getOpenAICompatibleModels(service, creds).getOrElse { error ->
+            if (runningModels.isNotEmpty()) {
+                OpenAICompatibleModelResponseDto(data = emptyList())
+            } else {
+                throw error
+            }
+        }
         val selectedModelId = appSettings.getInstanceModelId(instanceId)
-        val models = mapOpenAICompatibleModels(response.data, service, selectedModelId)
+        val detectedSelectedModelId = selectedModelId.ifBlank {
+            runningModels.singleOrNull()?.id.orEmpty()
+        }
+        if (selectedModelId.isBlank() && detectedSelectedModelId.isNotBlank()) {
+            appSettings.setInstanceModelId(instanceId, detectedSelectedModelId)
+        }
+        val allModels = runningModels + response.data.filterNot { available ->
+            runningModels.any { running -> running.id == available.id }
+        }
+        val models = mapOpenAICompatibleModels(allModels, service, detectedSelectedModelId)
         updateModelsForInstance(instanceId, models)
     }
 

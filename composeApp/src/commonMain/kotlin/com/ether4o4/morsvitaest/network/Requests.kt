@@ -18,6 +18,7 @@ import com.ether4o4.morsvitaest.network.dtos.gemini.PropertySchema
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleChatRequestDto
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleChatResponseDto
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleModelResponseDto
+import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OllamaRunningModelsResponseDto
 import com.ether4o4.morsvitaest.network.tools.Tool
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
@@ -246,6 +247,23 @@ class Requests {
         Result.failure(OpenAICompatibleConnectionException())
     }
 
+    suspend fun getOpenAICompatibleRunningModels(
+        credentials: ServiceCredentials,
+    ): Result<List<OllamaRunningModelsResponseDto.Model>> = try {
+        val url = resolveOllamaApiUrl(credentials, "/api/ps")
+        val apiKey = getOptionalApiKey(Service.OpenAICompatible, credentials)
+        val response: HttpResponse = defaultClient.get(url) {
+            apiKey?.let { bearerAuth(it) }
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body<OllamaRunningModelsResponseDto>().models)
+        } else {
+            Result.success(emptyList())
+        }
+    } catch (_: Exception) {
+        Result.success(emptyList())
+    }
+
     suspend fun validateOpenRouterApiKey(credentials: ServiceCredentials): Result<Unit> = try {
         val apiKey = credentials.apiKey.ifEmpty { throw OpenAICompatibleInvalidApiKeyException() }
         val response: HttpResponse = defaultClient.get("https://openrouter.ai/api/v1/auth/key") {
@@ -363,9 +381,28 @@ class Requests {
     // region Helpers
 
     private fun resolveUrl(service: Service, credentials: ServiceCredentials, path: String): String = if (service == Service.OpenAICompatible) {
-        "${credentials.baseUrl.ifEmpty { Service.DEFAULT_OPENAI_COMPATIBLE_BASE_URL }.trimEnd('/')}$path"
+        "${normalizeOpenAICompatibleBaseUrl(credentials.baseUrl).trimEnd('/')}$path"
     } else {
         path
+    }
+
+    private fun normalizeOpenAICompatibleBaseUrl(baseUrl: String): String {
+        val raw = baseUrl.ifBlank { Service.DEFAULT_OPENAI_COMPATIBLE_BASE_URL }.trim().trimEnd('/')
+        val lower = raw.lowercase()
+        return if (lower.endsWith("/v1") || !looksLikeOllamaRoot(lower)) {
+            raw
+        } else {
+            "$raw/v1"
+        }
+    }
+
+    private fun looksLikeOllamaRoot(baseUrl: String): Boolean =
+        baseUrl.endsWith(":11434") || baseUrl.contains(":11434/")
+
+    private fun resolveOllamaApiUrl(credentials: ServiceCredentials, path: String): String {
+        val base = normalizeOpenAICompatibleBaseUrl(credentials.baseUrl).trimEnd('/')
+        val root = if (base.lowercase().endsWith("/v1")) base.dropLast(3) else base
+        return "${root.trimEnd('/')}$path"
     }
 
     private fun getApiKeyOrThrow(service: Service, credentials: ServiceCredentials): String? {

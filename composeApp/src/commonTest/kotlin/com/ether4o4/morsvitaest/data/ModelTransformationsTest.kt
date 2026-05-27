@@ -394,6 +394,19 @@ class ModelTransformationsTest {
     }
 
     @Test
+    fun `mapOpenAICompatibleModels labels currently running phone model`() {
+        val models = listOf(
+            OpenAICompatibleModelResponseDto.Model(
+                id = "llama3.2:latest",
+                owned_by = RUNNING_ON_PHONE_SUBTITLE,
+            ),
+        )
+        val result = mapOpenAICompatibleModels(models, Service.OpenAICompatible, selectedModelId = "llama3.2:latest")
+        assertEquals(RUNNING_ON_PHONE_SUBTITLE, result.single().subtitle)
+        assertTrue(result.single().isSelected)
+    }
+
+    @Test
     fun `mapOpenAICompatibleModels sorts by context_window descending when not sortModelsById`() {
         val models = listOf(
             OpenAICompatibleModelResponseDto.Model(id = "small", context_window = 4096),

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">MorsVitaEst red logo</title>
+  <desc id="desc">A black and red MorsVitaEst logo with layered waves, orbit rings, and MVE lettering.</desc>
+  <defs>
+    <radialGradient id="core" cx="50%" cy="48%" r="55%">
+      <stop offset="0%" stop-color="#ff3030"/>
+      <stop offset="45%" stop-color="#8b0000"/>
+      <stop offset="100%" stop-color="#080808"/>
+    </radialGradient>
+    <linearGradient id="redWave" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a2a" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#250000" stop-opacity="0.32"/>
+    </linearGradient>
+    <linearGradient id="steelWave" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#303030" stop-opacity="0.08"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="520" fill="#030303"/>
+  <rect width="1200" height="520" fill="url(#core)" opacity="0.14"/>
+  <g opacity="0.86" transform="translate(-45 30)">
+    <path d="M40 270 L180 185 L470 230 L330 340 Z" fill="url(#redWave)" filter="url(#glow)" transform="rotate(-14 250 260)"/>
+    <path d="M180 250 L310 165 L620 218 L470 335 Z" fill="url(#steelWave)" transform="rotate(-4 400 250)"/>
+    <path d="M320 275 L450 178 L790 234 L615 352 Z" fill="url(#redWave)" filter="url(#glow)" transform="rotate(8 555 270)"/>
+    <path d="M490 244 L650 162 L980 226 L805 338 Z" fill="url(#steelWave)" transform="rotate(18 735 250)"/>
+    <path d="M665 278 L820 180 L1195 240 L980 365 Z" fill="url(#redWave)" filter="url(#glow)" transform="rotate(28 935 280)"/>
+  </g>
+  <g transform="translate(600 210)" filter="url(#glow)">
+    <circle r="115" fill="none" stroke="#ff2020" stroke-width="3" opacity="0.55"/>
+    <circle r="88" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.18"/>
+    <circle r="63" fill="url(#core)" stroke="#2a0000" stroke-width="2"/>
+    <text x="0" y="13" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="56" font-weight="900" letter-spacing="12" fill="#ff3434">MVE</text>
+    <line x1="-52" y1="42" x2="52" y2="42" stroke="#ff3434" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="0" cy="-115" r="5" fill="#ff3030"/>
+    <circle cx="0" cy="115" r="5" fill="#ffffff"/>
+    <circle cx="-115" cy="0" r="5" fill="#9b0000"/>
+    <circle cx="115" cy="0" r="5" fill="#d4d4d4"/>
+  </g>
+  <g text-anchor="middle" font-family="Arial Black, Arial, sans-serif">
+    <text x="600" y="405" font-size="58" font-weight="900" letter-spacing="18" fill="#ffffff">MorsVitaEst</text>
+    <line x1="365" y1="430" x2="835" y2="430" stroke="#c60000" stroke-width="3"/>
+    <text x="600" y="466" font-size="16" letter-spacing="10" fill="#d4d4d4">THE FINAL AI INFRASTRUCTURE</text>
+    <text x="600" y="492" font-size="12" letter-spacing="7" fill="#777777">EVERY TREND EXISTS WITHIN THE SYSTEM</text>
+  </g>
+</svg>

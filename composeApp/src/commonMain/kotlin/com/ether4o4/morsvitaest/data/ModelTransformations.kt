@@ -6,6 +6,8 @@ import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleMo
 import com.ether4o4.morsvitaest.toIsoDate
 import com.ether4o4.morsvitaest.ui.settings.SettingsModel
 
+internal const val RUNNING_ON_PHONE_SUBTITLE = "Running on phone"
+
 /**
  * Model id substrings that mark a model as non-chat. Any model whose
  * lowercased id contains one of these is filtered out of the picker.
@@ -157,7 +159,7 @@ internal fun mapOpenAICompatibleModels(
         SettingsModel(
             id = it.id,
             displayName = curated?.displayName ?: it.name,
-            subtitle = "",
+            subtitle = it.owned_by?.takeIf { owner -> owner == RUNNING_ON_PHONE_SUBTITLE }.orEmpty(),
             isSelected = it.id == selectedModelId,
             contextWindow = curated?.contextWindow ?: it.context_window ?: it.context_length,
             releaseDate = curated?.releaseDate ?: it.created?.toIsoDate(),
