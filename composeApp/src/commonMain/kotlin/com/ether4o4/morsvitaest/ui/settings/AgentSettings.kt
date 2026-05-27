@@ -5,6 +5,7 @@ package com.ether4o4.morsvitaest.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,6 +42,9 @@ import com.ether4o4.morsvitaest.data.HeartbeatLogEntry
 import com.ether4o4.morsvitaest.data.MemoryEntry
 import com.ether4o4.morsvitaest.data.ScheduledTask
 import com.ether4o4.morsvitaest.data.TaskTrigger
+import com.ether4o4.morsvitaest.kairos.CouncilIntakeStatus
+import com.ether4o4.morsvitaest.kairos.MorsExecutionThrone
+import com.ether4o4.morsvitaest.kairos.MorsRuntimeRegistry
 import com.ether4o4.morsvitaest.ui.MorsVitaEstOutlinedTextField
 import com.ether4o4.morsvitaest.ui.components.SettingsListItem
 import com.ether4o4.morsvitaest.ui.handCursor
@@ -127,6 +131,9 @@ internal fun AgentContent(uiState: SettingsUiState, actions: SettingsActions) {
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     SettingsCard {
+                        CouncilIntakeCard()
+                    }
+                    SettingsCard {
                         HeartbeatSection(
                             isHeartbeatEnabled = uiState.isHeartbeatEnabled,
                             heartbeatIntervalMinutes = uiState.heartbeatIntervalMinutes,
@@ -211,6 +218,9 @@ internal fun AgentContent(uiState: SettingsUiState, actions: SettingsActions) {
                         soulText = uiState.soulText,
                         onSaveSoul = actions.onSaveSoul,
                     )
+                }
+                SettingsCard {
+                    CouncilIntakeCard()
                 }
                 SettingsCard {
                     MemoryList(
@@ -308,6 +318,108 @@ internal fun AgentContent(uiState: SettingsUiState, actions: SettingsActions) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CouncilIntakeCard() {
+    val packet = remember { MorsExecutionThrone.sampleCouncilPacket() }
+    val report = remember(packet) { MorsExecutionThrone.validate(packet) }
+    val snapshot = remember { MorsRuntimeRegistry.snapshot() }
+    val statusColor = when (report.status) {
+        CouncilIntakeStatus.ACCEPTED -> MaterialTheme.colorScheme.primary
+        CouncilIntakeStatus.NEEDS_APPROVAL -> MaterialTheme.colorScheme.tertiary
+        CouncilIntakeStatus.PARTIAL -> MaterialTheme.colorScheme.error
+        CouncilIntakeStatus.REJECTED -> MaterialTheme.colorScheme.error
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Council Intake",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "Colour Ceauxdid allocates agents, tools, and skills. MorsVitaEst validates the packet before anything executes.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            text = "Status: ${report.status.name.replace('_', ' ')}",
+            style = MaterialTheme.typography.labelLarge,
+            color = statusColor,
+        )
+        Spacer(Modifier.height(8.dp))
+
+        RuntimeMetricRow(label = "Mission", value = packet.title)
+        RuntimeMetricRow(
+            label = "Agents",
+            value = "${report.acceptedAgents.count { it.accepted }}/${packet.agents.size} accepted",
+        )
+        RuntimeMetricRow(
+            label = "Tools",
+            value = "${report.acceptedToolCount}/${packet.tools.size} accepted, ${report.blockedToolCount} blocked",
+        )
+        RuntimeMetricRow(label = "Runtime", value = "${snapshot.agents.size} agents, ${snapshot.tools.size} tools registered")
+
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Tool boundary",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(6.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            report.toolDecisions.forEach { decision ->
+                val label = when {
+                    !decision.accepted -> "${decision.toolId}: blocked"
+                    decision.requiresApproval -> "${decision.toolId}: approval"
+                    else -> "${decision.toolId}: ready"
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (decision.accepted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        report.findings.firstOrNull()?.let { finding ->
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = finding.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RuntimeMetricRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.width(72.dp),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
