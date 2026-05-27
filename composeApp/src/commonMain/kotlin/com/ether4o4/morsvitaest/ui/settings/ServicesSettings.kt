@@ -72,7 +72,7 @@ import com.ether4o4.morsvitaest.inference.LocalModel
 import com.ether4o4.morsvitaest.inference.calculateDevicePerformance
 import com.ether4o4.morsvitaest.inference.estimateGpuMemoryMb
 import com.ether4o4.morsvitaest.network.dtos.SponsorsResponseDto
-import com.ether4o4.morsvitaest.ui.KaiClearableTextField
+import com.ether4o4.morsvitaest.ui.MorsVitaEstClearableTextField
 import com.ether4o4.morsvitaest.ui.components.MorsVitaEstSlider
 import com.ether4o4.morsvitaest.ui.components.VerticalScrollbarForScroll
 import com.ether4o4.morsvitaest.ui.handCursor
@@ -649,7 +649,7 @@ private fun OpenAICompatibleSettings(
     onSelectModel: (String) -> Unit,
     connectionStatus: ConnectionStatus,
 ) {
-    KaiClearableTextField(
+    MorsVitaEstClearableTextField(
         value = baseUrl,
         onValueChange = onChangeBaseUrl,
         label = {
@@ -1027,7 +1027,7 @@ private fun ApiKeyField(
     testTag: String? = null,
     singleLine: Boolean = false,
 ) {
-    KaiClearableTextField(
+    MorsVitaEstClearableTextField(
         modifier = if (testTag != null) Modifier.testTag(testTag) else Modifier,
         value = apiKey,
         onValueChange = onChangeApiKey,

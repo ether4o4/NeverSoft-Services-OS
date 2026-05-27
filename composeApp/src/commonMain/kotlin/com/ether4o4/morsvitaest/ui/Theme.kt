@@ -36,20 +36,30 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-val darkPurple = Color(0xFF6200EE)
-val lightPurple = Color(0xff8063C5)
-val gradientBrush = androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(darkPurple, lightPurple))
+val morsRed = Color(0xFFB3261E)
+val emberRed = Color(0xFFE5484D)
+val gradientBrush = androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(morsRed, emberRed))
 
 // Animated border gradient colors
-val gradientPurple = Color(0xFF9C27B0)
-val gradientViolet = Color(0xFF7C4DFF)
-val gradientMagenta = Color(0xFFE040FB)
+val gradientCrimson = Color(0xFF7A1D1D)
+val gradientRed = Color(0xFFB3261E)
+val gradientEmber = Color(0xFFFF6B5F)
 
 fun Modifier.handCursor() = pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
 
 val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFBB86FC),
-    onPrimary = Color(0xFF000000),
+    primary = Color(0xFFFFB4AB),
+    onPrimary = Color(0xFF690005),
+    primaryContainer = Color(0xFF93000A),
+    onPrimaryContainer = Color(0xFFFFDAD6),
+    secondary = Color(0xFFE7BDB7),
+    onSecondary = Color(0xFF442925),
+    secondaryContainer = Color(0xFF5D3F3A),
+    onSecondaryContainer = Color(0xFFFFDAD6),
+    tertiary = Color(0xFFFFB59C),
+    onTertiary = Color(0xFF5D1700),
+    tertiaryContainer = Color(0xFF842300),
+    onTertiaryContainer = Color(0xFFFFDBD0),
     surface = Color(0xFF1E1E1E),
     background = Color(0xFF121212),
     onBackground = Color(0xFFFFFFFF),
@@ -99,8 +109,18 @@ fun Modifier.morsvitaestAdaptiveCardSurface(shape: Shape = CardDefaults.shape): 
     )
 
 val LightColorScheme = lightColorScheme(
-    primary = darkPurple,
+    primary = morsRed,
     onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFFFDAD6),
+    onPrimaryContainer = Color(0xFF410002),
+    secondary = Color(0xFF775651),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFFFDAD6),
+    onSecondaryContainer = Color(0xFF2C1512),
+    tertiary = Color(0xFF9C4230),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFFFDBD0),
+    onTertiaryContainer = Color(0xFF3A0A00),
     surface = Color(0xFFF2F2F2),
     background = Color(0xFFFFFFFF),
     onBackground = Color(0xFF000000),
@@ -144,7 +164,7 @@ fun MorsVitaEstOutlinedTextField(
 }
 
 @Composable
-fun KaiClearableTextField(
+fun MorsVitaEstClearableTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,

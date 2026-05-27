@@ -43,7 +43,7 @@ import com.ether4o4.morsvitaest.data.HeartbeatLogEntry
 import com.ether4o4.morsvitaest.data.ServiceEntry
 import com.ether4o4.morsvitaest.data.SmsSyncState
 import com.ether4o4.morsvitaest.ui.MorsVitaEstOutlinedTextField
-import com.ether4o4.morsvitaest.ui.components.KaiRangeSlider
+import com.ether4o4.morsvitaest.ui.components.MorsVitaEstRangeSlider
 import com.ether4o4.morsvitaest.ui.components.MorsVitaEstSlider
 import com.ether4o4.morsvitaest.ui.components.RefreshIconButton
 import com.ether4o4.morsvitaest.ui.components.SettingsListItem
@@ -191,7 +191,7 @@ internal fun HeartbeatSection(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
             }
-            KaiRangeSlider(
+            MorsVitaEstRangeSlider(
                 value = activeStart..activeEnd,
                 onValueChange = { range ->
                     activeStart = range.start

@@ -102,8 +102,8 @@ jobs:
           done
 
           # Configure git
-          git config --global user.name "Simon Schubert"
-          git config --global user.email "sschubert89@gmail.com"
+          git config --global user.name "ether4o4"
+          git config --global user.email "ether4o4@users.noreply.github.com"
 
           # Clone AUR repo, update files, push
           cd /tmp

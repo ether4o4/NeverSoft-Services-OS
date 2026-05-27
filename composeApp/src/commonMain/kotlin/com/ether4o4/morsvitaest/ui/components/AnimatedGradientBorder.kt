@@ -17,9 +17,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ether4o4.morsvitaest.ui.gradientMagenta
-import com.ether4o4.morsvitaest.ui.gradientPurple
-import com.ether4o4.morsvitaest.ui.gradientViolet
+import com.ether4o4.morsvitaest.ui.gradientCrimson
+import com.ether4o4.morsvitaest.ui.gradientEmber
+import com.ether4o4.morsvitaest.ui.gradientRed
 
 private const val STOP_A = 0f
 private const val STOP_B = 0.33f
@@ -44,9 +44,9 @@ fun Modifier.animatedGradientBorder(
     val colorStops = remember {
         arrayOf(
             0f to Color.Transparent,
-            0f to gradientPurple,
-            0f to gradientViolet,
-            0f to gradientMagenta,
+            0f to gradientCrimson,
+            0f to gradientRed,
+            0f to gradientEmber,
             1f to Color.Transparent,
         )
     }
@@ -66,9 +66,9 @@ fun Modifier.animatedGradientBorder(
             var posA = (STOP_A - p + 1f) % 1f
             var posB = (STOP_B - p + 1f) % 1f
             var posC = (STOP_C - p + 1f) % 1f
-            var colA = gradientPurple
-            var colB = gradientViolet
-            var colC = gradientMagenta
+            var colA = gradientCrimson
+            var colB = gradientRed
+            var colC = gradientEmber
             if (posA > posB) {
                 val tp = posA
                 posA = posB

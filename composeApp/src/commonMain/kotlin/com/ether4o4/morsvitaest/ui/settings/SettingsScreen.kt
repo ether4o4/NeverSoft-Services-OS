@@ -129,7 +129,7 @@ import com.ether4o4.morsvitaest.mcp.PopularMcpServer
 import com.ether4o4.morsvitaest.network.dtos.SponsorsResponseDto
 import com.ether4o4.morsvitaest.network.tools.ToolInfo
 import com.ether4o4.morsvitaest.saveFileToDevice
-import com.ether4o4.morsvitaest.ui.KaiClearableTextField
+import com.ether4o4.morsvitaest.ui.MorsVitaEstClearableTextField
 import com.ether4o4.morsvitaest.ui.MorsVitaEstOutlinedTextField
 import com.ether4o4.morsvitaest.ui.components.MorsVitaEstSlider
 import com.ether4o4.morsvitaest.ui.components.SettingsListItem

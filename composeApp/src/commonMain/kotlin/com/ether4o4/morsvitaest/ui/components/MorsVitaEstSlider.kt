@@ -33,12 +33,12 @@ fun MorsVitaEstSlider(
         modifier = modifier.handCursor(),
         valueRange = valueRange,
         steps = steps,
-        colors = kaiSliderColors(),
+        colors = morsVitaEstSliderColors(),
         thumb = { MorsVitaEstSliderThumb() },
         track = { sliderState ->
             SliderDefaults.Track(
                 sliderState = sliderState,
-                colors = kaiSliderTrackColors(),
+                colors = morsVitaEstSliderTrackColors(),
                 drawStopIndicator = null,
                 drawTick = { _, _ -> },
             )
@@ -47,7 +47,7 @@ fun MorsVitaEstSlider(
 }
 
 @Composable
-fun KaiRangeSlider(
+fun MorsVitaEstRangeSlider(
     value: ClosedFloatingPointRange<Float>,
     onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
     onValueChangeFinished: (() -> Unit)? = null,
@@ -67,7 +67,7 @@ fun KaiRangeSlider(
         track = { rangeSliderState ->
             SliderDefaults.Track(
                 rangeSliderState = rangeSliderState,
-                colors = kaiSliderTrackColors(),
+                colors = morsVitaEstSliderTrackColors(),
                 drawStopIndicator = null,
                 drawTick = { _, _ -> },
             )
@@ -85,7 +85,7 @@ private fun MorsVitaEstSliderThumb() {
 }
 
 @Composable
-private fun kaiSliderColors() = SliderDefaults.colors(
+private fun morsVitaEstSliderColors() = SliderDefaults.colors(
     thumbColor = MaterialTheme.colorScheme.primary,
     activeTrackColor = MaterialTheme.colorScheme.primary,
     inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -94,7 +94,7 @@ private fun kaiSliderColors() = SliderDefaults.colors(
 )
 
 @Composable
-private fun kaiSliderTrackColors() = SliderDefaults.colors(
+private fun morsVitaEstSliderTrackColors() = SliderDefaults.colors(
     activeTrackColor = MaterialTheme.colorScheme.primary,
     inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
 )
