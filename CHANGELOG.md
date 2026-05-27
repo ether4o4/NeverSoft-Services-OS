@@ -372,7 +372,6 @@
 - Add skills feature
 - Support text and PDF file attachments
 - Add minimax and zai services
-- Show LLM model performance ranking for Splinterlands auto battle
 - Add undo snackbars to revert deletions
 - Replace re-order arrows with drag and drop
 
@@ -386,7 +385,6 @@
 ## v1.10.0 — 2026-03-18
 
 ### Features
-- Add Splinterlands LLM auto-battle integration
 - Add web loading spinner
 - List sponsors on free tier UI
 - Add bottom scroll pointer icon and rounded corners stop icon

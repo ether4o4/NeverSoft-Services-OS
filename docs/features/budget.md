@@ -67,7 +67,6 @@ The budget section lives in the **Agent** tab, below Heartbeat. It shows:
 
 - Major providers (OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, OpenRouter, and others) report exact usage, so the daily cap is precise for them. Providers that omit usage are estimated and may under- or over-count.
 - The budget is measured in tokens, not currency — pricing varies per provider and model, and a token cap stays correct without a pricing table to maintain.
-- The Splinterlands auto-battle integration issues its LLM calls through a separate path that is not yet metered.
 
 ## Key Files
 

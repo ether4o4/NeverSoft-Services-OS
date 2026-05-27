@@ -1,215 +1,198 @@
 # MorsVitaEst
 
-<img src="https://img.shields.io/badge/Platform-Web-f7df1c?logo=javascript" alt="Web"> <img src="https://img.shields.io/badge/Platform-Android-34a853.svg?logo=android" alt="Android" /> <img src="https://img.shields.io/badge/Platform-iOS-lightgrey.svg?logo=apple" alt="iOS" /> <img src="https://img.shields.io/badge/Platform-Windows/macOS/Linux-e10707.svg?logo=openjdk" alt="Platform JVM" />
-<div align="center">
+MorsVitaEst is a mobile-first agent infrastructure project: an AI companion that can talk, reason, use tools, run local models, and grow into a practical operating layer for personal automation.
 
-<br>
-An **open-source AI assistant with persistent memory** that runs on **Android, iOS, Windows, Mac, Linux, and Web**.
+The name means **death is life**. The project is built around that idea: finished systems should not stay frozen. They should shed old shapes, absorb better ones, and keep becoming more useful without losing their center.
 
-**[Website](https://github.com/ether4o4/MorsVitaEst)** - **[Documentation](https://github.com/ether4o4/MorsVitaEst/tree/main/docs/)**
-</div>
+## What We Are Building Toward
+
+MorsVitaEst is not meant to be a single chatbot, a single model wrapper, or a one-off assistant app. The direction is a living agent environment that can run on a phone first, expand through connected tools, and coordinate multiple internal modes of thought without making the user manage every moving part.
+
+The near-term goal is a shippable Android app that keeps the strongest parts of the existing foundation while turning it into something clearly ours:
+
+- **Mobile-first AI runtime** for Android, with desktop and web kept as useful secondary targets
+- **Local model support** through Ollama, Termux, OpenAI-compatible endpoints, and on-device engines where practical
+- **Multi-agent orchestration** based around five color-coded modes that can separate planning, safety, execution, memory, and creative synthesis
+- **Tool-capable action loop** for search, shell, files, notifications, scheduling, MCP servers, and local bridge commands
+- **Voice-ready interface** that can support spoken replies and agent-specific voice personalities
+- **Persistent personal context** that helps the system feel continuous without turning every detail into visible machinery
+- **Heartbeat behavior** for periodic self-checks, pending work, and quiet resurfacing of things that matter
+- **Extensible skill layer** where new capabilities can be reviewed, added, tested, and used without rebuilding the whole app
+
+There is no final version in the usual sense. The end goal is a system designed to keep unfolding: stable enough to trust, flexible enough to change, and personal enough that it becomes more than a generic assistant.
+
+## Core Concept
+
+MorsVitaEst is the agent layer between the user, local devices, remote models, and useful tools.
+
+It should be able to:
+
+- Talk like a companion
+- Think like a planner
+- Act like an operator
+- Remember like a collaborator
+- Run locally whenever possible
+- Reach outward only when needed
+- Stay understandable to the person using it
+
+The app should feel direct and capable, not like a dashboard full of chores. The user should be able to open it on a phone, ask for something real, and watch the system decide which model, tool, mode, or agent lane should handle it.
+
+## Current Foundation
+
+The current codebase already includes major pieces worth carrying forward:
+
+- Cross-platform Kotlin/Compose application structure
+- Android, desktop, iOS, and web targets
+- Multi-service LLM provider support
+- OpenAI-compatible endpoint support
+- Local/on-device inference path
+- MCP server support
+- Dynamic and interactive UI rendering
+- Memory, scheduling, heartbeat, and task infrastructure
+- Secure settings import/export
+- Encrypted local conversation storage
+- Tool execution pathways
+- Text-to-speech support
+- Android Linux sandbox support
+
+MorsVitaEst keeps those capabilities, then redirects the product around agent infrastructure instead of novelty demos or unrelated integrations.
+
+## Mobile-First Local AI
+
+The phone matters. MorsVitaEst should not assume a cloud server, a desktop, or a perfect network.
+
+Primary mobile priorities:
+
+- Connect to local Ollama from Android/Termux when available
+- Support OpenAI-compatible local endpoints
+- Detect and list usable local models
+- Fall back cleanly between local and remote providers
+- Keep sensitive keys and config in secure storage
+- Provide clear health states when a model server is offline
+- Make small LLMs useful through tighter prompts, smaller context, and focused tool routes
+
+The target experience is simple: if a model is running on the phone, MorsVitaEst should be able to see it, use it, and explain what is happening without making the setup feel like a science project.
+
+## Five-Color Agent System
+
+The color framework is the organizing language for the app's internal agency.
+
+- **Red**: action, shell, tools, direct execution
+- **Blue**: structure, planning, architecture, review
+- **Green**: growth, research, synthesis, capability expansion
+- **Yellow**: user experience, communication, visibility, guidance
+- **Purple**: safety, boundaries, identity, long-range coherence
+
+The point is not to create five gimmick personas. The point is to split responsibility so the system can move fast without becoming careless. A single request may pass through one color or several depending on risk, complexity, and context.
+
+## Agent Infrastructure
+
+MorsVitaEst is being shaped as an infrastructure app, not just a chat screen.
+
+Core systems:
+
+- **Conversation core**: normal chat, tool calls, model routing, attachments, generated UI
+- **Runtime core**: provider selection, local endpoint health, model capability metadata
+- **Tool core**: MCP servers, native tools, local bridge, shell/sandbox execution
+- **Memory core**: personal context, preferences, lessons, durable continuity
+- **Heartbeat core**: periodic review, scheduled work, quiet reminders, background readiness
+- **Skill core**: installable capabilities with metadata, permissions, tests, and rollback paths
+- **Safety core**: permission boundaries, budget limits, local/remote separation, explicit user control
+
+The deeper growth layer should stay quiet from the outside. The user sees useful capability. The system handles the shape beneath it.
+
+## Feature Direction
+
+### MVP
+
+- Android-first app identity under MorsVitaEst
+- Working chat with local and remote model providers
+- Ollama/Termux endpoint setup and model discovery
+- Five-color agent mode selector and routing metadata
+- Local tool bridge for private shell, scrape, and voice workflows
+- MCP server connection management
+- Memory, tasks, heartbeat, and settings import/export
+- Clear provider health checks and fallback behavior
+
+### Next Layer
+
+- Agent lane visualization without clutter
+- Voice personalities per color or agent role
+- Skill registry with trust levels and install states
+- Local model profiles for small LLM behavior
+- Mobile sandbox workflows for Python, Node, git, and package installs
+- Better background execution controls on Android
+
+### Long Arc
+
+- A personal operating layer that can coordinate local models, remote models, tools, files, voice, and scheduled work
+- A system that improves through use without making the user babysit every improvement
+- An agent that feels continuous across sessions, devices, and tasks
 
 ## Installation
 
-[![App Store](https://raw.githubusercontent.com/ether4o4/MorsVitaEst/main/screenshots/app_store_badge.png)](https://apps.apple.com/us/app/morsvitaest/id6758148023)
-[![Play Store](https://raw.githubusercontent.com/ether4o4/MorsVitaEst/main/screenshots/play_store_badge.png)](https://play.google.com/store/apps/details?id=com.ether4o4.morsvitaest)
-[![F-Droid](https://raw.githubusercontent.com/ether4o4/MorsVitaEst/main/screenshots/fdroid_badge.png)](https://f-droid.org/en/packages/com.ether4o4.morsvitaest/)
-[![Web](https://raw.githubusercontent.com/ether4o4/MorsVitaEst/main/screenshots/web_badge.png)](https://ether4o4.github.io/MorsVitaEst/)
-
-Homebrew (macOS):
-
-```
-brew install --cask ether4o4/tap/morsvitaest
-```
-
-AUR (Arch Linux):
-
-```
-yay -S morsvitaest-bin
-```
-
-Winget (Windows):
-
-```
-winget install ether4o4.MorsVitaEst
-```
-
-### Direct Downloads
+Direct builds will be published through GitHub Releases as the project stabilizes:
 
 | Platform | Format | Download |
 |----------|--------|----------|
 | Android | APK | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
 | macOS | DMG | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
 | Windows | MSI | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
-| Linux | DEB | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
-| Linux | RPM | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
-| Linux | AppImage | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
+| Linux | DEB/RPM/AppImage | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
+| Web | Static/Web app | [Project site](https://ether4o4.github.io/MorsVitaEst/) |
 
-## AI That Builds Screens, Not Just Text
+## Local Model Notes
 
-MorsVitaEst's Interactive UI lets the AI generate full interactive screens — quizzes, dashboards, recipes, brainstorms, and more. Navigate by tapping buttons instead of scrolling through chat.
+For Android-first local work, the expected path is:
 
-<img src="screenshots/interactive-survival.png" alt="Survival Game" height="300"> <img src="screenshots/interactive-recipe.png" alt="Recipe Card" height="300"> <img src="screenshots/interactive-ecopulse.png" alt="EcoPulse Brainstorm" height="300"> <img src="screenshots/interactive-memories.png" alt="Memories" height="300">
+1. Run a compatible model server on-device or nearby.
+2. Point MorsVitaEst at the local OpenAI-compatible or Ollama endpoint.
+3. Let the app test the endpoint, list models, and route requests based on what is available.
 
-## Features
+The app should support cloud models, but the soul of the project is local-first control.
 
-- **Persistent memory** — MorsVitaEst remembers important details across conversations and uses them automatically
-- **Customizable soul** — Define the AI's personality and behavior with an editable system prompt
-- **Multi-service fallback** — 24 LLM providers with automatic failover
-- **On-device inference** — Run AI models locally on Android using LiteRT, no internet needed
-- **Tool execution** — Web search, notifications, calendar events, shell commands, and more
-- **MCP server support** — Connect to remote tool servers via the Model Context Protocol
-- **Autonomous heartbeat** — Periodic self-checks that surface anything needing attention
-- **Budget governor** — Track token usage per day, cap daily spend, and auto-pause background activity (heartbeat & tasks) when the cap is reached
-- **Settings export/import** — Backup and restore all settings as a JSON file
-- **Encrypted storage** — Conversations stored locally with encryption
-- **Text to speech** — Listen to AI responses
-- **Linux Sandbox** — On Android, the AI can run shell commands, scripts, and tools in a secure sandboxed Linux environment
-- **Image attachments** — Attach images to any conversation
+## Supported AI Services
 
-## Linux Sandbox (Android)
+The foundation supports a broad provider layer, including:
 
-On Android, MorsVitaEst includes a built-in Linux environment that the AI can use to execute shell commands, run scripts, and operate tools on your behalf. This turns MorsVitaEst from a chat-only assistant into one that can take real action — installing packages, processing data, running Python scripts, and more.
-
-- **Powered by Alpine Linux** — A lightweight ~3 MB download sets up a full Linux userland via [proot](https://proot-me.github.io/), no root required
-- **Optional packages** — One tap installs bash, curl, wget, git, jq, python3, pip, and Node.js
-- **Interactive terminal** — A built-in terminal lets you run commands manually alongside the AI
-- **Secure** — Everything runs sandboxed inside the app with no access to the host system
-
-Enable it in **Settings > Linux Sandbox**.
-
-<img src="screenshots/mobile-7.png" alt="Linux Sandbox" height="300">
-
-## Screenshots
-
-### Desktop
-
-<img src="screenshots/desktop-1.png" alt="Desktop App" height="300">
-
-### Web
-
-<img src="screenshots/web-1.png" alt="Web App" height="300">
-
-### Mobile
-
-<img src="screenshots/mobile-1.png" alt="Mobile Screenshot 1" height="300"> <img src="screenshots/mobile-2.png" alt="Mobile Screenshot 2" height="300"> <img src="screenshots/mobile-3.png" alt="Mobile Screenshot 3" height="300"> <img src="screenshots/mobile-4.png" alt="Mobile Screenshot 4" height="300"> <img src="screenshots/mobile-5.png" alt="Mobile Screenshot 5" height="300"> <img src="screenshots/mobile-6.png" alt="Mobile Screenshot 6" height="300">
-
-## How It Works
-
-```
-                        ┌────────┐
-                        │  User  │
-                        └───┬────┘
-                            │ message
-                            ▼
-               ┌─────────────────────────┐
-               │          Chat           │
-               │                         │
-               │  prompt + memories      │
-               │        │                │
-               │        ▼                │
-               │    ┌────────┐           │
-               │    │   AI   │◀─┐        │
-               │    └───┬────┘  │        │
-               │        │   tool calls   │
-               │        │   & results    │
-               │        ▼      │        │
-               │    ┌────────┐ │        │
-               │    │ Tools  │─┘        │
-               │    └───┬────┘          │
-               │        │               │
-               └────────┼───────────────┘
-                        │ store / recall
-                        ▼
-               ┌─────────────────┐    hitCount >= 5
-               │     Memory      │───────────────────┐
-               │                 │                   │
-               │  facts, prefs,  │                   ▼
-               │  learnings      │          ┌────────────────┐
-               │                 │◀─delete──│ Promote into   │
-               └─────────────────┘          │ System Prompt  │
-                        ▲                   └────────────────┘
-                        │ reviews
-                        │
-               ┌─────────────────┐
-               │    Heartbeat    │
-               │                 │
-               │  autonomous     │
-               │  self-check     │
-               │  every 30 min   │
-               │  (8am–10pm)     │
-               │                 │
-               │  all good?      │
-               │  → stays silent │
-               │  needs action?  │
-               │  → notifies user│
-               └─────────────────┘
-```
-
-- **Chat** — User sends a message. The AI responds, calling tools (memory, web search, shell, etc.) in a loop until it has a final answer.
-- **Memory** — The AI stores and recalls facts, preferences, and learnings. Memories that prove useful (5+ hits) can be promoted into the system prompt permanently.
-- **Heartbeat** — A background self-check runs every 30 minutes. It reviews memories, pending tasks, and emails. If something needs attention, it notifies the user. Otherwise, it stays silent.
-
-## Supported Services
-
-[Anthropic](https://console.anthropic.com) · [OpenAI](https://openai.com) · [Gemini](https://aistudio.google.com) · [DeepSeek](https://www.deepseek.com) · [Mistral](https://mistral.ai) · [xAI](https://x.ai) · [OpenRouter](https://openrouter.ai) · [Groq](https://groq.com) · [NVIDIA](https://developer.nvidia.com) · [Cerebras](https://cerebras.ai) · [Ollama Cloud](https://ollama.com) · [LongCat](https://longcat.chat) · [Together AI](https://together.ai) · [Hugging Face](https://huggingface.co) · [Venice AI](https://venice.ai) · [Moonshot AI](https://moonshot.cn) · [Z.AI](https://z.ai) · [MiniMax](https://minimax.io) · [AIHubMix](https://aihubmix.com) · [Deep Infra](https://deepinfra.com) · [Fireworks AI](https://fireworks.ai) · [OpenCode](https://opencode.ai) · OpenAI-Compatible API · LiteRT On-Device (Android) · Free tier (no API key needed)
+Anthropic, OpenAI, Gemini, DeepSeek, Mistral, xAI, OpenRouter, Groq, NVIDIA, Cerebras, Ollama Cloud, Together AI, Hugging Face, Venice AI, Moonshot AI, Z.AI, MiniMax, AIHubMix, Deep Infra, Fireworks AI, OpenCode, OpenAI-compatible APIs, and local/on-device engines.
 
 ## MCP Servers
 
-MorsVitaEst supports the [Model Context Protocol](https://modelcontextprotocol.io/) for connecting to external tool servers. Go to **Settings > Tools > Add MCP Server** to connect to any Streamable HTTP MCP endpoint, or pick from a curated list of popular free servers:
+MorsVitaEst supports the [Model Context Protocol](https://modelcontextprotocol.io/) for external tools.
 
-| Server | Description |
-|--------|-------------|
-| Fetch | Fetch web content and convert HTML to markdown |
-| DeepWiki | AI-powered docs for any GitHub repo |
-| Sequential Thinking | Structured step-by-step problem-solving |
-| Context7 | Up-to-date library and framework docs |
-| Globalping | Ping, traceroute, DNS from global probes |
-| CoinGecko | Real-time crypto prices and market data |
-| Manifold Markets | Prediction market data and odds |
-| Find-A-Domain | Domain availability across 1,444+ TLDs |
+Useful server categories:
 
-All popular servers are free and require no API key. MCP servers auto-reconnect on app startup.
+- Fetch and web content tools
+- Documentation and code lookup
+- Structured reasoning tools
+- Search and knowledge tools
+- Local or private tool bridges
+- Domain-specific automation endpoints
 
-## Integrations
+MCP is one of the main ways MorsVitaEst becomes more than a text box.
 
-### Splinterlands Auto-Battle (Android & Desktop)
+## Development Notes
 
-MorsVitaEst can automatically play [Splinterlands](https://splinterlands.com) Wild Ranked battles. Configure one or more LLM services in priority order, add your Hive account, and hit Start -- MorsVitaEst will continuously find matches, pick teams using LLM-powered strategy, and submit them on-chain. Falls back to a simple greedy picker if all LLM services fail. Available in **Settings > Integrations**.
-
-## Supported Languages
-
-Afrikaans, Albanian, Amharic, Arabic, Belarusian, Bengali, Bulgarian, Chinese (Simplified), Chinese (Traditional), Croatian, Czech, Danish, Dutch, English, Estonian, Filipino, Finnish, French, German, Greek, Gujarati, Hebrew, Hindi, Hungarian, Indonesian, Italian, Japanese, Kazakh, Korean, Latvian, Lithuanian, Malay, Marathi, Norwegian, Persian, Polish, Portuguese, Punjabi, Romanian, Romansh, Russian, Serbian, Slovak, Slovenian, Spanish, Swahili, Swedish, Tamil, Telugu, Thai, Turkish, Ukrainian, Urdu, Vietnamese, Zulu
-
-## Contributing
-
-### Screenshot Automation
-
-Two separate screenshot pipelines exist, both using Compose screenshot tests:
-
-**README screenshots** — Used for this README. CI runs this automatically on every push and auto-commits any changes.
+Common useful commands:
 
 ```bash
+./gradlew :composeApp:desktopTest
+./gradlew :composeApp:assembleDebug
 ./gradlew :screenshotTests:updateScreenshots
 ```
 
-**Store screenshots** — Generates localized screenshots for the Play Store in all supported locales. Upload via fastlane.
+Android and local-model workflows should be treated as first-class during development. A change that only works comfortably on desktop is not finished.
 
-```bash
-./gradlew :screenshotTests:generateStoreScreenshots
-bundle exec fastlane android upload_screenshots
-```
+## Project Direction
 
-**MorsVitaEst UI component screenshots** — Records golden images for `MorsVitaEstUiScreenshotTest` only. Faster than recording the full suite when iterating on MorsVitaEst UI components.
+MorsVitaEst is a rebuild of intent, not just a rename. The foundation gives us a working cross-platform assistant. The work now is to make it a personal agent system with its own identity:
 
-```bash
-./gradlew :screenshotTests:recordMorsVitaEstUiScreenshots
-```
+- Less demo surface
+- More real capability
+- Less generic assistant
+- More mobile operator
+- Less static app
+- More living infrastructure
 
-## Sponsors
-
-This project is open-source and maintained by a single developer. If you find this app useful, please consider sponsoring to help take it to the next level with more features and faster updates.
-
-## Credits
-
-- Mistral: https://mistral.ai/
+MorsVitaEst is meant to keep becoming.

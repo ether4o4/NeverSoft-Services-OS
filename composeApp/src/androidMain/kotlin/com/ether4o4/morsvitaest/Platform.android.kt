@@ -111,7 +111,7 @@ actual val isNotificationsSupported: Boolean by lazy {
     }
 }
 
-actual val isSplinterlandsSupported: Boolean = true
+actual val isSplinterlandsSupported: Boolean = false
 
 actual suspend fun compressImageBytes(bytes: ByteArray, mimeType: String): ByteArray {
     if (!mimeType.startsWith("image/")) return bytes

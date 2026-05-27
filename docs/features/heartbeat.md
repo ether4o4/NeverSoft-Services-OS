@@ -69,7 +69,7 @@ The heartbeat prompt is assembled by the pure function `buildHeartbeatPrompt` (i
 7. **New notifications** — Android notifications captured since the last heartbeat, capped at 20 newest-first. Consumed analogously to emails: buffered as they arrive, surfaced once under `## New Notifications`, and cleared from the pending queue after a successful run so the next heartbeat only sees newer arrivals
 8. **Promotion candidates** — memories with 5 or more hits are listed with their key, hit count, category, and content, along with a suggestion to use the `promote_learning` tool
 
-For the full contract of every prompt variation in MorsVitaEst (chat remote/local, heartbeat, Splinterlands) see [system-prompts.md](system-prompts.md).
+For the full contract of every prompt variation in MorsVitaEst (chat remote/local and heartbeat) see [system-prompts.md](system-prompts.md).
 
 ## Heartbeat Log
 
