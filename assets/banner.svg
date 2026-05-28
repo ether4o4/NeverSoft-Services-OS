@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 560" width="1280" height="560" role="img" aria-label="MorsVitaEst — The Final AI Infrastructure">
+  <title>MorsVitaEst — The Final AI Infrastructure</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="50%" stop-color="#0a0a0b"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="gRed" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff1414" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#780000" stop-opacity="0.75"/>
+    </linearGradient>
+    <linearGradient id="gWhite" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#3c3c3c" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="gDarkRed" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#b40000" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#140000" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="divider" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#dc2626" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="dividerSm" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#ef4444" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="coreDisk" cx="40%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#b91c1c"/>
+      <stop offset="55%" stop-color="#1a0000"/>
+      <stop offset="100%" stop-color="#18181b"/>
+    </radialGradient>
+    <radialGradient id="redAmbient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#b91c1c" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#b91c1c" stop-opacity="0"/>
+    </radialGradient>
+
+    <clipPath id="blade" clipPathUnits="objectBoundingBox">
+      <polygon points="0,0.5 0.18,0 1,0.35 0.82,1"/>
+    </clipPath>
+    <clipPath id="frame">
+      <rect x="0" y="0" width="1280" height="560" rx="18"/>
+    </clipPath>
+
+    <filter id="glowRed" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="gb"/>
+      <feFlood flood-color="#ff2a2a" flood-opacity="0.55"/>
+      <feComposite in2="gb" operator="in" result="glow"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="soft"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="soft"/></feMerge>
+    </filter>
+    <filter id="glowWhite" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="gb"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.22"/>
+      <feComposite in2="gb" operator="in" result="glow"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="soft"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="soft"/></feMerge>
+    </filter>
+    <filter id="diskGlow" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="26" result="gb"/>
+      <feFlood flood-color="#ff0000" flood-opacity="0.45"/>
+      <feComposite in2="gb" operator="in" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#ff0000" flood-opacity="0.95"/>
+    </filter>
+    <filter id="softBlur" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="38"/>
+    </filter>
+    <style>
+    .wave{transform-box:fill-box;transform-origin:center;
+      animation-timing-function:ease-in-out;animation-iteration-count:infinite;
+      animation-direction:alternate;will-change:transform}
+    .spin{transform-box:fill-box;transform-origin:center;
+      animation-name:spin;animation-timing-function:linear;
+      animation-iteration-count:infinite}
+    .pip{font-family:'Courier New',monospace;font-size:11px;fill:#ef4444;
+      opacity:.16;text-anchor:middle;animation-name:pulse;
+      animation-timing-function:ease-in-out;animation-iteration-count:infinite}
+    .core-glyph{animation:pulseCore 2.4s ease-in-out infinite}
+    .ambient{animation:pulseGlow 4s ease-in-out infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:.05}50%{opacity:.34}}
+    @keyframes pulseCore{0%,100%{opacity:1}50%{opacity:.62}}
+    @keyframes pulseGlow{0%,100%{opacity:.14}50%{opacity:.05}}
+    @keyframes wave0{0%{transform:translateY(0) rotate(0deg) skewX(-22deg)}
+      100%{transform:translateY(-30px) rotate(4deg) skewX(-18deg)}}
+    @keyframes wave1{0%{transform:translateY(0) rotate(10deg) skewX(-20deg)}
+      100%{transform:translateY(20px) rotate(15deg) skewX(-24deg)}}
+    @keyframes wave2{0%{transform:translateY(0) rotate(-8deg) skewX(-18deg)}
+      100%{transform:translateY(-25px) rotate(-2deg) skewX(-20deg)}}
+    @keyframes wave3{0%{transform:translateY(0) rotate(18deg) skewX(-24deg)}
+      100%{transform:translateY(28px) rotate(22deg) skewX(-18deg)}}
+    @keyframes wave4{0%{transform:translateY(0) rotate(-16deg) skewX(-20deg)}
+      100%{transform:translateY(-18px) rotate(-10deg) skewX(-26deg)}}
+    @media (prefers-reduced-motion:reduce){
+      .wave,.spin,.pip,.core-glyph,.ambient{animation:none}}
+</style>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <!-- background -->
+    <rect x="0" y="0" width="1280" height="560" fill="#000000"/>
+    <rect x="0" y="0" width="1280" height="560" fill="url(#bg)"/>
+
+    <!-- procedural wave field -->
+    <g opacity="0.95" transform="translate(-8,-103) scale(0.82)">
+      <rect x="0.0" y="260.0" width="260" height="80" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave0;animation-duration:5.0s"/>
+      <rect x="28.0" y="333.9" width="272" height="88" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave1;animation-duration:5.12s"/>
+      <rect x="56.0" y="393.2" width="284" height="96" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave2;animation-duration:5.24s"/>
+      <rect x="84.0" y="425.9" width="296" height="104" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave3;animation-duration:5.36s"/>
+      <rect x="112.0" y="425.6" width="308" height="112" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave4;animation-duration:5.48s"/>
+      <rect x="140.0" y="392.3" width="320" height="120" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave0;animation-duration:5.6s"/>
+      <rect x="168.0" y="332.7" width="332" height="128" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave1;animation-duration:5.72s"/>
+      <rect x="196.0" y="258.6" width="344" height="136" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave2;animation-duration:5.84s"/>
+      <rect x="224.0" y="184.8" width="356" height="144" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave3;animation-duration:5.96s"/>
+      <rect x="252.0" y="126.0" width="368" height="152" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave4;animation-duration:6.08s"/>
+      <rect x="280.0" y="93.8" width="380" height="160" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave0;animation-duration:6.2s"/>
+      <rect x="308.0" y="94.8" width="392" height="168" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave1;animation-duration:6.32s"/>
+      <rect x="336.0" y="128.6" width="404" height="176" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave2;animation-duration:6.44s"/>
+      <rect x="364.0" y="188.6" width="416" height="184" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave3;animation-duration:6.56s"/>
+      <rect x="392.0" y="262.9" width="428" height="192" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave4;animation-duration:6.68s"/>
+      <rect x="420.0" y="336.5" width="440" height="200" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave0;animation-duration:6.8s"/>
+      <rect x="448.0" y="394.9" width="452" height="208" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave1;animation-duration:6.92s"/>
+      <rect x="476.0" y="426.5" width="464" height="216" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave2;animation-duration:7.04s"/>
+      <rect x="504.0" y="424.9" width="476" height="224" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave3;animation-duration:7.16s"/>
+      <rect x="532.0" y="390.5" width="488" height="232" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave4;animation-duration:7.28s"/>
+      <rect x="560.0" y="330.1" width="500" height="240" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave0;animation-duration:7.4s"/>
+      <rect x="588.0" y="255.7" width="512" height="248" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave1;animation-duration:7.52s"/>
+      <rect x="616.0" y="182.2" width="524" height="256" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave2;animation-duration:7.64s"/>
+      <rect x="644.0" y="124.2" width="536" height="264" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave3;animation-duration:7.76s"/>
+      <rect x="672.0" y="93.2" width="548" height="272" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave4;animation-duration:7.88s"/>
+      <rect x="700.0" y="95.5" width="560" height="280" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave0;animation-duration:8.0s"/>
+      <rect x="728.0" y="130.5" width="572" height="288" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave1;animation-duration:8.12s"/>
+      <rect x="756.0" y="191.2" width="584" height="296" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave2;animation-duration:8.24s"/>
+      <rect x="784.0" y="265.7" width="596" height="304" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave3;animation-duration:8.36s"/>
+      <rect x="812.0" y="339.0" width="608" height="312" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave4;animation-duration:8.48s"/>
+      <rect x="840.0" y="396.6" width="620" height="320" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave0;animation-duration:8.6s"/>
+      <rect x="868.0" y="427.0" width="632" height="328" rx="22" fill="url(#gDarkRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave1;animation-duration:8.72s"/>
+      <rect x="896.0" y="424.2" width="644" height="336" rx="22" fill="url(#gWhite)" clip-path="url(#blade)" filter="url(#glowRed)" class="wave" style="animation-name:wave2;animation-duration:8.84s"/>
+      <rect x="924.0" y="388.6" width="656" height="344" rx="22" fill="url(#gRed)" clip-path="url(#blade)" filter="url(#glowWhite)" class="wave" style="animation-name:wave3;animation-duration:8.96s"/>
+    </g>
+
+    <!-- dark overlay -->
+    <rect x="0" y="0" width="1280" height="560" fill="#000000" opacity="0.4"/>
+
+    <!-- ambient glows -->
+    <circle class="ambient" cx="640" cy="210" r="300" fill="url(#redAmbient)" filter="url(#softBlur)"/>
+    <circle class="spin" cx="640" cy="210" r="220" fill="none" stroke="#ef4444"
+            stroke-opacity="0.12" stroke-width="1" stroke-dasharray="2 16"
+            style="animation-duration:22s"/>
+
+    <!-- core -->
+    <circle cx="640" cy="210" r="82" fill="url(#coreDisk)" filter="url(#diskGlow)"/>
+    <circle class="spin" cx="640" cy="210" r="112" fill="none" stroke="#ef4444"
+            stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="1.5 13"
+            style="animation-duration:10s"/>
+    <circle class="spin" cx="640" cy="210" r="100" fill="none" stroke="#ffffff"
+            stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 11"
+            style="animation-duration:6s;animation-direction:reverse"/>
+
+    <g class="core-glyph">
+      <text x="640" y="210" text-anchor="middle" dominant-baseline="central"
+            font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+            font-weight="900" font-size="66" letter-spacing="13"
+            fill="#ef4444" filter="url(#textGlow)">MVE</text>
+    </g>
+    <rect x="592" y="256" width="96" height="2" fill="url(#dividerSm)" class="core-glyph"/>
+
+    <!-- orbit particles -->
+    <g class="spin" style="animation-duration:14s">
+      <circle cx="640" cy="98" r="4" fill="#ef4444" filter="url(#glowRed)"/><circle cx="640" cy="322" r="4" fill="#ffffff" filter="url(#glowWhite)"/><circle cx="528" cy="210" r="4" fill="#b91c1c" filter="url(#glowRed)"/><circle cx="752" cy="210" r="4" fill="#d4d4d8" filter="url(#glowWhite)"/>
+    </g>
+
+    <!-- branding -->
+    <text x="640" y="398" text-anchor="middle"
+          font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+          font-weight="900" font-size="44" letter-spacing="15" fill="#ffffff">MORSVITAEST</text>
+    <rect x="340" y="422" width="600" height="2" fill="url(#divider)"/>
+    <text x="640" y="456" text-anchor="middle"
+          font-family="'Helvetica Neue',Arial,sans-serif"
+          font-size="13" letter-spacing="8" fill="#d4d4d8">THE FINAL AI INFRASTRUCTURE</text>
+    <text x="640" y="482" text-anchor="middle"
+          font-family="'Helvetica Neue',Arial,sans-serif"
+          font-size="10" letter-spacing="3" fill="#71717a">NEVERSOFT SERVICES</text>
+
+    <!-- floating glyphs -->
+    <g>
+      <text x="818.5" y="14.0" class="pip" style="animation-duration:3.22s;animation-delay:0.56s">MVE</text>
+      <text x="131.2" y="414.8" class="pip" style="animation-duration:2.43s;animation-delay:1.69s">NULL</text>
+      <text x="38.1" y="122.4" class="pip" style="animation-duration:5.01s;animation-delay:2.24s">NULL</text>
+      <text x="916.5" y="392.7" class="pip" style="animation-duration:3.1s;animation-delay:2.36s">01</text>
+      <text x="1036.1" y="3.6" class="pip" style="animation-duration:5.49s;animation-delay:1.36s">SYS</text>
+      <text x="199.0" y="536.0" class="pip" style="animation-duration:2.51s;animation-delay:1.52s">MVE</text>
+      <text x="459.5" y="192.6" class="pip" style="animation-duration:6.04s;animation-delay:2.92s">MVE</text>
+      <text x="686.4" y="544.9" class="pip" style="animation-duration:2.39s;animation-delay:1.17s">01</text>
+      <text x="804.7" y="495.9" class="pip" style="animation-duration:4.89s;animation-delay:2.82s">MVE</text>
+      <text x="58.7" y="127.6" class="pip" style="animation-duration:6.93s;animation-delay:3.42s">MVE</text>
+      <text x="1109.1" y="212.9" class="pip" style="animation-duration:5.18s;animation-delay:1.46s">01</text>
+      <text x="473.8" y="117.3" class="pip" style="animation-duration:5.51s;animation-delay:2.73s">MVE</text>
+      <text x="91.4" y="355.6" class="pip" style="animation-duration:5.65s;animation-delay:0.65s">NULL</text>
+      <text x="485.7" y="554.1" class="pip" style="animation-duration:3.1s;animation-delay:1.3s">NULL</text>
+      <text x="983.4" y="31.3" class="pip" style="animation-duration:6.03s;animation-delay:1.6s">∞</text>
+      <text x="84.7" y="511.4" class="pip" style="animation-duration:6.38s;animation-delay:1.26s">NULL</text>
+      <text x="839.0" y="221.6" class="pip" style="animation-duration:2.71s;animation-delay:0.56s">01</text>
+      <text x="953.6" y="301.8" class="pip" style="animation-duration:4.14s;animation-delay:2.33s">NULL</text>
+      <text x="463.4" y="558.5" class="pip" style="animation-duration:4.55s;animation-delay:0.36s">SYS</text>
+      <text x="60.3" y="61.4" class="pip" style="animation-duration:5.96s;animation-delay:1.69s">SYS</text>
+      <text x="81.3" y="213.7" class="pip" style="animation-duration:4.65s;animation-delay:3.88s">01</text>
+      <text x="1101.8" y="6.4" class="pip" style="animation-duration:5.41s;animation-delay:2.15s">∞</text>
+      <text x="341.5" y="358.9" class="pip" style="animation-duration:3.47s;animation-delay:0.63s">∞</text>
+      <text x="4.2" y="404.4" class="pip" style="animation-duration:6.86s;animation-delay:3.05s">MVE</text>
+      <text x="649.8" y="59.6" class="pip" style="animation-duration:6.21s;animation-delay:2.03s">MVE</text>
+      <text x="254.6" y="209.4" class="pip" style="animation-duration:4.7s;animation-delay:3.11s">SYS</text>
+      <text x="678.9" y="0.3" class="pip" style="animation-duration:4.44s;animation-delay:0.45s">MVE</text>
+      <text x="464.6" y="551.8" class="pip" style="animation-duration:3.2s;animation-delay:0.96s">MVE</text>
+      <text x="726.2" y="44.1" class="pip" style="animation-duration:6.08s;animation-delay:3.91s">01</text>
+      <text x="681.9" y="70.4" class="pip" style="animation-duration:6.73s;animation-delay:0.66s">01</text>
+      <text x="675.4" y="339.7" class="pip" style="animation-duration:6.64s;animation-delay:3.02s">SYS</text>
+      <text x="883.0" y="399.3" class="pip" style="animation-duration:6.98s;animation-delay:2.6s">01</text>
+      <text x="560.8" y="289.8" class="pip" style="animation-duration:3.24s;animation-delay:0.26s">∞</text>
+      <text x="26.9" y="310.2" class="pip" style="animation-duration:3.1s;animation-delay:0.28s">NULL</text>
+      <text x="807.8" y="128.2" class="pip" style="animation-duration:6.3s;animation-delay:0.28s">∞</text>
+      <text x="304.6" y="374.6" class="pip" style="animation-duration:4.7s;animation-delay:2.89s">SYS</text>
+      <text x="1129.5" y="322.7" class="pip" style="animation-duration:5.92s;animation-delay:3.23s">SYS</text>
+      <text x="243.7" y="54.3" class="pip" style="animation-duration:3.77s;animation-delay:1.64s">01</text>
+      <text x="1105.7" y="30.3" class="pip" style="animation-duration:2.3s;animation-delay:2.91s">∞</text>
+      <text x="1024.8" y="61.2" class="pip" style="animation-duration:2.95s;animation-delay:1.79s">SYS</text>
+    </g>
+  </g>
+
+  <!-- frame border -->
+  <rect x="0.5" y="0.5" width="1279" height="559" rx="18" fill="none"
+        stroke="#ef4444" stroke-opacity="0.18" stroke-width="1"/>
+</svg>
