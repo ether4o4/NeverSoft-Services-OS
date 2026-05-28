@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.svg" alt="MorsVitaEst — The Final AI Infrastructure" width="100%" />
+</p>
+
 # MorsVitaEst
 
 MorsVitaEst is a mobile-first agent infrastructure project: an AI companion that can talk, reason, use tools, run local models, and grow into a practical operating layer for personal automation.
