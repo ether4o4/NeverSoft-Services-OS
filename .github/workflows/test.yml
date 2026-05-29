@@ -108,4 +108,13 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add -A
           git commit -m "Auto-fix: spotlessApply and updateScreenshots [skip ci]"
-          git push
+          # Best-effort push. This step is a convenience that lands formatting/screenshot
+          # fixes automatically — it is NOT a pass/fail gate (desktopTest above is). When the
+          # repository's default Actions token is read-only (Settings -> Actions -> General ->
+          # Workflow permissions), the push is rejected with a 403 even though the job declares
+          # `contents: write`, which previously failed every PR here. Warn instead of failing.
+          # To actually land auto-fixes, set Workflow permissions to "Read and write", or run
+          # `./gradlew spotlessApply :screenshotTests:updateScreenshots` locally and push.
+          if ! git push; then
+            echo "::warning::Auto-fix changes were computed but could not be pushed (read-only Actions token). See the note in .github/workflows/test.yml."
+          fi
