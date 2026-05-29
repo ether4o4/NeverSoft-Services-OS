@@ -1,0 +1,91 @@
+name: Preview APK
+
+# Builds a sideloadable Android preview for every pull request so reviewers can
+# install the change on a device. Uses the `fossDebug` variant: the open-source
+# (`foss`) flavor and the `debug` build type, which is signed with the shared
+# debug keystore committed to the repo. That means this workflow needs NO signing
+# secrets and works for pull requests from forks (which only get a read-only
+# token). Because the keystore is stable, each preview installs in-place over a
+# previous debug/preview build without wiping app data.
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# A newer push to the same PR cancels an in-progress preview build for it.
+concurrency:
+  group: preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview-apk:
+    name: Build foss debug APK
+    runs-on: ubuntu-latest
+    # The Unit Tests workflow pushes auto-fix commits back to PR branches; don't
+    # rebuild a preview for those bot commits.
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Mirror the release workflow's APK environment. The androidApp module pins
+      # ndkVersion 29.0.14206865 and ships native libraries under src/main/jniLibs
+      # (proot/talloc) with useLegacyPackaging, so every assemble — debug included —
+      # runs stripDebugSymbols and needs that NDK. AGP auto-provisions it via the
+      # SDK manager (licenses are accepted by setup-android), exactly as the proven
+      # release build does; keep this SDK setup intact so stripping can find its tools.
+      - name: Install Android build tools
+        run: |
+          sdkmanager "build-tools;36.0.0"
+          sdkmanager "build-tools;29.0.3"
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Set execution flag for gradlew
+        run: chmod +x gradlew
+
+      - name: Build foss debug APK
+        run: bash ./gradlew :androidApp:assembleFossDebug --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: morsvitaest-foss-debug-${{ github.event.pull_request.number || github.sha }}
+          path: androidApp/build/outputs/apk/foss/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summarize
+        run: |
+          {
+            echo "### Preview APK ready"
+            echo ""
+            echo "**Variant:** \`fossDebug\` — open-source flavor, debug build type."
+            echo ""
+            echo "Download it from the **Artifacts** section of this run, then sideload it onto a device."
+            echo ""
+            echo "> Signed with the repo's shared debug keystore, so it installs over a previous"
+            echo "> debug/preview build without wiping app data. This is a debug build, not a release."
+          } >> "$GITHUB_STEP_SUMMARY"
