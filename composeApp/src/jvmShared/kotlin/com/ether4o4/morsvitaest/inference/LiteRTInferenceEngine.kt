@@ -24,6 +24,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -240,13 +242,12 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
     override fun getDownloadedModels(): List<DownloadedModel> {
         val modelsDir = File(getModelStorageDirectory())
         if (!modelsDir.exists()) return emptyList()
-        return MODEL_CATALOG.mapNotNull { catalogModel ->
-            val modelDir = File(modelsDir, catalogModel.id)
-            val modelFile = File(modelDir, catalogModel.fileName)
+        return getAvailableModels().mapNotNull { model ->
+            val modelFile = File(File(modelsDir, model.id), model.fileName)
             if (modelFile.exists()) {
                 DownloadedModel(
-                    id = catalogModel.id,
-                    displayName = catalogModel.displayName,
+                    id = model.id,
+                    displayName = model.displayName,
                     filePath = modelFile.absolutePath,
                     sizeBytes = modelFile.length(),
                 )
@@ -256,12 +257,42 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
         }
     }
 
-    override fun getAvailableModels(): List<LocalModel> = MODEL_CATALOG
+    private val customModelsJson = Json { ignoreUnknownKeys = true; prettyPrint = true }
+
+    private fun customModelsFile() = File(getModelStorageDirectory(), "custom_models.json")
+
+    private fun loadCustomModels(): List<LocalModel> = runCatching {
+        val file = customModelsFile()
+        if (!file.exists()) return emptyList()
+        customModelsJson.decodeFromString(ListSerializer(LocalModel.serializer()), file.readText())
+    }.getOrDefault(emptyList())
+
+    private fun saveCustomModels(models: List<LocalModel>) {
+        runCatching {
+            val file = customModelsFile()
+            file.parentFile?.mkdirs()
+            file.writeText(customModelsJson.encodeToString(ListSerializer(LocalModel.serializer()), models))
+        }
+    }
+
+    /** Persist a user-supplied (non-catalog) model so it survives restarts and appears in the model lists. */
+    private fun persistCustomModel(model: LocalModel) {
+        if (MODEL_CATALOG.any { it.id == model.id }) return
+        val current = loadCustomModels()
+        if (current.any { it.id == model.id }) return
+        saveCustomModels(current + model)
+    }
+
+    // Catalog models plus any user-installed (e.g. installed-from-URL) custom models.
+    override fun getAvailableModels(): List<LocalModel> = MODEL_CATALOG + loadCustomModels()
 
     override fun getFreeSpaceBytes(): Long = getAvailableDiskSpaceBytes(getModelStorageDirectory())
 
     override fun startDownload(model: LocalModel) {
         cancelDownload()
+        // A model that isn't in the built-in catalog (e.g. installed from a URL) is recorded
+        // so it survives restarts and shows up in getAvailableModels()/getDownloadedModels().
+        persistCustomModel(model)
         downloadJob = scope.launch {
             _downloadingModelId.value = model.id
             _downloadProgress.value = 0f
@@ -423,6 +454,8 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
             }
             val modelDir = File(getModelStorageDirectory(), modelId)
             modelDir.deleteRecursively()
+            // Drop it from the custom registry too (no-op for catalog models).
+            saveCustomModels(loadCustomModels().filterNot { it.id == modelId })
         }
     }
 }

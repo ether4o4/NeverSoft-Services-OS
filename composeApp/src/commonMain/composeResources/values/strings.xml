@@ -233,6 +233,11 @@
     <string name="litert_browse_huggingface">Browse on HuggingFace</string>
     <string name="litert_browse_ollama">Any model via Ollama</string>
     <string name="litert_more_models_hint">litert-community models install and run on-device here. To run any other model, connect an Ollama endpoint (Termux or remote) and pull it from the Ollama library.</string>
+    <string name="litert_install_from_url">Install from URL</string>
+    <string name="litert_install_url_title">Install a .litertlm model</string>
+    <string name="litert_install_url_label">Direct .litertlm URL</string>
+    <string name="litert_install_name_label">Name (optional)</string>
+    <string name="litert_install">Install</string>
     <string name="litert_no_model_warning">No model downloaded. Go to Settings to download a model.</string>
     <string name="litert_error_insufficient_memory">Not enough memory to load the model. Close other apps and try again.</string>
     <string name="litert_error_not_enough_disk_space">Not enough disk space to download the model.</string>

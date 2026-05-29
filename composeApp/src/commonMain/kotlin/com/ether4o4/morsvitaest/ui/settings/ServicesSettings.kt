@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +34,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -86,6 +88,11 @@ import morsvitaest.composeapp.generated.resources.litert_error_download_incomple
 import morsvitaest.composeapp.generated.resources.litert_error_network
 import morsvitaest.composeapp.generated.resources.litert_error_not_enough_disk_space
 import morsvitaest.composeapp.generated.resources.litert_free_space
+import morsvitaest.composeapp.generated.resources.litert_install
+import morsvitaest.composeapp.generated.resources.litert_install_from_url
+import morsvitaest.composeapp.generated.resources.litert_install_name_label
+import morsvitaest.composeapp.generated.resources.litert_install_url_label
+import morsvitaest.composeapp.generated.resources.litert_install_url_title
 import morsvitaest.composeapp.generated.resources.litert_more_models_hint
 import morsvitaest.composeapp.generated.resources.litert_more_models_title
 import morsvitaest.composeapp.generated.resources.litert_on_device_description
@@ -770,6 +777,25 @@ private fun LiteRTSettings(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 
+    Spacer(Modifier.height(8.dp))
+    var showInstallDialog by remember { mutableStateOf(false) }
+    OutlinedButton(
+        onClick = { showInstallDialog = true },
+        modifier = Modifier.fillMaxWidth().handCursor(),
+        enabled = downloadingModelId == null,
+    ) {
+        Text(stringResource(Res.string.litert_install_from_url))
+    }
+    if (showInstallDialog) {
+        InstallFromUrlDialog(
+            onDismiss = { showInstallDialog = false },
+            onInstall = { url, name ->
+                showInstallDialog = false
+                onDownloadModel(buildCustomModel(url, name))
+            },
+        )
+    }
+
     if (downloadError != null) {
         Spacer(Modifier.height(8.dp))
         Text(
@@ -791,6 +817,83 @@ private fun LiteRTSettings(
         text = stringResource(Res.string.litert_free_space, formatFileSize(freeSpaceBytes)),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+// Build a LocalModel from a user-supplied .litertlm URL. sizeBytes is left 0 — the
+// downloader uses the server's Content-Length for progress/completeness, and the engine
+// persists this as a custom model so it shows up alongside catalog models.
+private fun buildCustomModel(url: String, name: String): LocalModel {
+    val trimmed = url.trim()
+    val fileName = trimmed.substringAfterLast('/').substringBefore('?')
+        .ifBlank { "model.litertlm" }
+        .let { if (it.endsWith(".litertlm")) it else "$it.litertlm" }
+    val id = fileName.removeSuffix(".litertlm")
+        .lowercase()
+        .replace(Regex("[^a-z0-9._-]"), "-")
+        .ifBlank { "custom-model" }
+    return LocalModel(
+        id = id,
+        displayName = name.ifBlank { fileName.removeSuffix(".litertlm") },
+        fileName = fileName,
+        sizeBytes = 0L,
+        downloadUrl = trimmed,
+        gpuMemoryMb = 700,
+        defaultContextTokens = 4096,
+        maxContextTokens = 32768,
+        kvPerTokenBytes = 60000,
+    )
+}
+
+@Composable
+private fun InstallFromUrlDialog(
+    onDismiss: () -> Unit,
+    onInstall: (url: String, name: String) -> Unit,
+) {
+    var url by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.litert_install_url_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(Res.string.litert_install_url_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(Res.string.litert_install_name_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.litert_more_models_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onInstall(url, name) },
+                enabled = url.isNotBlank(),
+                modifier = Modifier.handCursor(),
+            ) {
+                Text(stringResource(Res.string.litert_install))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.handCursor()) {
+                Text(stringResource(Res.string.litert_cancel))
+            }
+        },
     )
 }
 

@@ -2,7 +2,9 @@ package com.ether4o4.morsvitaest.inference
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class LocalModel(
     val id: String,
     val displayName: String,
