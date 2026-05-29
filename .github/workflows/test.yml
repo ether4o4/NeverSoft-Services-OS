@@ -108,4 +108,13 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add -A
           git commit -m "Auto-fix: spotlessApply and updateScreenshots [skip ci]"
-          git push
+          # Best-effort push: this auto-commit is a convenience, not a pass/fail gate
+          # (the test gate is desktopTest above). The job already grants the token
+          # `contents: write` via the permissions key, but a push can still be refused
+          # for reasons unrelated to the tests — e.g. branch protection on the target
+          # branch. Warn instead of failing the whole job in that case. To land the
+          # fixes yourself, run `./gradlew spotlessApply :screenshotTests:updateScreenshots`
+          # locally and commit.
+          if ! git push; then
+            echo "::warning::Auto-fix changes were computed but could not be pushed. See the note in .github/workflows/test.yml."
+          fi

@@ -1,0 +1,167 @@
+name: Preview APK
+
+# Builds a sideloadable Android preview for every pull request so reviewers can
+# install the change on a device. Pushes to main and manual dispatches also
+# publish a GitHub pre-release so the APK has a direct Releases-page download
+# link instead of living only as a short-lived Actions artifact.
+#
+# Uses the `fossDebug` variant: the open-source (`foss`) flavor and the `debug`
+# build type, signed with the shared debug keystore committed to the repo. That
+# means no signing secrets are required. Because the keystore is stable, each
+# preview installs in-place over a previous debug/preview build without wiping
+# app data.
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional pre-release tag. Defaults to android-preview-YYYY-MM-DD.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+# A newer push to the same PR cancels an in-progress preview build for it.
+concurrency:
+  group: preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREVIEW_APK_NAME: MorsVitaEst-android-preview.apk
+
+jobs:
+  preview-apk:
+    name: Build foss debug APK
+    runs-on: ubuntu-latest
+    # The Unit Tests workflow pushes auto-fix commits back to PR branches; don't
+    # rebuild a preview for those bot commits.
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Mirror the release workflow's APK environment. The androidApp module pins
+      # ndkVersion 29.0.14206865 and ships native libraries under src/main/jniLibs
+      # (proot/talloc) with useLegacyPackaging, so every assemble — debug included —
+      # runs stripDebugSymbols and needs that NDK. AGP auto-provisions it via the
+      # SDK manager (licenses are accepted by setup-android), exactly as the proven
+      # release build does; keep this SDK setup intact so stripping can find its tools.
+      - name: Install Android build tools
+        run: |
+          sdkmanager "build-tools;36.0.0"
+          sdkmanager "build-tools;29.0.3"
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Set execution flag for gradlew
+        run: chmod +x gradlew
+
+      - name: Build foss debug APK
+        run: bash ./gradlew :androidApp:assembleFossDebug --stacktrace
+
+      - name: Prepare preview APK
+        id: preview
+        env:
+          REQUESTED_RELEASE_TAG: ${{ github.event.inputs.release_tag || '' }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p preview-output
+          APK_PATH="$(find androidApp/build/outputs/apk/foss/debug -type f -name '*.apk' | head -n 1)"
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found under androidApp/build/outputs/apk/foss/debug" >&2
+            exit 1
+          fi
+
+          cp "$APK_PATH" "preview-output/${PREVIEW_APK_NAME}"
+          sha256sum "preview-output/${PREVIEW_APK_NAME}" | tee preview-output/sha256.txt
+
+          PREVIEW_DATE="$(date -u +%Y-%m-%d)"
+          if [ -n "$REQUESTED_RELEASE_TAG" ]; then
+            PREVIEW_TAG="$REQUESTED_RELEASE_TAG"
+          else
+            PREVIEW_TAG="android-preview-${PREVIEW_DATE}"
+          fi
+
+          echo "tag=${PREVIEW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "date=${PREVIEW_DATE}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: morsvitaest-foss-debug-${{ github.event.pull_request.number || github.sha }}
+          path: preview-output/${{ env.PREVIEW_APK_NAME }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Write pre-release notes
+        if: github.event_name != 'pull_request'
+        run: |
+          APK_SHA="$(cut -d ' ' -f1 preview-output/sha256.txt)"
+          cat > preview-output/release-notes.md << EOF
+          Android preview APK built from \`${GITHUB_SHA}\` on \`${GITHUB_REF_NAME}\`.
+
+          - Variant: \`fossDebug\`
+          - Signed with the repo's shared debug keystore, so it installs over prior debug/preview builds without wiping app data.
+          - APK SHA-256: \`${APK_SHA}\`
+          - Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          This is a sideloadable preview build, not a production release.
+          EOF
+
+      - name: Publish preview pre-release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.preview.outputs.tag }}
+          name: MorsVitaEst Android Preview ${{ steps.preview.outputs.date }}
+          body_path: preview-output/release-notes.md
+          prerelease: true
+          make_latest: false
+          files: preview-output/${{ env.PREVIEW_APK_NAME }}
+          fail_on_unmatched_files: true
+
+      - name: Summarize
+        run: |
+          {
+            echo "### Preview APK ready"
+            echo ""
+            echo "**Variant:** \`fossDebug\` — open-source flavor, debug build type."
+            echo ""
+            echo "Download it from the **Artifacts** section of this run, then sideload it onto a device."
+            if [ "${{ github.event_name }}" != "pull_request" ]; then
+              echo ""
+              echo "**Pre-release:** https://github.com/${{ github.repository }}/releases/tag/${{ steps.preview.outputs.tag }}"
+            fi
+            echo ""
+            echo "> Signed with the repo's shared debug keystore, so it installs over a previous"
+            echo "> debug/preview build without wiping app data. This is a debug build, not a release."
+          } >> "$GITHUB_STEP_SUMMARY"
