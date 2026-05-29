@@ -50,6 +50,20 @@ android {
     }
 
     signingConfigs {
+        // Stable debug keystore committed to the repo so every debug/preview build —
+        // built locally or in CI, on any machine — signs with the SAME key. Without
+        // this, AGP auto-generates a per-machine ~/.android/debug.keystore, so each new
+        // APK carries a different signature and Android refuses an in-place update: the
+        // user must uninstall first, which wipes ALL app data (API keys, conversations,
+        // memories, and the Keystore master key that decrypts the keys). A shared debug
+        // keystore is safe to commit — it cannot publish to the Play Store and is only
+        // used for sideloaded debug/preview builds.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         create("release") {
             val ksFile = System.getenv("KEYSTORE_FILE")
             if (ksFile != null) {

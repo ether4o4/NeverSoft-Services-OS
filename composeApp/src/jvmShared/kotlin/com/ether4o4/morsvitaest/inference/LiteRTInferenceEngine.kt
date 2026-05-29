@@ -25,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -229,6 +230,11 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
         private const val MIN_MEMORY_HEADROOM_BYTES = 512L * 1024 * 1024 // 512 MB
         private const val DOWNLOAD_SPACE_BUFFER_BYTES = 500L * 1024 * 1024 // 500 MB
         private const val GPU_DRAIN_DELAY_MS = 750L
+        private const val MAX_DOWNLOAD_ATTEMPTS = 4
+
+        // Exponential backoff between resume attempts: 1s, 2s, 4s, 8s … capped at 15s.
+        private fun downloadBackoffMs(attempt: Int): Long =
+            (1000L shl (attempt - 1).coerceIn(0, 5)).coerceAtMost(15_000L)
     }
 
     override fun getDownloadedModels(): List<DownloadedModel> {
@@ -271,67 +277,128 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
                 tempFile = File(modelDir, "${model.fileName}.tmp")
                 var lastNotifiedPercent = -1
 
-                val freeSpace = getFreeSpaceBytes()
-                if (freeSpace < model.sizeBytes + DOWNLOAD_SPACE_BUFFER_BYTES) {
-                    _downloadError.value = DownloadError.NOT_ENOUGH_DISK_SPACE
-                    return@launch
-                }
+                // Resume-aware, retry-with-backoff download. The partial file is kept across
+                // failures so an interrupted multi-GB pull continues from where it stopped
+                // instead of restarting at byte 0. Only an explicit cancel (or a successful
+                // finalize) discards it.
+                val expectedTotal = model.sizeBytes
+                var success = false
+                var attempt = 0
 
-                @Suppress("DEPRECATION")
-                val connection = URL(model.downloadUrl).openConnection() as HttpURLConnection
-                connection.instanceFollowRedirects = true
-                connection.connectTimeout = 30_000
-                connection.readTimeout = 60_000
-                connection.connect()
+                while (!success && attempt < MAX_DOWNLOAD_ATTEMPTS) {
+                    attempt++
+                    ensureActive()
 
-                val responseCode = connection.responseCode
-                if (responseCode !in 200..299) {
-                    connection.disconnect()
-                    throw IOException("Download failed: HTTP $responseCode")
-                }
+                    val existingBytes = if (tempFile.exists()) tempFile.length() else 0L
+                    val remaining = (expectedTotal - existingBytes).coerceAtLeast(0L)
+                    if (getFreeSpaceBytes() < remaining + DOWNLOAD_SPACE_BUFFER_BYTES) {
+                        _downloadError.value = DownloadError.NOT_ENOUGH_DISK_SPACE
+                        return@launch
+                    }
 
-                // Only start the foreground service once we have a live connection.
-                // Starting it earlier risks ForegroundServiceDidNotStartInTimeException if
-                // the connect() above fails fast (e.g. offline) before the service can run.
-                startDownloadNotificationService()
-                notificationStarted = true
+                    try {
+                        @Suppress("DEPRECATION")
+                        val connection = URL(model.downloadUrl).openConnection() as HttpURLConnection
+                        connection.instanceFollowRedirects = true
+                        connection.connectTimeout = 30_000
+                        connection.readTimeout = 60_000
+                        if (existingBytes > 0) {
+                            connection.setRequestProperty("Range", "bytes=$existingBytes-")
+                        }
+                        connection.connect()
 
-                val contentLength = connection.contentLengthLong.takeIf { it > 0 } ?: model.sizeBytes
-                val buffer = ByteArray(65536)
-                var totalBytesRead = 0L
+                        val responseCode = connection.responseCode
+                        // 416 Range Not Satisfiable: our partial is already at/over the full
+                        // size. Accept it if it checks out, otherwise drop it and refetch.
+                        if (responseCode == 416) {
+                            connection.disconnect()
+                            if (existingBytes >= expectedTotal * 0.95) {
+                                success = true
+                            } else {
+                                tempFile.delete()
+                            }
+                            continue
+                        }
+                        if (responseCode !in 200..299) {
+                            connection.disconnect()
+                            throw IOException("Download failed: HTTP $responseCode")
+                        }
 
-                connection.inputStream.use { input ->
-                    tempFile.outputStream().use { output ->
-                        while (true) {
-                            ensureActive()
-                            val bytesRead = input.read(buffer)
-                            if (bytesRead <= 0) break
-                            output.write(buffer, 0, bytesRead)
-                            totalBytesRead += bytesRead
-                            val percent = (totalBytesRead * 100 / contentLength).toInt().coerceIn(1, 100)
-                            if (percent != lastNotifiedPercent) {
-                                lastNotifiedPercent = percent
-                                _downloadProgress.value = percent / 100f
-                                updateDownloadNotificationProgress(percent)
+                        // 206 => server honored the range, append to the partial. 200 => server
+                        // ignored the range (or it's a fresh start), so truncate and restart.
+                        val resuming = responseCode == 206
+                        if (!resuming && tempFile.exists()) tempFile.delete()
+
+                        // Only start the foreground service once we have a live connection.
+                        // Starting it earlier risks ForegroundServiceDidNotStartInTimeException
+                        // if connect() fails fast (e.g. offline) before the service can run.
+                        if (!notificationStarted) {
+                            startDownloadNotificationService()
+                            notificationStarted = true
+                        }
+
+                        val total = (
+                            if (resuming) {
+                                existingBytes + connection.contentLengthLong.coerceAtLeast(0L)
+                            } else {
+                                connection.contentLengthLong.takeIf { it > 0 } ?: expectedTotal
+                            }
+                        ).coerceAtLeast(1L)
+
+                        val buffer = ByteArray(65536)
+                        var totalBytesRead = if (resuming) existingBytes else 0L
+
+                        connection.inputStream.use { input ->
+                            FileOutputStream(tempFile, resuming).use { output ->
+                                while (true) {
+                                    ensureActive()
+                                    val bytesRead = input.read(buffer)
+                                    if (bytesRead <= 0) break
+                                    output.write(buffer, 0, bytesRead)
+                                    totalBytesRead += bytesRead
+                                    val percent = (totalBytesRead * 100 / total).toInt().coerceIn(1, 100)
+                                    if (percent != lastNotifiedPercent) {
+                                        lastNotifiedPercent = percent
+                                        _downloadProgress.value = percent / 100f
+                                        updateDownloadNotificationProgress(percent)
+                                    }
+                                }
                             }
                         }
+                        connection.disconnect()
+
+                        if (tempFile.length() >= total * 0.95) {
+                            success = true
+                        } else if (attempt < MAX_DOWNLOAD_ATTEMPTS) {
+                            // Stream ended early (server/proxy closed mid-transfer). Keep the
+                            // partial and resume after a short backoff.
+                            delay(downloadBackoffMs(attempt))
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: IOException) {
+                        // Transient network failure — keep the partial for resume. Surface the
+                        // error only once every attempt is exhausted.
+                        if (attempt >= MAX_DOWNLOAD_ATTEMPTS) throw e
+                        delay(downloadBackoffMs(attempt))
                     }
                 }
-                connection.disconnect()
 
-                val downloadedSize = tempFile.length()
-                if (downloadedSize < contentLength * 0.95) {
-                    tempFile.delete()
-                    throw IOException("Download incomplete: got $downloadedSize bytes, expected ~$contentLength")
+                if (!success) {
+                    throw IOException("Download did not complete after $MAX_DOWNLOAD_ATTEMPTS attempts")
                 }
 
                 if (!tempFile.renameTo(targetFile)) {
                     tempFile.copyTo(targetFile, overwrite = true)
                     tempFile.delete()
                 }
-            } catch (e: Throwable) {
+            } catch (e: CancellationException) {
+                // Explicit cancel discards the partial so it doesn't linger or occupy space.
                 if (tempFile?.exists() == true) tempFile.delete()
-                if (e is CancellationException) throw e
+                throw e
+            } catch (e: Throwable) {
+                // Keep tempFile (if any) so the next startDownload() resumes from where we
+                // stopped rather than re-pulling gigabytes.
                 _downloadError.value = DownloadError.NETWORK_ERROR
             } finally {
                 _downloadingModelId.value = null

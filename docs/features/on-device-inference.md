@@ -1,6 +1,6 @@
 # On-Device Inference (LiteRT)
 
-**Last verified:** 2026-05-14
+**Last verified:** 2026-05-29
 
 MorsVitaEst can run AI models directly on the user's device using Google's LiteRT LM SDK. This enables fully offline, private inference with no API key, no internet connection, and no cost. Available on Android and Desktop (macOS, Linux, Windows).
 
@@ -51,7 +51,8 @@ Users manage models through the LiteRT service card in Settings:
 - **Download** -- each model card shows a download button with size info; disk space is validated before starting
 - **Select** -- radio button appears after download to set the active model
 - **Delete** -- trash icon removes the downloaded model file
-- **Cancel** -- active downloads can be cancelled
+- **Cancel** -- active downloads can be cancelled (this discards the partial file)
+- **Resume + retry** -- downloads are resumable. The partial is written to a `.tmp` file and kept across interruptions (network drop, socket stall, app process death); the next download attempt sends an HTTP `Range` request and continues from where it stopped instead of restarting at byte 0. Each attempt auto-retries with exponential backoff (1s/2s/4s/8s, up to 4 attempts) before surfacing an error, and the partial is preserved on failure so a later retry resumes. If the server ignores the range (responds `200` instead of `206`), it cleanly restarts the file. Only an explicit cancel or a successful finalize deletes the partial.
 - **Error display** -- download failures (network, disk space, incomplete) are shown inline in the settings UI
 - **Context size slider** -- each model has a slider to adjust context size (4K–32K tokens in 1K steps); available before download so users can preview performance impact
 - **Performance indicator** -- each model shows a Good/OK/Poor label based on total device RAM vs estimated resident memory at the selected context size. The estimate sums the model file size (proxy for resident weights after mmap/PLE), a per-model baseline for GPU/KV working memory, and a per-token KV cache cost that scales with context. Thresholds: Good >= 2.5x, OK >= 1.85x, Poor < 1.85x of total device RAM -- the extra headroom over 1x accounts for OS reservation and GPU-driver overhead.
