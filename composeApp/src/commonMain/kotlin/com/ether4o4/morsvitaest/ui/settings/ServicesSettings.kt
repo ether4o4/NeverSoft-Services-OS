@@ -61,6 +61,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.ether4o4.morsvitaest.Platform
+import com.ether4o4.morsvitaest.currentPlatform
 import com.ether4o4.morsvitaest.data.Service
 import com.ether4o4.morsvitaest.formatFileSize
 import com.ether4o4.morsvitaest.inference.DevicePerformance
@@ -778,22 +780,27 @@ private fun LiteRTSettings(
     )
 
     Spacer(Modifier.height(8.dp))
-    var showInstallDialog by remember { mutableStateOf(false) }
-    OutlinedButton(
-        onClick = { showInstallDialog = true },
-        modifier = Modifier.fillMaxWidth().handCursor(),
-        enabled = downloadingModelId == null,
-    ) {
-        Text(stringResource(Res.string.litert_install_from_url))
-    }
-    if (showInstallDialog) {
-        InstallFromUrlDialog(
-            onDismiss = { showInstallDialog = false },
-            onInstall = { url, name ->
-                showInstallDialog = false
-                onDownloadModel(buildCustomModel(url, name))
-            },
-        )
+    // Install-from-URL relies on the custom-models registry, which exists in the
+    // Android/Desktop engine (jvmShared) but not the iOS engine — so a custom install
+    // on iOS would download but never appear or be selectable. Hide it there.
+    if (currentPlatform !is Platform.Mobile.Ios) {
+        var showInstallDialog by remember { mutableStateOf(false) }
+        OutlinedButton(
+            onClick = { showInstallDialog = true },
+            modifier = Modifier.fillMaxWidth().handCursor(),
+            enabled = downloadingModelId == null,
+        ) {
+            Text(stringResource(Res.string.litert_install_from_url))
+        }
+        if (showInstallDialog) {
+            InstallFromUrlDialog(
+                onDismiss = { showInstallDialog = false },
+                onInstall = { url, name ->
+                    showInstallDialog = false
+                    onDownloadModel(buildCustomModel(url, name))
+                },
+            )
+        }
     }
 
     if (downloadError != null) {
@@ -828,10 +835,17 @@ private fun buildCustomModel(url: String, name: String): LocalModel {
     val fileName = trimmed.substringAfterLast('/').substringBefore('?')
         .ifBlank { "model.litertlm" }
         .let { if (it.endsWith(".litertlm")) it else "$it.litertlm" }
-    val id = fileName.removeSuffix(".litertlm")
+    // Derive the id from the FULL url, not just the filename: two different repos that
+    // both end in e.g. "model.litertlm" must get distinct ids (and distinct storage dirs),
+    // otherwise the second install collides with / overwrites the first. A short stable
+    // hash of the whole url disambiguates them while keeping the id readable.
+    val base = fileName.removeSuffix(".litertlm")
         .lowercase()
         .replace(Regex("[^a-z0-9._-]"), "-")
+        .trim('-')
         .ifBlank { "custom-model" }
+    val urlHash = trimmed.hashCode().toUInt().toString(16)
+    val id = "$base-$urlHash"
     return LocalModel(
         id = id,
         displayName = name.ifBlank { fileName.removeSuffix(".litertlm") },
