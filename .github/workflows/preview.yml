@@ -85,6 +85,19 @@ jobs:
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
 
+      # Make every preview APK have a strictly-greater versionCode than the
+      # last one, so Android treats sideloaded preview-over-preview installs as
+      # a real update. The static 105 in libs.versions.toml is the floor for
+      # local/release builds; GITHUB_RUN_NUMBER (monotonic, per-workflow) is
+      # added on top for CI builds only. Not committed back to the repo.
+      - name: Bump preview versionCode (unique per CI run)
+        run: |
+          set -euo pipefail
+          BASE=$(grep '^android-versionCode' gradle/libs.versions.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          NEW=$((BASE + GITHUB_RUN_NUMBER))
+          sed -i "s/^android-versionCode = .*/android-versionCode = \"$NEW\"/" gradle/libs.versions.toml
+          echo "preview versionCode: $BASE -> $NEW (run #$GITHUB_RUN_NUMBER)"
+
       - name: Build foss debug APK
         run: bash ./gradlew :androidApp:assembleFossDebug --stacktrace
 
