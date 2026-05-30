@@ -8,16 +8,16 @@
 
 :root {
   --bg: #121212;
-  --bg-gradient: #1a1a2e;
-  --surface: #1e1e2e;
-  --surface-border: rgba(103, 80, 164, 0.15);
-  --primary: #6750A4;
-  --primary-light: #D0BCFF;
-  --primary-dim: rgba(103, 80, 164, 0.3);
+  --bg-gradient: #261313;
+  --surface: #241818;
+  --surface-border: rgba(229, 72, 77, 0.18);
+  --primary: #E5484D;
+  --primary-light: #FFB4AB;
+  --primary-dim: rgba(229, 72, 77, 0.28);
   --text: #E6E1E5;
   --text-secondary: #CAC4D0;
   --text-muted: #938F99;
-  --code-bg: #2d2d3d;
+  --code-bg: #2f2020;
   --max-width: 1100px;
 }
 
