@@ -99,14 +99,31 @@ class GgufServerManager(
         if (scriptInstalled) return true
         installLock.withLock {
             if (scriptInstalled) return true
-            val script = readAssetText("sandbox/morsllm.sh") ?: return false
-            val written = sandbox.writeTextFile("/usr/local/bin/morsllm", script)
+            val raw = readAssetText("sandbox/morsllm.sh") ?: return false
+            // Strip CR so a CRLF-mangled asset can't turn the shebang / `set`
+            // lines into "command not found" or syntax errors under bash.
+            val script = raw.replace("\r\n", "\n").replace("\r", "\n")
+            // Clear anything stale at the target first. If a prior run or a user
+            // experiment left a *directory* (or a non-file) at this path,
+            // writeTextFile refuses to overwrite it and the shell then reports
+            // "morsllm: Is a directory" on every invocation.
+            sandbox.executeCommand(
+                command = "rm -rf $SCRIPT_PATH 2>/dev/null; mkdir -p \$(dirname $SCRIPT_PATH)",
+                sessionId = SandboxSessions.SYSTEM,
+            )
+            val written = sandbox.writeTextFile(SCRIPT_PATH, script)
             if (!written) return false
             // writeTextFile doesn't set the executable bit.
             sandbox.executeCommand(
-                command = "chmod 755 /usr/local/bin/morsllm",
+                command = "chmod 755 $SCRIPT_PATH",
                 sessionId = SandboxSessions.SYSTEM,
             )
+            // Confirm it's an executable regular file before trusting it.
+            val verify = sandbox.executeCommand(
+                command = "test -x $SCRIPT_PATH && echo MORSLLM_OK",
+                sessionId = SandboxSessions.SYSTEM,
+            )
+            if (!verify.contains("MORSLLM_OK")) return false
             scriptInstalled = true
             return true
         }
@@ -119,7 +136,7 @@ class GgufServerManager(
     private suspend fun runQuick(subcommand: String): String {
         if (!ensureScriptInstalled()) return SCRIPT_INSTALL_FAILED_JSON
         return sandbox.executeCommand(
-            command = "/usr/local/bin/morsllm $subcommand 2>/dev/null",
+            command = "$SCRIPT_PATH $subcommand 2>/dev/null",
             sessionId = SandboxSessions.SYSTEM,
         ).trim()
     }
@@ -128,7 +145,7 @@ class GgufServerManager(
         if (!ensureScriptInstalled()) return SCRIPT_INSTALL_FAILED_JSON
         val stdoutBuf = StringBuilder()
         val handle = sandbox.executeCommandStreaming(
-            command = "/usr/local/bin/morsllm $subcommand",
+            command = "$SCRIPT_PATH $subcommand",
             onStdout = { synchronized(stdoutBuf) { stdoutBuf.append(it) } },
             onStderr = { /* progress; ignored — morsllm emits the result JSON on stdout */ },
             sessionId = SandboxSessions.SYSTEM,
@@ -193,6 +210,7 @@ class GgufServerManager(
 
     companion object {
         const val DEFAULT_PORT = 8080
+        private const val SCRIPT_PATH = "/usr/local/bin/morsllm"
         private const val SCRIPT_INSTALL_FAILED_JSON = """{"ok":false,"error":"script_install_failed"}"""
     }
 }

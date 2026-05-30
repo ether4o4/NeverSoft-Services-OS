@@ -479,6 +479,8 @@ fun SettingsScreenContent(
                                     onResetSandbox = onResetSandbox,
                                     onInstallPackages = onInstallPackages,
                                 )
+                                Spacer(Modifier.height(16.dp))
+                                PlatformGgufModelsCard()
                             }
                         }
 
