@@ -61,7 +61,6 @@ jobs:
         run: |
           echo "Checking critical files..."
           test -f _site_build/index.html || { echo "FATAL: Landing page missing"; exit 1; }
-          test -f _site_build/CNAME || { echo "FATAL: CNAME missing"; exit 1; }
           test -f _site_build/app/index.html || { echo "FATAL: Web app missing"; exit 1; }
           test -f _site_build/app/composeApp.js || { echo "FATAL: WASM bundle missing"; exit 1; }
           test -d _site_build/docs || { echo "FATAL: Docs directory missing"; exit 1; }

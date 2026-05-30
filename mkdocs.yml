@@ -1,5 +1,5 @@
 site_name: MorsVitaEst Documentation
-site_url: https://github.com/ether4o4/MorsVitaEst/tree/main/docs/
+site_url: https://ether4o4.github.io/MorsVitaEst/docs/
 site_description: Documentation for MorsVitaEst - AI Assistant App
 
 theme:
@@ -39,6 +39,8 @@ nav:
     - Kairos Infrastructure: features/kairos-infrastructure.md
     - Multi-Service: features/multi-service.md
     - Local GGUF: features/gguf-local.md
+    - On-Device Inference: features/on-device-inference.md
+    - Sandbox: features/sandbox.md
     - Tools: features/tools.md
     - MCP Servers: features/mcp.md
     - Dynamic UI: features/dynamic-ui.md
@@ -47,5 +49,10 @@ nav:
     - Tasks: features/tasks.md
     - Budget: features/budget.md
     - Daemon: features/daemon.md
+    - Notifications: features/notifications.md
+    - SMS: features/sms.md
+    - Reasoning: features/reasoning.md
+    - System Prompts: features/system-prompts.md
+    - Appearance: features/appearance.md
     - Encryption: features/encryption.md
     - Settings Export & Import: features/settings-export-import.md
