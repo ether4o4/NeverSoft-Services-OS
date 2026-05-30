@@ -49,6 +49,11 @@ import com.ether4o4.morsvitaest.ui.MorsVitaEstOutlinedTextField
 import com.ether4o4.morsvitaest.ui.components.SettingsListItem
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.icons.Replay
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.offsetAt
+import kotlinx.datetime.toLocalDateTime
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.default_soul
 import morsvitaest.composeapp.generated.resources.settings_heartbeat_recent
@@ -80,11 +85,6 @@ import morsvitaest.composeapp.generated.resources.settings_task_details_schedule
 import morsvitaest.composeapp.generated.resources.settings_task_details_scheduled_for
 import morsvitaest.composeapp.generated.resources.settings_task_details_status
 import morsvitaest.composeapp.generated.resources.settings_task_details_trigger
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.offsetAt
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 

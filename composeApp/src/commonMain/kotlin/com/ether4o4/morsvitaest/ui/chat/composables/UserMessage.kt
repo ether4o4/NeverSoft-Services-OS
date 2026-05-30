@@ -30,10 +30,10 @@ import com.ether4o4.morsvitaest.data.Attachment
 import com.ether4o4.morsvitaest.decodeToImageBitmap
 import com.ether4o4.morsvitaest.ui.components.LocalShowFullScreenImage
 import com.ether4o4.morsvitaest.ui.handCursor
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.ic_file
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.ic_file
 import org.jetbrains.compose.resources.painterResource
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi

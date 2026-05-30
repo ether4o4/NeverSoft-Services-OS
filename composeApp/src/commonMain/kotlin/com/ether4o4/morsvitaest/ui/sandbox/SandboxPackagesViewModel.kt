@@ -5,14 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ether4o4.morsvitaest.SandboxController
 import com.ether4o4.morsvitaest.SandboxSessions
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.sandbox_packages_install_failed
-import morsvitaest.composeapp.generated.resources.sandbox_packages_install_success
-import morsvitaest.composeapp.generated.resources.sandbox_packages_uninstall_failed
-import morsvitaest.composeapp.generated.resources.sandbox_packages_uninstall_success
-import morsvitaest.composeapp.generated.resources.sandbox_packages_up_to_date
-import morsvitaest.composeapp.generated.resources.sandbox_packages_upgrade_count
-import morsvitaest.composeapp.generated.resources.sandbox_packages_upgrade_failed
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentListOf
@@ -26,6 +18,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.sandbox_packages_install_failed
+import morsvitaest.composeapp.generated.resources.sandbox_packages_install_success
+import morsvitaest.composeapp.generated.resources.sandbox_packages_uninstall_failed
+import morsvitaest.composeapp.generated.resources.sandbox_packages_uninstall_success
+import morsvitaest.composeapp.generated.resources.sandbox_packages_up_to_date
+import morsvitaest.composeapp.generated.resources.sandbox_packages_upgrade_count
+import morsvitaest.composeapp.generated.resources.sandbox_packages_upgrade_failed
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Duration.Companion.milliseconds
 

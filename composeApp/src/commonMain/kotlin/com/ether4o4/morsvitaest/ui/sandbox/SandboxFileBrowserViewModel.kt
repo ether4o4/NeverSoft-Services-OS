@@ -5,6 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ether4o4.morsvitaest.SandboxController
 import com.ether4o4.morsvitaest.SandboxFileEntry
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.sandbox_files_delete_failed
 import morsvitaest.composeapp.generated.resources.sandbox_files_delete_success
@@ -16,10 +20,6 @@ import morsvitaest.composeapp.generated.resources.sandbox_files_rename_failed
 import morsvitaest.composeapp.generated.resources.sandbox_files_rename_success
 import morsvitaest.composeapp.generated.resources.sandbox_files_save_failed
 import morsvitaest.composeapp.generated.resources.sandbox_files_save_success
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 
 private val TEXT_EXTENSIONS = setOf(

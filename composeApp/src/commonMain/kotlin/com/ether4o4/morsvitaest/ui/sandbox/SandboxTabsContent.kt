@@ -38,6 +38,8 @@ import com.ether4o4.morsvitaest.ui.settings.SandboxUiState
 import com.ether4o4.morsvitaest.ui.settings.SettingsCard
 import com.ether4o4.morsvitaest.ui.settings.TerminalContent
 import com.ether4o4.morsvitaest.ui.settings.TerminalDarkBg
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.sandbox_session_chip_session
 import morsvitaest.composeapp.generated.resources.sandbox_session_chip_temporary
@@ -47,8 +49,6 @@ import morsvitaest.composeapp.generated.resources.settings_sandbox_install
 import morsvitaest.composeapp.generated.resources.settings_sandbox_subtab_files
 import morsvitaest.composeapp.generated.resources.settings_sandbox_subtab_packages
 import morsvitaest.composeapp.generated.resources.settings_sandbox_subtab_terminal
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel

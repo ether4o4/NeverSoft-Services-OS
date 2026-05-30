@@ -19,10 +19,10 @@ import com.ether4o4.morsvitaest.ui.Theme
 import com.ether4o4.morsvitaest.ui.chat.ChatScreenContent
 import com.ether4o4.morsvitaest.ui.chat.ChatUiState
 import com.ether4o4.morsvitaest.ui.chat.History
+import com.ether4o4.morsvitaest.ui.dynamicui.LocalPreviewImages
 import com.ether4o4.morsvitaest.ui.dynamicui.MorsVitaEstUiParser
 import com.ether4o4.morsvitaest.ui.dynamicui.MorsVitaEstUiParser.UiBlockResult
 import com.ether4o4.morsvitaest.ui.dynamicui.MorsVitaEstUiRenderer
-import com.ether4o4.morsvitaest.ui.dynamicui.LocalPreviewImages
 import kotlinx.collections.immutable.persistentListOf
 import nl.marc_apps.tts.experimental.ExperimentalVoiceApi
 import org.jetbrains.compose.resources.ExperimentalResourceApi

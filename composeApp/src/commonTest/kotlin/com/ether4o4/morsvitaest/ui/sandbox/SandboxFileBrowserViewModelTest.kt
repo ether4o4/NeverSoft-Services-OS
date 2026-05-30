@@ -6,13 +6,6 @@ import com.ether4o4.morsvitaest.NoOpCommandHandle
 import com.ether4o4.morsvitaest.SandboxController
 import com.ether4o4.morsvitaest.SandboxFileEntry
 import com.ether4o4.morsvitaest.SandboxStatus
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.sandbox_files_delete_failed
-import morsvitaest.composeapp.generated.resources.sandbox_files_delete_success
-import morsvitaest.composeapp.generated.resources.sandbox_files_editor_closed_after_delete
-import morsvitaest.composeapp.generated.resources.sandbox_files_rename_error_collision
-import morsvitaest.composeapp.generated.resources.sandbox_files_rename_error_invalid
-import morsvitaest.composeapp.generated.resources.sandbox_files_rename_success
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +13,13 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.sandbox_files_delete_failed
+import morsvitaest.composeapp.generated.resources.sandbox_files_delete_success
+import morsvitaest.composeapp.generated.resources.sandbox_files_editor_closed_after_delete
+import morsvitaest.composeapp.generated.resources.sandbox_files_rename_error_collision
+import morsvitaest.composeapp.generated.resources.sandbox_files_rename_error_invalid
+import morsvitaest.composeapp.generated.resources.sandbox_files_rename_success
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

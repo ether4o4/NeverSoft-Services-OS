@@ -79,6 +79,10 @@ import com.ether4o4.morsvitaest.ui.icons.DragIndicator
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardBorder
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardColors
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardSurface
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_arrow_drop_down
 import morsvitaest.composeapp.generated.resources.litert_browse_huggingface
@@ -121,10 +125,6 @@ import morsvitaest.composeapp.generated.resources.settings_status_error_connecti
 import morsvitaest.composeapp.generated.resources.settings_status_error_invalid_key
 import morsvitaest.composeapp.generated.resources.settings_status_error_quota_exhausted
 import morsvitaest.composeapp.generated.resources.settings_status_error_rate_limited
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentMapOf
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import sh.calvin.reorderable.ReorderableColumn
@@ -324,7 +324,7 @@ private fun ConfiguredServiceCardContent(
 ) {
     Column(
         modifier = Modifier
-           .morsvitaestAdaptiveCardSurface()
+            .morsvitaestAdaptiveCardSurface()
             .fillMaxWidth()
             .clickable { onExpand() }
             .handCursor(),

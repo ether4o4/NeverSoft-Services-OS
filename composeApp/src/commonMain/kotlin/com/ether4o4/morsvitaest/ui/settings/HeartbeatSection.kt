@@ -48,6 +48,12 @@ import com.ether4o4.morsvitaest.ui.components.MorsVitaEstSlider
 import com.ether4o4.morsvitaest.ui.components.RefreshIconButton
 import com.ether4o4.morsvitaest.ui.components.SettingsListItem
 import com.ether4o4.morsvitaest.ui.handCursor
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.settings_email
 import morsvitaest.composeapp.generated.resources.settings_email_description
@@ -94,12 +100,6 @@ import morsvitaest.composeapp.generated.resources.settings_sms_send_permission_r
 import morsvitaest.composeapp.generated.resources.settings_soul_reset
 import morsvitaest.composeapp.generated.resources.settings_soul_reset_cancel
 import morsvitaest.composeapp.generated.resources.settings_soul_save
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.ImmutableSet
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import kotlin.math.roundToInt

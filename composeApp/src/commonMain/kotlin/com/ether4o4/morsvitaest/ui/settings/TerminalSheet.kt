@@ -58,12 +58,6 @@ import com.ether4o4.morsvitaest.SandboxSessions
 import com.ether4o4.morsvitaest.TerminalLine
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxSessionViewModel
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.terminal_help_text
-import morsvitaest.composeapp.generated.resources.terminal_input_placeholder
-import morsvitaest.composeapp.generated.resources.terminal_run_content_description
-import morsvitaest.composeapp.generated.resources.terminal_stop_content_description
-import morsvitaest.composeapp.generated.resources.terminal_title
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CancellationException
@@ -73,6 +67,12 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.terminal_help_text
+import morsvitaest.composeapp.generated.resources.terminal_input_placeholder
+import morsvitaest.composeapp.generated.resources.terminal_run_content_description
+import morsvitaest.composeapp.generated.resources.terminal_stop_content_description
+import morsvitaest.composeapp.generated.resources.terminal_title
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.milliseconds
 

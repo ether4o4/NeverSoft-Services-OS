@@ -49,6 +49,11 @@ import com.ether4o4.morsvitaest.ui.chat.ConversationSummary
 import com.ether4o4.morsvitaest.ui.components.VerticalScrollbarForList
 import com.ether4o4.morsvitaest.ui.components.animatedGradientBorder
 import com.ether4o4.morsvitaest.ui.handCursor
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.datetime.format
+import kotlinx.datetime.format.DateTimeComponents.Companion.Format
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.char
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.chat_history_delete_content_description
 import morsvitaest.composeapp.generated.resources.chat_history_empty
@@ -57,11 +62,6 @@ import morsvitaest.composeapp.generated.resources.chat_history_title
 import morsvitaest.composeapp.generated.resources.ic_history
 import morsvitaest.composeapp.generated.resources.snackbar_conversation_deleted
 import morsvitaest.composeapp.generated.resources.snackbar_undo
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.datetime.format
-import kotlinx.datetime.format.DateTimeComponents.Companion.Format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 

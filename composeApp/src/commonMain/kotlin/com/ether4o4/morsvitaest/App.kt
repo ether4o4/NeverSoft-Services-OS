@@ -52,11 +52,11 @@ import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.withBlackBackground
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.tab_chat
 import morsvitaest.composeapp.generated.resources.tab_settings
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import nl.marc_apps.tts.TextToSpeechInstance
 import nl.marc_apps.tts.experimental.ExperimentalVoiceApi
 import org.jetbrains.compose.resources.stringResource

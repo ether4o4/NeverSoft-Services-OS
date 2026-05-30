@@ -15,8 +15,7 @@ class BudgetManagerTest {
     // Epoch day 100 (UTC) — an arbitrary fixed day for deterministic accounting.
     private val day100Ms = 100L * 86_400_000L
 
-    private fun manager(now: () -> Instant): BudgetManager =
-        BudgetManager(AppSettings(MapSettings()), clock = now, zone = { TimeZone.UTC })
+    private fun manager(now: () -> Instant): BudgetManager = BudgetManager(AppSettings(MapSettings()), clock = now, zone = { TimeZone.UTC })
 
     @Test
     fun records_and_aggregates_usage_by_source() {

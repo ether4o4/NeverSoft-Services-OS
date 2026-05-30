@@ -219,12 +219,12 @@ import com.ether4o4.morsvitaest.ui.components.MorsVitaEstChip
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardBorder
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardColors
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.delay
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.bot_message_copy_content_description
 import morsvitaest.composeapp.generated.resources.morsvitaest_ui_code_copy
 import morsvitaest.composeapp.generated.resources.morsvitaest_ui_render_failed
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds

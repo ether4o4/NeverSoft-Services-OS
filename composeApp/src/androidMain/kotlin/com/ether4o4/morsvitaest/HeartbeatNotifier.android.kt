@@ -7,10 +7,10 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.ether4o4.morsvitaest.shared.R
+import kotlinx.coroutines.runBlocking
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.notification_channel_description
 import morsvitaest.composeapp.generated.resources.notification_channel_name
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.getString
 import org.koin.java.KoinJavaComponent.inject
 

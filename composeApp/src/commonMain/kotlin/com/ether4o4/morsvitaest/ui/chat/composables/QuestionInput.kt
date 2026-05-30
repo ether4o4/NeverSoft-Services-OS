@@ -68,6 +68,8 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.extension
 import io.github.vinceglb.filekit.name
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_attach
 import morsvitaest.composeapp.generated.resources.ic_file
@@ -75,8 +77,6 @@ import morsvitaest.composeapp.generated.resources.ic_image
 import morsvitaest.composeapp.generated.resources.ic_stop
 import morsvitaest.composeapp.generated.resources.ic_up
 import morsvitaest.composeapp.generated.resources.prompt_ask_question
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource

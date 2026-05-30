@@ -15,10 +15,10 @@ import com.ether4o4.morsvitaest.network.dtos.gemini.GeminiChatResponseDto
 import com.ether4o4.morsvitaest.network.dtos.gemini.GeminiModelsResponseDto
 import com.ether4o4.morsvitaest.network.dtos.gemini.GeminiTool
 import com.ether4o4.morsvitaest.network.dtos.gemini.PropertySchema
+import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OllamaRunningModelsResponseDto
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleChatRequestDto
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleChatResponseDto
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleModelResponseDto
-import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OllamaRunningModelsResponseDto
 import com.ether4o4.morsvitaest.network.tools.Tool
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
@@ -396,8 +396,7 @@ class Requests {
         }
     }
 
-    private fun looksLikeOllamaRoot(baseUrl: String): Boolean =
-        baseUrl.endsWith(":11434") || baseUrl.contains(":11434/")
+    private fun looksLikeOllamaRoot(baseUrl: String): Boolean = baseUrl.endsWith(":11434") || baseUrl.contains(":11434/")
 
     private fun resolveOllamaApiUrl(credentials: ServiceCredentials, path: String): String {
         val base = normalizeOpenAICompatibleBaseUrl(credentials.baseUrl).trimEnd('/')

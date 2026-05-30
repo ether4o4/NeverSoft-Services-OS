@@ -27,10 +27,10 @@ import com.ether4o4.morsvitaest.network.tools.ToolInfo
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardBorder
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardColors
+import kotlinx.collections.immutable.ImmutableList
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.settings_tools_description
 import morsvitaest.composeapp.generated.resources.settings_tools_none_available
-import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.stringResource
 
 @Composable

@@ -47,6 +47,10 @@ import com.ether4o4.morsvitaest.ui.dynamicui.toSpeakableText
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.markdown.MarkdownContent
 import com.ether4o4.morsvitaest.ui.markdown.parseMarkdown
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.launch
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.bot_message_copy_content_description
 import morsvitaest.composeapp.generated.resources.bot_message_flag_content_description
@@ -59,10 +63,6 @@ import morsvitaest.composeapp.generated.resources.ic_flag
 import morsvitaest.composeapp.generated.resources.ic_refresh
 import morsvitaest.composeapp.generated.resources.ic_stop
 import morsvitaest.composeapp.generated.resources.ic_volume_up
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.launch
 import nl.marc_apps.tts.TextToSpeechInstance
 import nl.marc_apps.tts.errors.TextToSpeechSynthesisInterruptedError
 import org.jetbrains.compose.resources.stringResource

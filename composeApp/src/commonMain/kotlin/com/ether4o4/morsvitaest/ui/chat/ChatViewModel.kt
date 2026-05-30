@@ -16,10 +16,6 @@ import com.ether4o4.morsvitaest.ui.markdown.MorsVitaEstUiError
 import com.ether4o4.morsvitaest.ui.markdown.parseMarkdown
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.extension
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.conversation_untitled
-import morsvitaest.composeapp.generated.resources.error_unsupported_file_type
-import morsvitaest.composeapp.generated.resources.litert_no_model_warning
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
@@ -35,6 +31,10 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.conversation_untitled
+import morsvitaest.composeapp.generated.resources.error_unsupported_file_type
+import morsvitaest.composeapp.generated.resources.litert_no_model_warning
 import org.jetbrains.compose.resources.getString
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.seconds

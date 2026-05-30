@@ -66,9 +66,9 @@ import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.icons.DragIndicator
 import com.ether4o4.morsvitaest.ui.icons.Visibility
 import com.ether4o4.morsvitaest.ui.icons.VisibilityOff
-import morsvitaest.composeapp.generated.resources.Res
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import morsvitaest.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.time.Duration.Companion.seconds

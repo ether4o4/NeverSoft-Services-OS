@@ -35,8 +35,8 @@ import com.ether4o4.morsvitaest.network.UnsupportedFileTypeException
 import com.ether4o4.morsvitaest.network.dtos.anthropic.AnthropicChatRequestDto
 import com.ether4o4.morsvitaest.network.dtos.anthropic.extractText
 import com.ether4o4.morsvitaest.network.dtos.gemini.extractText
-import com.ether4o4.morsvitaest.network.dtos.openaicompatible.extractInlineToolCalls
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleModelResponseDto
+import com.ether4o4.morsvitaest.network.dtos.openaicompatible.extractInlineToolCalls
 import com.ether4o4.morsvitaest.network.toUiError
 import com.ether4o4.morsvitaest.network.tools.Tool
 import com.ether4o4.morsvitaest.network.tools.ToolInfo
@@ -59,8 +59,6 @@ import io.github.vinceglb.filekit.mimeType
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.size
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.default_soul
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.async
@@ -84,6 +82,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.default_soul
 import org.jetbrains.compose.resources.getString
 import kotlin.concurrent.Volatile
 import kotlin.io.encoding.Base64

@@ -37,7 +37,7 @@ fun SettingsListItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-           .morsvitaestAdaptiveCardSurface(RoundedCornerShape(8.dp))
+            .morsvitaestAdaptiveCardSurface(RoundedCornerShape(8.dp))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick).handCursor() else Modifier)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

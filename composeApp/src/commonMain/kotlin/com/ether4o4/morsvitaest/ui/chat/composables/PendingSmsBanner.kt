@@ -30,6 +30,7 @@ import com.ether4o4.morsvitaest.data.SmsDraftStatus
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardBorder
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardColors
+import kotlinx.collections.immutable.ImmutableList
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_close
 import morsvitaest.composeapp.generated.resources.sms_draft_banner_discard
@@ -39,7 +40,6 @@ import morsvitaest.composeapp.generated.resources.sms_draft_banner_send
 import morsvitaest.composeapp.generated.resources.sms_draft_banner_sending
 import morsvitaest.composeapp.generated.resources.sms_draft_banner_sent
 import morsvitaest.composeapp.generated.resources.sms_draft_banner_to
-import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 

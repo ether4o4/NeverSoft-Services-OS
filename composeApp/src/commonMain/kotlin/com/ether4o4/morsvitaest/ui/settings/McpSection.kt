@@ -49,6 +49,7 @@ import com.ether4o4.morsvitaest.ui.components.VerticalScrollbarForScroll
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardBorder
 import com.ether4o4.morsvitaest.ui.morsvitaestAdaptiveCardColors
+import kotlinx.collections.immutable.ImmutableList
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_arrow_drop_down
 import morsvitaest.composeapp.generated.resources.settings_mcp_add
@@ -67,7 +68,6 @@ import morsvitaest.composeapp.generated.resources.settings_mcp_servers_descripti
 import morsvitaest.composeapp.generated.resources.settings_mcp_status_connected
 import morsvitaest.composeapp.generated.resources.settings_mcp_status_connecting
 import morsvitaest.composeapp.generated.resources.settings_mcp_status_error
-import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 

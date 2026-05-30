@@ -41,14 +41,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.delay
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.tools_count
 import morsvitaest.composeapp.generated.resources.waiting_brewing
 import morsvitaest.composeapp.generated.resources.waiting_content_description
 import morsvitaest.composeapp.generated.resources.waiting_thinking
 import morsvitaest.composeapp.generated.resources.waiting_working
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.seconds
 

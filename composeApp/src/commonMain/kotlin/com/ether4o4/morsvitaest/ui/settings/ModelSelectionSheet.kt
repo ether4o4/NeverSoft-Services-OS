@@ -43,6 +43,7 @@ import com.ether4o4.morsvitaest.ui.MorsVitaEstOutlinedTextField
 import com.ether4o4.morsvitaest.ui.components.MorsVitaEstSearchField
 import com.ether4o4.morsvitaest.ui.components.VerticalScrollbarForGrid
 import com.ether4o4.morsvitaest.ui.handCursor
+import kotlinx.collections.immutable.ImmutableList
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_arrow_drop_down
 import morsvitaest.composeapp.generated.resources.model_sort_context
@@ -50,7 +51,6 @@ import morsvitaest.composeapp.generated.resources.model_sort_date
 import morsvitaest.composeapp.generated.resources.model_sort_score
 import morsvitaest.composeapp.generated.resources.settings_model_label
 import morsvitaest.composeapp.generated.resources.settings_model_search
-import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource

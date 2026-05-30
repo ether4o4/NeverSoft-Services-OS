@@ -1,15 +1,15 @@
 package com.ether4o4.morsvitaest.network.dtos
 
 import com.ether4o4.morsvitaest.network.dtos.anthropic.AnthropicChatResponseDto
-import com.ether4o4.morsvitaest.network.dtos.anthropic.tokenUsage as anthropicTokenUsage
 import com.ether4o4.morsvitaest.network.dtos.gemini.GeminiChatResponseDto
-import com.ether4o4.morsvitaest.network.dtos.gemini.tokenUsage as geminiTokenUsage
 import com.ether4o4.morsvitaest.network.dtos.openaicompatible.OpenAICompatibleChatResponseDto
-import com.ether4o4.morsvitaest.network.dtos.openaicompatible.tokenUsage as openAiTokenUsage
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import com.ether4o4.morsvitaest.network.dtos.anthropic.tokenUsage as anthropicTokenUsage
+import com.ether4o4.morsvitaest.network.dtos.gemini.tokenUsage as geminiTokenUsage
+import com.ether4o4.morsvitaest.network.dtos.openaicompatible.tokenUsage as openAiTokenUsage
 
 class TokenUsageParsingTest {
 

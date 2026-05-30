@@ -20,13 +20,14 @@ import com.ether4o4.morsvitaest.data.BudgetConfig
 import com.ether4o4.morsvitaest.data.DailyUsage
 import com.ether4o4.morsvitaest.data.UsageSource
 import com.ether4o4.morsvitaest.ui.handCursor
+import kotlinx.collections.immutable.persistentListOf
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.settings_budget
 import morsvitaest.composeapp.generated.resources.settings_budget_auto_pause
 import morsvitaest.composeapp.generated.resources.settings_budget_daily_cap
 import morsvitaest.composeapp.generated.resources.settings_budget_description
-import morsvitaest.composeapp.generated.resources.settings_budget_paused
 import morsvitaest.composeapp.generated.resources.settings_budget_pause_now
+import morsvitaest.composeapp.generated.resources.settings_budget_paused
 import morsvitaest.composeapp.generated.resources.settings_budget_reset
 import morsvitaest.composeapp.generated.resources.settings_budget_source_chat
 import morsvitaest.composeapp.generated.resources.settings_budget_source_heartbeat
@@ -35,7 +36,6 @@ import morsvitaest.composeapp.generated.resources.settings_budget_source_task
 import morsvitaest.composeapp.generated.resources.settings_budget_unlimited
 import morsvitaest.composeapp.generated.resources.settings_budget_usage_value
 import morsvitaest.composeapp.generated.resources.settings_budget_used_today
-import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
 private val BUDGET_PRESETS = persistentListOf(0, 50_000, 100_000, 250_000, 500_000, 1_000_000, 2_000_000, 5_000_000)

@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ether4o4.morsvitaest.ui.components.MorsVitaEstSearchField
 import com.ether4o4.morsvitaest.ui.handCursor
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.sandbox_files_dialog_cancel
 import morsvitaest.composeapp.generated.resources.sandbox_packages_action_clear_search
@@ -47,8 +49,6 @@ import morsvitaest.composeapp.generated.resources.sandbox_packages_search_hint
 import morsvitaest.composeapp.generated.resources.sandbox_packages_uninstall_confirm
 import morsvitaest.composeapp.generated.resources.sandbox_packages_uninstall_message
 import morsvitaest.composeapp.generated.resources.sandbox_packages_uninstall_title
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableSet
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel

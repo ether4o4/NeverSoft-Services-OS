@@ -235,8 +235,7 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
         private const val MAX_DOWNLOAD_ATTEMPTS = 4
 
         // Exponential backoff between resume attempts: 1s, 2s, 4s, 8s … capped at 15s.
-        private fun downloadBackoffMs(attempt: Int): Long =
-            (1000L shl (attempt - 1).coerceIn(0, 5)).coerceAtMost(15_000L)
+        private fun downloadBackoffMs(attempt: Int): Long = (1000L shl (attempt - 1).coerceIn(0, 5)).coerceAtMost(15_000L)
     }
 
     override fun getDownloadedModels(): List<DownloadedModel> {
@@ -257,7 +256,10 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
         }
     }
 
-    private val customModelsJson = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val customModelsJson = Json {
+        ignoreUnknownKeys = true
+        prettyPrint = true
+    }
 
     private fun customModelsFile() = File(getModelStorageDirectory(), "custom_models.json")
 
@@ -374,7 +376,7 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
                             } else {
                                 connection.contentLengthLong.takeIf { it > 0 } ?: expectedTotal
                             }
-                        ).coerceAtLeast(1L)
+                            ).coerceAtLeast(1L)
 
                         val buffer = ByteArray(65536)
                         var totalBytesRead = if (resuming) existingBytes else 0L
