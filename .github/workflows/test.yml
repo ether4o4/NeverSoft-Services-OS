@@ -73,7 +73,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y webp
 
       - name: Convert site images to WebP
-        run: ./scripts/convert-site-images-to-webp.sh
+        run: bash scripts/convert-site-images-to-webp.sh
 
       - name: Run desktop tests
         run: ./gradlew :composeApp:desktopTest --no-daemon --stacktrace
