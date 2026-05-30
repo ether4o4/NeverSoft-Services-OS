@@ -143,17 +143,14 @@ class GgufServerManager(
 
     suspend fun status(): Status = decodeOr(runQuick("status"), Status())
 
-    suspend fun listModels(): ListModelsResult =
-        decodeOr(runQuick("list-models"), ListModelsResult(ok = false, error = "decode_failed"))
+    suspend fun listModels(): ListModelsResult = decodeOr(runQuick("list-models"), ListModelsResult(ok = false, error = "decode_failed"))
 
-    suspend fun listQuants(repo: String): ListQuantsResult =
-        decodeOr(
-            runQuick("list-quants ${shellQuote(repo)}"),
-            ListQuantsResult(ok = false, error = "decode_failed"),
-        )
+    suspend fun listQuants(repo: String): ListQuantsResult = decodeOr(
+        runQuick("list-quants ${shellQuote(repo)}"),
+        ListQuantsResult(ok = false, error = "decode_failed"),
+    )
 
-    suspend fun provision(): GenericResult =
-        decodeOr(runStreaming("provision"), GenericResult(ok = false, error = "provision_unparseable"))
+    suspend fun provision(): GenericResult = decodeOr(runStreaming("provision"), GenericResult(ok = false, error = "provision_unparseable"))
 
     suspend fun pull(repoOrUrl: String, quant: String? = null): GenericResult {
         val args = if (quant.isNullOrBlank()) {
@@ -175,15 +172,13 @@ class GgufServerManager(
         )
     }
 
-    suspend fun stop(): GenericResult =
-        decodeOr(runQuick("stop"), GenericResult(ok = false, error = "stop_unparseable"))
+    suspend fun stop(): GenericResult = decodeOr(runQuick("stop"), GenericResult(ok = false, error = "stop_unparseable"))
 
     private inline fun <reified T> decodeOr(raw: String, fallback: T): T = runCatching {
         if (raw.isBlank()) fallback else json.decodeFromString<T>(raw)
     }.getOrDefault(fallback)
 
-    private fun shellQuote(s: String): String =
-        "'" + s.replace("'", "'\\''") + "'"
+    private fun shellQuote(s: String): String = "'" + s.replace("'", "'\\''") + "'"
 
     init {
         // Pre-install the script once the sandbox reaches Ready so the user can
