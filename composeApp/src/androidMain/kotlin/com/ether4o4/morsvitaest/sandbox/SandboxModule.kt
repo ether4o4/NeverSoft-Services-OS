@@ -5,4 +5,5 @@ import org.koin.dsl.module
 
 val sandboxModule = module {
     single<LinuxSandboxManager> { LinuxSandboxManager(androidContext(), get()) }
+    single<GgufServerManager> { GgufServerManager(androidContext(), get()) }
 }

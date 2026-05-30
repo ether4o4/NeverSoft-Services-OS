@@ -1,6 +1,6 @@
 # Local GGUF (llama.cpp in the sandbox)
 
-**Last verified:** 2026-05-29
+**Last verified:** 2026-05-30
 
 MorsVitaEst can run GGUF models from Hugging Face fully on-device, without a separate
 Ollama install and without the user typing anything into a terminal. It reuses two pieces
@@ -61,6 +61,10 @@ run with stderr suppressed so the manager parses clean JSON.
   slow and memory-heavy. The performance heuristics in the LiteRT card do not apply here.
 - **No automatic model selection in chat** -- the served model is reached via its OpenAI-Compatible
   service instance; the user selects that service like any other.
+- **No built-in Settings UI yet** -- the runtime is wired and the `morsllm` script is auto-installed
+  into the sandbox when it reaches Ready, so the user can drive the full flow from the in-app
+  Terminal (`morsllm provision`, `morsllm pull <repo>`, `morsllm serve <file>`). A one-tap Settings
+  page for repo entry + quant pick + start/stop is the next layer on top of `GgufServerManager`.
 
 ## Key Files
 
