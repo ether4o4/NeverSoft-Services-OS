@@ -57,7 +57,7 @@ cmd_provision() {
     mkdir -p "$LOGS_DIR"
     if ! apk update --quiet >"$apk_log" 2>&1; then
         detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
-        emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\"}"
+        emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"Network or apk repo unreachable. Test in terminal: ping -c1 dl-cdn.alpinelinux.org\"}"
         provision_emitted=1
         return 1
     fi
@@ -108,7 +108,8 @@ cmd_provision() {
     done
     if [ "$apk_ok" != "1" ]; then
         detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
-        emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"attempts\":3}"
+        manual_extract='cd /tmp && apk fetch binutils gcc g++ && tar -xzf binutils-*.apk -C / && tar -xzf gcc-*.apk -C / && tar -xzf g++-*.apk -C / && g++ --version'
+        emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"proot rename failed 3x. Bypass with manual tar extract: $manual_extract\",\"attempts\":3}"
         provision_emitted=1
         return 1
     fi

@@ -85,6 +85,7 @@ class GgufServerManager(
         val ok: Boolean = false,
         val error: String? = null,
         val detail: String? = null,
+        @SerialName("log_path") val logPath: String? = null,
         val hint: String? = null,
         @SerialName("base_url") val baseUrl: String? = null,
         val pid: Long? = null,
@@ -191,6 +192,14 @@ class GgufServerManager(
     }
 
     suspend fun stop(): GenericResult = decodeOr(runQuick("stop"), GenericResult(ok = false, error = "stop_unparseable"))
+
+    /** Read the tail of a log file from inside the sandbox; capped so we don't
+     * push huge text into a Compose dialog. Returns empty string if missing. */
+    suspend fun readLogTail(path: String, maxBytes: Int = 8000): String =
+        sandbox.executeCommand(
+            command = "tail -c $maxBytes ${shellQuote(path)} 2>/dev/null",
+            sessionId = SandboxSessions.SYSTEM,
+        )
 
     private inline fun <reified T> decodeOr(raw: String, fallback: T): T = runCatching {
         if (raw.isBlank()) fallback else json.decodeFromString<T>(raw)
