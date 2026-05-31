@@ -62,6 +62,18 @@ ensure_binutils_shortcuts() {
             ln -sf "$base" "/usr/bin/$short" 2>/dev/null
         fi
     done
+    # Also create the gcc-* archiver wrappers. cmake with gcc as the C++
+    # compiler defaults `CMAKE_<LANG>_COMPILER_AR` to `gcc-ar` (for LTO
+    # support). If gcc-ar isn't on PATH cmake's link step dies with
+    # "Error running link command: no such file or directory" partway
+    # through. These aren't shipped by the gcc apk in a recognizable
+    # triplet-prefixed form, so we just point them at the plain binutils
+    # equivalents — fine for non-LTO builds, which is what we configure.
+    for tool in ar ranlib nm; do
+        if [ -e "/usr/bin/$tool" ] && [ ! -e "/usr/bin/gcc-$tool" ]; then
+            ln -sf "$tool" "/usr/bin/gcc-$tool" 2>/dev/null
+        fi
+    done
 }
 
 # Fall-back installer for apk packages whose `apk add` fails under proot
@@ -256,18 +268,34 @@ cmd_provision() {
     ensure_binutils_shortcuts
 
     cmake_log="$LOGS_DIR/cmake.log"
+    # Wipe any stale build dir from a prior failed attempt. CMake caches
+    # toolchain detection results in CMakeCache.txt, and a configure-time
+    # NOTFOUND for ar / gcc-ar persists across re-runs even after the
+    # tools are installed correctly.
+    if [ -d "$src/build" ] && [ ! -f "$src/build/bin/llama-server" ]; then
+        log "provision: removing stale build dir from prior failed attempt"
+        rm -rf "$src/build"
+    fi
+
     log "provision: configuring cmake (CPU only, Release, static libs)"
-    # BUILD_SHARED_LIBS=OFF is load-bearing under proot: shared-library
-    # builds need a chain of `.so` -> `.so.0` -> `.so.0.13.1` symlinks
-    # that proot's symlink emulation rejects with EACCES in this
-    # specific path layout. Static archives sidestep the symlink chain.
+    # BUILD_SHARED_LIBS=OFF: proot's symlink emulation rejects the SO
+    # version chain (.so -> .so.0 -> .so.0.13.1). Static archives sidestep
+    # it. Explicit CMAKE_AR/RANLIB/NM so cmake doesn't try to auto-detect
+    # gcc-ar (which can fail-and-cache under partial installs).
     if ! cmake -S "$src" -B "$src/build" \
         -DCMAKE_BUILD_TYPE=Release \
         -DLLAMA_BUILD_TESTS=OFF \
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_SERVER=ON \
         -DGGML_OPENMP=OFF \
-        -DBUILD_SHARED_LIBS=OFF >"$cmake_log" 2>&1; then
+        -DBUILD_SHARED_LIBS=OFF \
+        -DCMAKE_AR=/usr/bin/ar \
+        -DCMAKE_RANLIB=/usr/bin/ranlib \
+        -DCMAKE_NM=/usr/bin/nm \
+        -DCMAKE_C_COMPILER_AR=/usr/bin/gcc-ar \
+        -DCMAKE_CXX_COMPILER_AR=/usr/bin/gcc-ar \
+        -DCMAKE_C_COMPILER_RANLIB=/usr/bin/gcc-ranlib \
+        -DCMAKE_CXX_COMPILER_RANLIB=/usr/bin/gcc-ranlib >"$cmake_log" 2>&1; then
         detail=$(tail -n 1 "$cmake_log" 2>/dev/null | tr -d '"\\' | head -c 200)
         emit "{\"ok\":false,\"error\":\"cmake_configure_failed\",\"detail\":\"$detail\",\"log_path\":\"$cmake_log\",\"hint\":\"Check compiler is on PATH: g++ --version. If missing, paste the workaround command from your prior chat.\"}"
         provision_emitted=1
