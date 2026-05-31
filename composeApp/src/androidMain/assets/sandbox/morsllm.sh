@@ -44,6 +44,58 @@ require_jq() {
     }
 }
 
+# Fall-back installer for apk packages whose `apk add` fails under proot
+# due to hardlink-translation issues (binutils, gcc, g++ etc.). Fetches the
+# .apk files, extracts each with tar to /, then post-processes failed
+# hardlinks into symlinks AND explicitly creates the standard short-name
+# shortcuts (gcc, g++, c++, ar, as, ld, etc.) pointing at the triplet-
+# prefixed binaries when the package shipped them as hardlinks that tar
+# couldn't materialize.
+#
+# Usage: tar_extract_with_symlinks pkg1 pkg2 ...
+tar_extract_with_symlinks() {
+    local pkgs="$*"
+    [ -z "$pkgs" ] && return 1
+    cd /tmp || return 1
+    rm -f *.apk
+    apk fetch $pkgs || return 1
+    for apk_file in $(echo "$pkgs" | tr ' ' '\n' | while read p; do ls "${p}"-*.apk 2>/dev/null | head -1; done); do
+        [ -z "$apk_file" ] && continue
+        echo "tar: extracting $apk_file"
+        # Capture stderr separately so we can post-process the hardlink errors
+        # into symlinks. Many secondary names (e.g. *-gcc-14.2.0) ship as
+        # hardlinks in the apk that proot's link emulation refuses.
+        tar -xzf "$apk_file" -C / 2>&1 | grep "can't create hardlink" \
+            | sed "s/.*hardlink '\([^']*\)' to '\([^']*\)'.*/\2 \1/" \
+            | while read -r tgt lnk; do
+                [ -n "$tgt" ] && [ -n "$lnk" ] && ln -sf "/$tgt" "/$lnk" 2>/dev/null \
+                    && echo "  linked /$lnk -> /$tgt"
+            done
+    done
+    # Explicitly recreate the standard binary shortcuts. These ship as
+    # hardlinks in the apk too — to the triplet-prefixed versions — but
+    # because BOTH names are missing from disk at extraction time, the
+    # link-target ordering means tar may silently drop the shortcut without
+    # an error line we can parse. Walk every triplet-prefixed binary and
+    # create the short symlink if it's missing.
+    for triplet_bin in /usr/bin/*-alpine-linux-musl*-*; do
+        [ -e "$triplet_bin" ] || continue
+        local base
+        base=$(basename "$triplet_bin")
+        # Strip the leading triplet to get the short name (e.g. "g++").
+        local short="${base##*-alpine-linux-musl-}"
+        # Skip versioned suffixes like gcc-14.2.0 — keep only bare names.
+        case "$short" in
+            *-[0-9]*) continue ;;
+        esac
+        if [ ! -e "/usr/bin/$short" ]; then
+            ln -sf "$base" "/usr/bin/$short" 2>/dev/null \
+                && echo "  shortcut /usr/bin/$short -> $base"
+        fi
+    done
+    return 0
+}
+
 cmd_provision() {
     # Catch-all so an unexpected exit (set -e + pipefail tripping on something
     # we didn't anticipate, OOM kill, etc.) doesn't leave the UI staring at
@@ -107,11 +159,23 @@ cmd_provision() {
         sleep 1
     done
     if [ "$apk_ok" != "1" ]; then
-        detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
-        manual_extract='cd /tmp && apk fetch binutils gcc g++ && tar -xzf binutils-*.apk -C / && tar -xzf gcc-*.apk -C / && tar -xzf g++-*.apk -C / && g++ --version'
-        emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"proot rename failed 3x. Bypass with manual tar extract: $manual_extract\",\"attempts\":3}"
-        provision_emitted=1
-        return 1
+        log "provision: apk install failed 3x; falling back to manual tar extract + symlink"
+        if ! tar_extract_with_symlinks "binutils" "gcc" "g++" >>"$apk_log" 2>&1; then
+            detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+            manual_extract='cd /tmp && apk fetch binutils gcc g++ && tar -xzf binutils-*.apk -C / && tar -xzf gcc-*.apk -C / && tar -xzf g++-*.apk -C /'
+            emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"apk add failed 3x AND tar fallback failed. Try in terminal: $manual_extract\",\"attempts\":3}"
+            provision_emitted=1
+            return 1
+        fi
+        # Make the script visible to the caller's PATH for the rest of provision.
+        export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+        if ! command -v g++ >/dev/null 2>&1; then
+            detail="manual tar extract succeeded but g++ still not on PATH after creating standard shortcuts"
+            emit "{\"ok\":false,\"error\":\"manual_extract_incomplete\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\"}"
+            provision_emitted=1
+            return 1
+        fi
+        log "provision: tar fallback succeeded; g++ now functional"
     fi
 
     if [ -x "$LLAMA_SERVER" ]; then
