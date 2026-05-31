@@ -104,33 +104,58 @@ cmd_provision() {
     provision_emitted=0
     trap '[ "${provision_emitted:-0}" = "1" ] || emit "{\"ok\":false,\"error\":\"provision_crashed\",\"detail\":\"line ${LINENO}\"}"' EXIT
 
-    log "provision: refreshing alpine package index"
     apk_log="$LOGS_DIR/apk.log"
     mkdir -p "$LOGS_DIR"
-    if ! apk update --quiet >"$apk_log" 2>&1; then
-        detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
-        emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"Network or apk repo unreachable. Test in terminal: ping -c1 dl-cdn.alpinelinux.org\"}"
-        provision_emitted=1
-        return 1
+
+    # Skip the entire apk install pipeline if the build deps are already
+    # present — e.g. the user (or a prior provision attempt) manually
+    # extracted them with tar+symlink to bypass proot's hardlink failures.
+    # Without this short-circuit, the pre-clean step below would delete
+    # the user's hand-crafted symlinks and apk would loop forever trying
+    # to reinstall packages that already exist on disk.
+    if command -v g++ >/dev/null 2>&1 && \
+       command -v gcc >/dev/null 2>&1 && \
+       command -v cmake >/dev/null 2>&1 && \
+       command -v git >/dev/null 2>&1 && \
+       command -v curl >/dev/null 2>&1 && \
+       command -v jq >/dev/null 2>&1; then
+        log "provision: build deps already present (g++, cmake, git, curl, jq); skipping apk add"
+        apk_ok=1
+    else
+        apk_ok=0
     fi
 
-    # Reconcile any partially-installed packages from a prior aborted attempt.
-    # Idempotent on a clean db; cheap to always run.
-    log "provision: reconciling apk db (fix)"
-    apk fix --quiet >"$apk_log" 2>&1 || true
+    # Everything below is gated on the preflight: if the build deps are
+    # already present (apk_ok=1), skip every step that could disturb the
+    # user's working install (the pre-clean rm would nuke their symlinks).
+    if [ "$apk_ok" != "1" ]; then
+        log "provision: refreshing alpine package index"
+        if ! apk update --quiet >"$apk_log" 2>&1; then
+            detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+            emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"Network or apk repo unreachable. Test in terminal: ping -c1 dl-cdn.alpinelinux.org\"}"
+            provision_emitted=1
+            return 1
+        fi
 
-    log "provision: installing build deps (build-base cmake git curl jq)"
-    log "provision: clearing potential rename targets and stale apk temp files"
-    rm -f /usr/bin/g++ /usr/bin/gcc /usr/bin/cc /usr/bin/c++ \
-          /usr/bin/cpp /usr/bin/ar /usr/bin/as /usr/bin/ld 2>/dev/null || true
-    find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
-    find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+        # Reconcile any partially-installed packages from a prior aborted attempt.
+        # Idempotent on a clean db; cheap to always run.
+        log "provision: reconciling apk db (fix)"
+        apk fix --quiet >"$apk_log" 2>&1 || true
+
+        log "provision: installing build deps (build-base cmake git curl jq)"
+        log "provision: clearing potential rename targets and stale apk temp files"
+        rm -f /usr/bin/g++ /usr/bin/gcc /usr/bin/cc /usr/bin/c++ \
+              /usr/bin/cpp /usr/bin/ar /usr/bin/as /usr/bin/ld 2>/dev/null || true
+        find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
+        find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+    fi
 
     # Up to 3 attempts: proot's renameat() emulation is occasionally flaky
     # and a fresh attempt after parsing the failing path from the error and
-    # clearing it usually succeeds.
-    apk_ok=0
+    # clearing it usually succeeds. Skipped entirely if the preflight passed.
+    [ "$apk_ok" = "1" ] && goto_build=1 || goto_build=0
     for attempt in 1 2 3; do
+        [ "$goto_build" = "1" ] && break
         if apk add --quiet build-base cmake git curl jq >"$apk_log" 2>&1; then
             apk_ok=1
             break
