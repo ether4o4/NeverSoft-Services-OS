@@ -45,22 +45,29 @@ require_jq() {
 }
 
 cmd_provision() {
+    # Catch-all so an unexpected exit (set -e + pipefail tripping on something
+    # we didn't anticipate, OOM kill, etc.) doesn't leave the UI staring at
+    # `provision_unparseable`. provision_emitted is flipped to 1 immediately
+    # after every explicit emit below; the trap only fires when no emit ran.
+    provision_emitted=0
+    trap '[ "${provision_emitted:-0}" = "1" ] || emit "{\"ok\":false,\"error\":\"provision_crashed\",\"detail\":\"line ${LINENO}\"}"' EXIT
+
     log "provision: refreshing alpine package index"
     apk_log="$LOGS_DIR/apk.log"
     mkdir -p "$LOGS_DIR"
     if ! apk update --quiet >"$apk_log" 2>&1; then
-        # Surface the last line of apk's stderr so the UI can show *why* (network,
-        # mirror unreachable, repo signing, etc.) instead of an opaque code.
         detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
         emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\"}"
+        provision_emitted=1
         return 1
     fi
+
+    # Reconcile any partially-installed packages from a prior aborted attempt.
+    # Idempotent on a clean db; cheap to always run.
+    log "provision: reconciling apk db (fix)"
+    apk fix --quiet >"$apk_log" 2>&1 || true
+
     log "provision: installing build deps (build-base cmake git curl jq)"
-    # Under proot, apk's atomic 'rename .apk.<hash>_<size> -> /usr/bin/<binary>'
-    # can fail with 'failed to rename' when the destination already exists
-    # (often a symlink from the Alpine base image, or a partial file from a
-    # prior aborted install). Pre-clearing the common compiler binaries plus
-    # any stale .apk.* temp files lets apk just write the new file outright.
     log "provision: clearing potential rename targets and stale apk temp files"
     rm -f /usr/bin/g++ /usr/bin/gcc /usr/bin/cc /usr/bin/c++ \
           /usr/bin/cpp /usr/bin/ar /usr/bin/as /usr/bin/ld 2>/dev/null || true
@@ -77,28 +84,39 @@ cmd_provision() {
             break
         fi
         log "provision: apk attempt $attempt failed; clearing failing target and retrying"
-        # Parse the failing destination from apk's error and clear it.
-        grep -oE "rename [^ ]+ to /?[^ ]+" "$apk_log" 2>/dev/null \
-            | awk '{print $NF}' \
-            | while read -r p; do
-                case "$p" in
-                    /*) rm -f "$p" 2>/dev/null ;;
-                    *) rm -f "/$p" 2>/dev/null ;;
-                esac
-            done
+        # Parse the failing destination from apk's error and clear it. The
+        # `|| true` here is load-bearing: if apk's error doesn't include the
+        # word "rename" (a different failure mode entirely), grep exits 1 and
+        # `set -o pipefail` would otherwise propagate that and `set -e` would
+        # exit the script before we can emit a JSON failure.
+        {
+            grep -oE "rename [^ ]+ to /?[^ ]+" "$apk_log" 2>/dev/null \
+                | awk '{print $NF}' \
+                | while read -r p; do
+                    case "$p" in
+                        /*) rm -f "$p" 2>/dev/null ;;
+                        *) rm -f "/$p" 2>/dev/null ;;
+                    esac
+                done
+        } || true
         find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
         find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+        # Also try `apk fix` between retries in case the failure left the db
+        # in a state where the next install can't proceed.
+        apk fix --quiet >>"$apk_log" 2>&1 || true
         sleep 1
     done
     if [ "$apk_ok" != "1" ]; then
         detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
         emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"attempts\":3}"
+        provision_emitted=1
         return 1
     fi
 
     if [ -x "$LLAMA_SERVER" ]; then
         log "provision: llama-server already built at $LLAMA_SERVER"
         emit "{\"ok\":true,\"already_built\":true,\"path\":\"$LLAMA_SERVER\"}"
+        provision_emitted=1
         return 0
     fi
 
@@ -108,6 +126,7 @@ cmd_provision() {
         rm -rf "$src"
         git clone --depth=1 "$LLAMA_CPP_REPO" "$src" >&2 || {
             emit '{"ok":false,"error":"clone_failed"}'
+            provision_emitted=1
             return 1
         }
     else
@@ -122,12 +141,14 @@ cmd_provision() {
         -DLLAMA_BUILD_SERVER=ON \
         -DGGML_OPENMP=OFF >&2 || {
         emit '{"ok":false,"error":"cmake_configure_failed"}'
+        provision_emitted=1
         return 1
     }
 
     log "provision: building llama-server (this is the slow step)"
     cmake --build "$src/build" --target llama-server -j 2 >&2 || {
         emit '{"ok":false,"error":"cmake_build_failed"}'
+        provision_emitted=1
         return 1
     }
 
@@ -140,6 +161,7 @@ cmd_provision() {
     done
     if [ -z "$built" ]; then
         emit '{"ok":false,"error":"build_artifact_missing"}'
+        provision_emitted=1
         return 1
     fi
 
@@ -147,6 +169,7 @@ cmd_provision() {
     chmod +x "$LLAMA_SERVER"
     log "provision: done -> $LLAMA_SERVER"
     emit "{\"ok\":true,\"path\":\"$LLAMA_SERVER\"}"
+    provision_emitted=1
 }
 
 cmd_list_quants() {
