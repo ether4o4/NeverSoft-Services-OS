@@ -44,6 +44,26 @@ require_jq() {
     }
 }
 
+# Walk every triplet-prefixed binary in /usr/bin and create the short
+# shortcut (e.g. /usr/bin/ar -> aarch64-alpine-linux-musl-ar) if the
+# short name is missing. Idempotent. Called after every install path
+# (apk add success, tar fallback, preflight) so cmake can find `ar`,
+# `as`, `ld`, etc. regardless of how the binaries got there.
+ensure_binutils_shortcuts() {
+    for triplet_bin in /usr/bin/*-alpine-linux-musl-*; do
+        [ -e "$triplet_bin" ] || continue
+        local base
+        base=$(basename "$triplet_bin")
+        local short="${base##*-alpine-linux-musl-}"
+        case "$short" in
+            *-[0-9]*) continue ;;
+        esac
+        if [ ! -e "/usr/bin/$short" ]; then
+            ln -sf "$base" "/usr/bin/$short" 2>/dev/null
+        fi
+    done
+}
+
 # Fall-back installer for apk packages whose `apk add` fails under proot
 # due to hardlink-translation issues (binutils, gcc, g++ etc.). Fetches the
 # .apk files, extracts each with tar to /, then post-processes failed
@@ -113,6 +133,12 @@ cmd_provision() {
     # Without this short-circuit, the pre-clean step below would delete
     # the user's hand-crafted symlinks and apk would loop forever trying
     # to reinstall packages that already exist on disk.
+    # Try to fill in any missing short-name shortcuts (ar, as, ld, etc.)
+    # from triplet-prefixed binaries before checking — handles the case
+    # where a user manually installed the compilers but didn't link the
+    # binutils tools.
+    ensure_binutils_shortcuts
+
     if command -v g++ >/dev/null 2>&1 && \
        command -v gcc >/dev/null 2>&1 && \
        command -v cmake >/dev/null 2>&1 && \
@@ -223,24 +249,38 @@ cmd_provision() {
         log "provision: reusing existing llama.cpp checkout"
     fi
 
-    log "provision: configuring cmake (CPU only, Release)"
-    cmake -S "$src" -B "$src/build" \
+    # Ensure binutils shortcuts (ar, as, ld, nm, etc.) exist regardless
+    # of how the compilers were installed — cmake's link step calls `ar`
+    # by short name and silently fails with "no such file or directory"
+    # if only the triplet-prefixed version exists.
+    ensure_binutils_shortcuts
+
+    cmake_log="$LOGS_DIR/cmake.log"
+    log "provision: configuring cmake (CPU only, Release, static libs)"
+    # BUILD_SHARED_LIBS=OFF is load-bearing under proot: shared-library
+    # builds need a chain of `.so` -> `.so.0` -> `.so.0.13.1` symlinks
+    # that proot's symlink emulation rejects with EACCES in this
+    # specific path layout. Static archives sidestep the symlink chain.
+    if ! cmake -S "$src" -B "$src/build" \
         -DCMAKE_BUILD_TYPE=Release \
         -DLLAMA_BUILD_TESTS=OFF \
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_SERVER=ON \
-        -DGGML_OPENMP=OFF >&2 || {
-        emit '{"ok":false,"error":"cmake_configure_failed"}'
+        -DGGML_OPENMP=OFF \
+        -DBUILD_SHARED_LIBS=OFF >"$cmake_log" 2>&1; then
+        detail=$(tail -n 1 "$cmake_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+        emit "{\"ok\":false,\"error\":\"cmake_configure_failed\",\"detail\":\"$detail\",\"log_path\":\"$cmake_log\",\"hint\":\"Check compiler is on PATH: g++ --version. If missing, paste the workaround command from your prior chat.\"}"
         provision_emitted=1
         return 1
-    }
+    fi
 
-    log "provision: building llama-server (this is the slow step)"
-    cmake --build "$src/build" --target llama-server -j 2 >&2 || {
-        emit '{"ok":false,"error":"cmake_build_failed"}'
+    log "provision: building llama-server (this is the slow step, real 10-30 min)"
+    if ! cmake --build "$src/build" --target llama-server -j 2 >"$cmake_log" 2>&1; then
+        detail=$(tail -n 1 "$cmake_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+        emit "{\"ok\":false,\"error\":\"cmake_build_failed\",\"detail\":\"$detail\",\"log_path\":\"$cmake_log\",\"hint\":\"Common: OOM (-j 1 instead of -j 2), missing header, or proot symlink issue. Last 8KB of cmake output is in the log.\"}"
         provision_emitted=1
         return 1
-    }
+    fi
 
     local built=""
     for candidate in \
