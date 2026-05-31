@@ -135,7 +135,13 @@ actual fun PlatformGgufModelsCard() {
                 onClick = {
                     runOp("Building engine… one-time, may take 10–30 min") {
                         val r = manager.provision()
-                        if (r.ok) "Engine ready" else "Provision failed: ${r.error ?: "unknown"}"
+                        if (r.ok) {
+                            "Engine ready"
+                        } else {
+                            val code = r.error ?: "unknown"
+                            val detail = r.detail?.takeIf { it.isNotBlank() }
+                            if (detail != null) "Provision failed: $code — $detail" else "Provision failed: $code"
+                        }
                     }
                 },
                 modifier = Modifier.handCursor(),

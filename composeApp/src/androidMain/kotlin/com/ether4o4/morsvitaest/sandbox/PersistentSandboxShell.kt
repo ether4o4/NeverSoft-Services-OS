@@ -74,7 +74,7 @@ class PersistentSandboxShell(
         val sink = CommandSink(nonce = nonce, onStdout = onStdout, onStderr = onStderr)
         currentSink.set(sink)
 
-        val cmdFile = File(tmpPath, " .morsvitaest_cmd_$nonce")
+        val cmdFile = File(tmpPath, ".morsvitaest_cmd_$nonce")
         try {
             cmdFile.writeText(command)
         } catch (e: Exception) {
@@ -85,7 +85,7 @@ class PersistentSandboxShell(
         // Source the user command (preserves cwd/env), capture exit, emit sentinel.
         // Leading \n flushes any partial stderr line (e.g. Python's >>> prompt
         // with no trailing newline) so the sentinel arrives on a clean line.
-        val line = ". /tmp/ .morsvitaest_cmd_$nonce; __mve_st=\$?; rm -f /tmp/ .morsvitaest_cmd_$nonce; " +
+        val line = ". /tmp/.morsvitaest_cmd_$nonce; __mve_st=\$?; rm -f /tmp/.morsvitaest_cmd_$nonce; " +
             "printf '\\n\\036%s\\037%d\\037%d\\037%s\\036\\n' '$nonce' \"\$__mve_st\" \"\$\$\" \"\$PWD\" >&2"
         handle?.writeInput(line)
 

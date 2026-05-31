@@ -84,6 +84,7 @@ class GgufServerManager(
     data class GenericResult(
         val ok: Boolean = false,
         val error: String? = null,
+        val detail: String? = null,
         val hint: String? = null,
         @SerialName("base_url") val baseUrl: String? = null,
         val pid: Long? = null,

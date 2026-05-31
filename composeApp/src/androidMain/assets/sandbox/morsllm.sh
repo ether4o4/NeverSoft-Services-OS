@@ -45,11 +45,56 @@ require_jq() {
 }
 
 cmd_provision() {
-    log "provision: installing build deps (build-base cmake git)"
-    apk add --quiet build-base cmake git curl jq >&2 || {
-        emit '{"ok":false,"error":"apk_install_failed"}'
+    log "provision: refreshing alpine package index"
+    apk_log="$LOGS_DIR/apk.log"
+    mkdir -p "$LOGS_DIR"
+    if ! apk update --quiet >"$apk_log" 2>&1; then
+        # Surface the last line of apk's stderr so the UI can show *why* (network,
+        # mirror unreachable, repo signing, etc.) instead of an opaque code.
+        detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+        emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\"}"
         return 1
-    }
+    fi
+    log "provision: installing build deps (build-base cmake git curl jq)"
+    # Under proot, apk's atomic 'rename .apk.<hash>_<size> -> /usr/bin/<binary>'
+    # can fail with 'failed to rename' when the destination already exists
+    # (often a symlink from the Alpine base image, or a partial file from a
+    # prior aborted install). Pre-clearing the common compiler binaries plus
+    # any stale .apk.* temp files lets apk just write the new file outright.
+    log "provision: clearing potential rename targets and stale apk temp files"
+    rm -f /usr/bin/g++ /usr/bin/gcc /usr/bin/cc /usr/bin/c++ \
+          /usr/bin/cpp /usr/bin/ar /usr/bin/as /usr/bin/ld 2>/dev/null || true
+    find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
+    find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+
+    # Up to 3 attempts: proot's renameat() emulation is occasionally flaky
+    # and a fresh attempt after parsing the failing path from the error and
+    # clearing it usually succeeds.
+    apk_ok=0
+    for attempt in 1 2 3; do
+        if apk add --quiet build-base cmake git curl jq >"$apk_log" 2>&1; then
+            apk_ok=1
+            break
+        fi
+        log "provision: apk attempt $attempt failed; clearing failing target and retrying"
+        # Parse the failing destination from apk's error and clear it.
+        grep -oE "rename [^ ]+ to /?[^ ]+" "$apk_log" 2>/dev/null \
+            | awk '{print $NF}' \
+            | while read -r p; do
+                case "$p" in
+                    /*) rm -f "$p" 2>/dev/null ;;
+                    *) rm -f "/$p" 2>/dev/null ;;
+                esac
+            done
+        find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
+        find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+        sleep 1
+    done
+    if [ "$apk_ok" != "1" ]; then
+        detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+        emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"attempts\":3}"
+        return 1
+    fi
 
     if [ -x "$LLAMA_SERVER" ]; then
         log "provision: llama-server already built at $LLAMA_SERVER"

@@ -202,3 +202,21 @@ MorsVitaEst is a rebuild of intent, not just a rename. The foundation gives us a
 - More living infrastructure
 
 MorsVitaEst is meant to keep becoming.
+
+## Install Latest Android Preview
+
+**Always-latest APK** (auto-updates on every merge to `main`):
+
+[`MorsVitaEst-android-preview.apk`](https://github.com/ether4o4/MorsVitaEst/releases/download/android-preview-latest/MorsVitaEst-android-preview.apk)
+
+The URL above is stable — the file behind it is replaced automatically within ~5 minutes of a green CI build. Older or dated versions are on the [Releases tab](https://github.com/ether4o4/MorsVitaEst/releases).
+
+**To install:**
+
+1. Download the APK on your Android device
+2. Tap to install (allow "install from unknown sources" if prompted)
+3. Installs in-place over previous debug/preview builds — app data is preserved across updates
+
+**To verify it's the new build:** check the downloaded file's SHA-256 against the value shown on the [latest release page](https://github.com/ether4o4/MorsVitaEst/releases/tag/android-preview-latest). If they don't match, your browser served a cached copy — use the dated APK URL from the Releases tab to bypass caching.
+
+> Sideloadable preview, not a Play Store release. Signed with the repo's shared debug keystore.
