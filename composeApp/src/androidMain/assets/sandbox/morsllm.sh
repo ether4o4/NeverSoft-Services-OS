@@ -50,6 +50,8 @@ require_jq() {
 # (apk add success, tar fallback, preflight) so cmake can find `ar`,
 # `as`, `ld`, etc. regardless of how the binaries got there.
 ensure_binutils_shortcuts() {
+    # Pass 1: walk triplet-prefixed binaries in /usr/bin and create the
+    # short shortcut (e.g. /usr/bin/ar -> aarch64-alpine-linux-musl-ar).
     for triplet_bin in /usr/bin/*-alpine-linux-musl-*; do
         [ -e "$triplet_bin" ] || continue
         local base
@@ -62,13 +64,26 @@ ensure_binutils_shortcuts() {
             ln -sf "$base" "/usr/bin/$short" 2>/dev/null
         fi
     done
-    # Also create the gcc-* archiver wrappers. cmake with gcc as the C++
-    # compiler defaults `CMAKE_<LANG>_COMPILER_AR` to `gcc-ar` (for LTO
-    # support). If gcc-ar isn't on PATH cmake's link step dies with
-    # "Error running link command: no such file or directory" partway
-    # through. These aren't shipped by the gcc apk in a recognizable
-    # triplet-prefixed form, so we just point them at the plain binutils
-    # equivalents — fine for non-LTO builds, which is what we configure.
+
+    # Pass 2: for any standard binutils tool still missing, point it at
+    # the real binary under /usr/<triplet>/bin/. Handles the case where
+    # the triplet-prefixed copy in /usr/bin didn't get extracted either
+    # (both names ship as hardlinks in the apk and both can fail).
+    for s in ar as ld ld.bfd nm objcopy objdump ranlib strip readelf addr2line; do
+        [ -e "/usr/bin/$s" ] && continue
+        for src in /usr/*-alpine-linux-musl/bin/$s; do
+            if [ -e "$src" ]; then
+                ln -sf "$src" "/usr/bin/$s" 2>/dev/null
+                break
+            fi
+        done
+    done
+
+    # Pass 3: gcc-* archiver wrappers. cmake with gcc as the C++ compiler
+    # defaults `CMAKE_<LANG>_COMPILER_AR` to `gcc-ar` (for LTO). The gcc
+    # apk ships these as native names (no triplet prefix), so if the apk
+    # install failed they need to be pointed at the plain binutils tools.
+    # Fine for non-LTO builds, which is what we configure.
     for tool in ar ranlib nm; do
         if [ -e "/usr/bin/$tool" ] && [ ! -e "/usr/bin/gcc-$tool" ]; then
             ln -sf "$tool" "/usr/bin/gcc-$tool" 2>/dev/null

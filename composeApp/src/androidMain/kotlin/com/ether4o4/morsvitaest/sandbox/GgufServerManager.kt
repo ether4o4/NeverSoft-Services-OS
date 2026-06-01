@@ -101,34 +101,37 @@ class GgufServerManager(
         if (scriptInstalled) return true
         installLock.withLock {
             if (scriptInstalled) return true
-            val raw = readAssetText("sandbox/morsllm.sh") ?: return false
-            // Strip CR so a CRLF-mangled asset can't turn the shebang / `set`
-            // lines into "command not found" or syntax errors under bash.
-            val script = raw.replace("\r\n", "\n").replace("\r", "\n")
-            // Clear anything stale at the target first. If a prior run or a user
-            // experiment left a *directory* (or a non-file) at this path,
-            // writeTextFile refuses to overwrite it and the shell then reports
-            // "morsllm: Is a directory" on every invocation.
-            sandbox.executeCommand(
-                command = "rm -rf $SCRIPT_PATH 2>/dev/null; mkdir -p \$(dirname $SCRIPT_PATH)",
-                sessionId = SandboxSessions.SYSTEM,
-            )
-            val written = sandbox.writeTextFile(SCRIPT_PATH, script)
-            if (!written) return false
-            // writeTextFile doesn't set the executable bit.
-            sandbox.executeCommand(
-                command = "chmod 755 $SCRIPT_PATH",
-                sessionId = SandboxSessions.SYSTEM,
-            )
-            // Confirm it's an executable regular file before trusting it.
-            val verify = sandbox.executeCommand(
-                command = "test -x $SCRIPT_PATH && echo MORSLLM_OK",
-                sessionId = SandboxSessions.SYSTEM,
-            )
-            if (!verify.contains("MORSLLM_OK")) return false
+            if (!installScriptAsset("sandbox/morsllm.sh", SCRIPT_PATH)) return false
+            // Best-effort install of the manual-recovery helper. Failure here
+            // doesn't block provisioning — the helper is only used as an
+            // escape hatch the user can invoke from the terminal.
+            installScriptAsset("sandbox/morsllm-setup.sh", SETUP_SCRIPT_PATH)
             scriptInstalled = true
             return true
         }
+    }
+
+    private suspend fun installScriptAsset(asset: String, path: String): Boolean {
+        val raw = readAssetText(asset) ?: return false
+        // Strip CR so a CRLF-mangled asset can't turn the shebang / `set`
+        // lines into "command not found" or syntax errors under bash.
+        val script = raw.replace("\r\n", "\n").replace("\r", "\n")
+        // Clear anything stale at the target first (file, dir, or symlink).
+        sandbox.executeCommand(
+            command = "rm -rf $path 2>/dev/null; mkdir -p \$(dirname $path)",
+            sessionId = SandboxSessions.SYSTEM,
+        )
+        val written = sandbox.writeTextFile(path, script)
+        if (!written) return false
+        sandbox.executeCommand(
+            command = "chmod 755 $path",
+            sessionId = SandboxSessions.SYSTEM,
+        )
+        val verify = sandbox.executeCommand(
+            command = "test -x $path && echo INSTALL_OK",
+            sessionId = SandboxSessions.SYSTEM,
+        )
+        return verify.contains("INSTALL_OK")
     }
 
     private fun readAssetText(path: String): String? = runCatching {
@@ -221,6 +224,7 @@ class GgufServerManager(
     companion object {
         const val DEFAULT_PORT = 8080
         private const val SCRIPT_PATH = "/usr/local/bin/morsllm"
+        private const val SETUP_SCRIPT_PATH = "/usr/local/bin/morsllm-setup"
         private const val SCRIPT_INSTALL_FAILED_JSON = """{"ok":false,"error":"script_install_failed"}"""
     }
 }
