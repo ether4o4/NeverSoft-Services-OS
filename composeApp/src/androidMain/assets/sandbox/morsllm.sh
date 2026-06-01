@@ -276,6 +276,23 @@ cmd_provision() {
         log "provision: reusing existing llama.cpp checkout"
     fi
 
+    # Surgically remove llama.cpp's web-UI build step. The `llama-ui-assets`
+    # target invokes `llama-ui-embed` mid-build to bundle the web UI's
+    # HTML/CSS/JS into a C++ source. Under proot the exec call fails with
+    # "permission denied" regardless of chmod state — proot's exec
+    # emulation rejects freshly-linked binaries in the build dir. MVE
+    # never serves the web UI (it talks to llama-server via /v1), so the
+    # entire UI subtree is dead weight; cutting it out skips the wall.
+    if [ -f "$src/tools/CMakeLists.txt" ]; then
+        sed -i.morsbak '/add_subdirectory(ui)/d' "$src/tools/CMakeLists.txt" 2>/dev/null || true
+    fi
+    if [ -f "$src/tools/server/CMakeLists.txt" ]; then
+        # Drop any reference to the ui-assets target from server (deps,
+        # link libs, includes). Server itself doesn't need UI assets at
+        # runtime; it just had a build-time dep on the embed step.
+        sed -i.morsbak '/llama-ui-assets/d' "$src/tools/server/CMakeLists.txt" 2>/dev/null || true
+    fi
+
     # Ensure binutils shortcuts (ar, as, ld, nm, etc.) exist regardless
     # of how the compilers were installed — cmake's link step calls `ar`
     # by short name and silently fails with "no such file or directory"
@@ -283,16 +300,14 @@ cmd_provision() {
     ensure_binutils_shortcuts
 
     cmake_log="$LOGS_DIR/cmake.log"
-    # Wipe any stale build dir from a prior failed attempt. CMake caches
-    # toolchain detection results in CMakeCache.txt, and a configure-time
-    # NOTFOUND for ar / gcc-ar persists across re-runs even after the
-    # tools are installed correctly.
-    if [ -d "$src/build" ] && [ ! -f "$src/build/bin/llama-server" ]; then
-        log "provision: removing stale build dir from prior failed attempt"
+    # Stale build dir from prior failed attempt: wipe so cmake re-runs
+    # configure cleanly with the UI subdirectory now patched out.
+    if [ -d "$src/build" ]; then
+        log "provision: removing stale build dir to re-run cmake with UI patch"
         rm -rf "$src/build"
     fi
 
-    log "provision: configuring cmake (CPU only, Release, static libs)"
+    log "provision: configuring cmake (CPU only, Release, static libs, no UI)"
     # BUILD_SHARED_LIBS=OFF: proot's symlink emulation rejects the SO
     # version chain (.so -> .so.0 -> .so.0.13.1). Static archives sidestep
     # it. Explicit CMAKE_AR/RANLIB/NM so cmake doesn't try to auto-detect
