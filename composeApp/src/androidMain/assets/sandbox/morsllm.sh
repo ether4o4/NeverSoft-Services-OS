@@ -317,12 +317,32 @@ cmd_provision() {
         return 1
     fi
 
+    # Pre-build llama-ui-embed first and chmod +x it. llama.cpp's server
+    # build target depends on the llama-ui-assets target which runs
+    # llama-ui-embed as part of the build (to bundle web-UI files into a
+    # C++ source). Under proot the linker output sometimes lands without
+    # the executable bit set, so when cmake tries to exec the binary it
+    # fails with "permission denied" mid-build. Building the binary
+    # separately and force-chmodding it before the server target runs
+    # avoids that race.
+    log "provision: pre-building llama-ui-embed and forcing +x on build artifacts"
+    cmake --build "$src/build" --target llama-ui-embed -j 2 >>"$cmake_log" 2>&1 || true
+    find "$src/build" -type f \( -name "llama-*" -o -name "*-embed" \) -exec chmod 755 {} \; 2>/dev/null || true
+
     log "provision: building llama-server (this is the slow step, real 10-30 min)"
     if ! cmake --build "$src/build" --target llama-server -j 2 >"$cmake_log" 2>&1; then
-        detail=$(tail -n 1 "$cmake_log" 2>/dev/null | tr -d '"\\' | head -c 200)
-        emit "{\"ok\":false,\"error\":\"cmake_build_failed\",\"detail\":\"$detail\",\"log_path\":\"$cmake_log\",\"hint\":\"Common: OOM (-j 1 instead of -j 2), missing header, or proot symlink issue. Last 8KB of cmake output is in the log.\"}"
-        provision_emitted=1
-        return 1
+        # Second-chance: sweep the build dir for any newly-built binary
+        # that proot might have stripped +x from, then retry. If the
+        # llama-server build itself produces a binary that needs to be
+        # invoked downstream, this saves us another full provision cycle.
+        log "provision: cmake build failed once, chmodding +x build dir and retrying"
+        find "$src/build" -type f -exec sh -c 'head -c 4 "$1" 2>/dev/null | grep -q ELF && chmod 755 "$1"' _ {} \; 2>/dev/null || true
+        if ! cmake --build "$src/build" --target llama-server -j 2 >>"$cmake_log" 2>&1; then
+            detail=$(tail -n 1 "$cmake_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+            emit "{\"ok\":false,\"error\":\"cmake_build_failed\",\"detail\":\"$detail\",\"log_path\":\"$cmake_log\",\"hint\":\"Common: OOM (-j 1 instead of -j 2), missing header, or proot symlink issue. Last 8KB of cmake output is in the log.\"}"
+            provision_emitted=1
+            return 1
+        fi
     fi
 
     local built=""
