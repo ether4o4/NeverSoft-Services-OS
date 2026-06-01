@@ -125,6 +125,7 @@ class SettingsViewModel(
         onAddService = ::onAddService,
         onRemoveService = ::onRemoveService,
         onReorderServices = ::onReorderServices,
+        onToggleServiceEnabled = ::onToggleServiceEnabled,
         onExpandService = ::onExpandService,
         onChangeApiKey = ::onChangeApiKey,
         onChangeBaseUrl = ::onChangeBaseUrl,
@@ -244,6 +245,7 @@ class SettingsViewModel(
             baseUrl = dataRepository.getInstanceBaseUrl(instance.instanceId, service),
             selectedModel = models.firstOrNull { it.isSelected },
             models = models.toImmutableList(),
+            enabled = dataRepository.isInstanceEnabled(instance.instanceId),
         )
     }
 
@@ -299,6 +301,17 @@ class SettingsViewModel(
     private fun onReorderServices(orderedIds: List<String>) {
         dataRepository.reorderConfiguredServices(orderedIds)
         refreshServiceList()
+    }
+
+    private fun onToggleServiceEnabled(instanceId: String, enabled: Boolean) {
+        dataRepository.setInstanceEnabled(instanceId, enabled)
+        _state.update { current ->
+            current.copy(
+                configuredServices = current.configuredServices.map { entry ->
+                    if (entry.instanceId == instanceId) entry.copy(enabled = enabled) else entry
+                }.toImmutableList(),
+            )
+        }
     }
 
     private fun onExpandService(instanceId: String?) {

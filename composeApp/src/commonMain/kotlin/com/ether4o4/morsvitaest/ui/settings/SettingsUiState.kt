@@ -32,6 +32,7 @@ data class ConfiguredServiceEntry(
     val baseUrl: String = "",
     val selectedModel: SettingsModel? = null,
     val models: ImmutableList<SettingsModel> = persistentListOf(),
+    val enabled: Boolean = true,
 )
 
 enum class ConnectionStatus {

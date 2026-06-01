@@ -281,18 +281,27 @@ class RemoteDataRepository(
         appSettings.setConfiguredServiceInstances(reordered)
     }
 
-    override fun getServiceEntries(): List<ServiceEntry> = getConfiguredServiceInstances().map { instance ->
-        val service = Service.fromId(instance.serviceId)
-        val modelId = appSettings.getInstanceModelId(instance.instanceId).ifEmpty {
-            appSettings.getSelectedModelId(service)
+    override fun getServiceEntries(): List<ServiceEntry> = getConfiguredServiceInstances()
+        .filter { appSettings.getInstanceEnabled(it.instanceId) }
+        .map { instance ->
+            val service = Service.fromId(instance.serviceId)
+            val modelId = appSettings.getInstanceModelId(instance.instanceId).ifEmpty {
+                appSettings.getSelectedModelId(service)
+            }
+            ServiceEntry(
+                instanceId = instance.instanceId,
+                serviceId = service.id,
+                serviceName = service.displayName,
+                modelId = modelId,
+                icon = service.icon,
+            )
         }
-        ServiceEntry(
-            instanceId = instance.instanceId,
-            serviceId = service.id,
-            serviceName = service.displayName,
-            modelId = modelId,
-            icon = service.icon,
-        )
+
+    override fun isInstanceEnabled(instanceId: String): Boolean =
+        appSettings.getInstanceEnabled(instanceId)
+
+    override fun setInstanceEnabled(instanceId: String, enabled: Boolean) {
+        appSettings.setInstanceEnabled(instanceId, enabled)
     }
 
     override fun isFreeFallbackEnabled(): Boolean = appSettings.isFreeFallbackEnabled()

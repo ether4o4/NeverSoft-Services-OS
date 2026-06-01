@@ -85,6 +85,17 @@ fun AppSettings.setConfiguredServiceInstances(instances: List<ServiceInstance>) 
 // Per-instance settings (API key, model, base URL)
 fun AppSettings.getInstanceApiKey(instanceId: String): String = settings.getString("instance_${instanceId}_api_key", "")
 
+// Per-instance enabled state. Defaults to true for backward compatibility:
+// any existing instance without this key was implicitly enabled before the
+// feature was added. Disable hides the instance from the chat service
+// picker but leaves its config (api key, model, etc.) intact.
+fun AppSettings.getInstanceEnabled(instanceId: String): Boolean =
+    settings.getBoolean("instance_${instanceId}_enabled", true)
+
+fun AppSettings.setInstanceEnabled(instanceId: String, enabled: Boolean) {
+    settings.putBoolean("instance_${instanceId}_enabled", enabled)
+}
+
 fun AppSettings.setInstanceApiKey(instanceId: String, apiKey: String) {
     settings.putString("instance_${instanceId}_api_key", apiKey)
 }
