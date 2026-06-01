@@ -28,6 +28,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.toRoute
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.compose.setSingletonImageLoaderFactory
@@ -49,6 +50,9 @@ import com.ether4o4.morsvitaest.ui.Theme
 import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
+import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
+import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
+import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.withBlackBackground
@@ -72,6 +76,16 @@ object Home
 @Serializable
 @SerialName("settings")
 object Settings
+
+// Foundry home tile destinations. Chat reuses the existing ChatScreen;
+// the rest land on the placeholder screen until Phase 2 wires them up.
+@Serializable
+@SerialName("foundry.chat")
+object FoundryChat
+
+@Serializable
+@SerialName("foundry.stub")
+data class FoundryStub(val title: String, val description: String)
 
 @Composable
 fun App(
@@ -210,6 +224,52 @@ private fun AppContent(
                     modifier = Modifier.background(MaterialTheme.colorScheme.background),
                 ) {
                     composable<Home> {
+                        FoundryHome(
+                            onNavigate = { dest ->
+                                when (dest) {
+                                    FoundryDestination.Chat -> navController.navigate(FoundryChat)
+                                    FoundryDestination.Diagnostics -> navController.navigate(
+                                        FoundryStub(
+                                            title = "Diagnostics",
+                                            description = "Logs, inference stats, sandbox + engine health.",
+                                        ),
+                                    )
+                                    FoundryDestination.ActiveModel -> navController.navigate(
+                                        FoundryStub(
+                                            title = "Active Model",
+                                            description = "Pick local or remote model. Settings → Services exposes the underlying providers today.",
+                                        ),
+                                    )
+                                    FoundryDestination.LlmSearch -> navController.navigate(
+                                        FoundryStub(
+                                            title = "GGUF / LLM Search",
+                                            description = "Discovery across HuggingFace litert-community, bartowski GGUF repos, local models.",
+                                        ),
+                                    )
+                                    FoundryDestination.Agents -> navController.navigate(
+                                        FoundryStub(
+                                            title = "Agents",
+                                            description = "Five-color agent system: planner, safety, operator, memory, synthesis.",
+                                        ),
+                                    )
+                                    FoundryDestination.Plugins -> navController.navigate(
+                                        FoundryStub(
+                                            title = "Plugins / MCP",
+                                            description = "Connected MCP servers + installed skills.",
+                                        ),
+                                    )
+                                    FoundryDestination.Shell -> navController.navigate(
+                                        FoundryStub(
+                                            title = "Shell",
+                                            description = "In-app terminal, files browser, package manager. Settings → Sandbox → Linux Sandbox surfaces the same shell today.",
+                                        ),
+                                    )
+                                    FoundryDestination.Profile -> navController.navigate(Settings)
+                                }
+                            },
+                        )
+                    }
+                    composable<FoundryChat> {
                         ChatScreen(
                             viewModel = chatViewModel,
                             textToSpeech = textToSpeech,
@@ -218,6 +278,14 @@ private fun AppContent(
                             },
                             isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
                             navigationTabBar = if (showTabBar) navigationTabBar else null,
+                        )
+                    }
+                    composable<FoundryStub> { entry ->
+                        val stub: FoundryStub = entry.toRoute()
+                        FoundryPlaceholderScreen(
+                            title = stub.title,
+                            description = stub.description,
+                            onBack = { navController.navigateUp() },
                         )
                     }
                     composable<Settings> {
