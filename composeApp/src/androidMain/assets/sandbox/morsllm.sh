@@ -324,10 +324,13 @@ UI_H_EOF
     ensure_binutils_shortcuts
 
     cmake_log="$LOGS_DIR/cmake.log"
-    # Stale build dir from prior failed attempt: wipe so cmake re-runs
-    # configure cleanly with the UI subdirectory now patched out.
-    if [ -d "$src/build" ]; then
-        log "provision: removing stale build dir to re-run cmake with UI patch"
+    # Stale build dir from a prior FAILED attempt gets wiped so cmake
+    # re-runs configure cleanly with the latest UI/linker patches. If a
+    # successful build already produced llama-server, leave the tree
+    # intact — the cached object files mean the next provision can short-
+    # circuit to "already built" without a 30-min recompile.
+    if [ -d "$src/build" ] && [ ! -f "$src/build/bin/llama-server" ]; then
+        log "provision: removing stale build dir from prior failed attempt"
         rm -rf "$src/build"
     fi
 
