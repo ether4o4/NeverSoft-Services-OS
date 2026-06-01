@@ -224,49 +224,19 @@ private fun AppContent(
                     modifier = Modifier.background(MaterialTheme.colorScheme.background),
                 ) {
                     composable<Home> {
-                        FoundryHome(
-                            onNavigate = { dest ->
-                                when (dest) {
-                                    FoundryDestination.Chat -> navController.navigate(FoundryChat)
-                                    FoundryDestination.Diagnostics -> navController.navigate(
-                                        FoundryStub(
-                                            title = "Diagnostics",
-                                            description = "Logs, inference stats, sandbox + engine health.",
-                                        ),
-                                    )
-                                    FoundryDestination.ActiveModel -> navController.navigate(
-                                        FoundryStub(
-                                            title = "Active Model",
-                                            description = "Pick local or remote model. Settings → Services exposes the underlying providers today.",
-                                        ),
-                                    )
-                                    FoundryDestination.LlmSearch -> navController.navigate(
-                                        FoundryStub(
-                                            title = "GGUF / LLM Search",
-                                            description = "Discovery across HuggingFace litert-community, bartowski GGUF repos, local models.",
-                                        ),
-                                    )
-                                    FoundryDestination.Agents -> navController.navigate(
-                                        FoundryStub(
-                                            title = "Agents",
-                                            description = "Five-color agent system: planner, safety, operator, memory, synthesis.",
-                                        ),
-                                    )
-                                    FoundryDestination.Plugins -> navController.navigate(
-                                        FoundryStub(
-                                            title = "Plugins / MCP",
-                                            description = "Connected MCP servers + installed skills.",
-                                        ),
-                                    )
-                                    FoundryDestination.Shell -> navController.navigate(
-                                        FoundryStub(
-                                            title = "Shell",
-                                            description = "In-app terminal, files browser, package manager. Settings → Sandbox → Linux Sandbox surfaces the same shell today.",
-                                        ),
-                                    )
-                                    FoundryDestination.Profile -> navController.navigate(Settings)
-                                }
+                        // Foundry home is gated off — files are still in the repo
+                        // (commonMain/.../ui/foundry/*) for the next iteration, but
+                        // ship as the existing ChatScreen until the layout is
+                        // polished (system-bar insets, responsive sizing for small
+                        // screens, the title plate PNG asset).
+                        ChatScreen(
+                            viewModel = chatViewModel,
+                            textToSpeech = textToSpeech,
+                            onNavigateToSettings = {
+                                navController.navigate(Settings)
                             },
+                            isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
+                            navigationTabBar = if (showTabBar) navigationTabBar else null,
                         )
                     }
                     composable<FoundryChat> {
