@@ -209,7 +209,7 @@ cmd_provision() {
     [ "$apk_ok" = "1" ] && goto_build=1 || goto_build=0
     for attempt in 1 2 3; do
         [ "$goto_build" = "1" ] && break
-        if apk add --quiet build-base cmake git curl jq >"$apk_log" 2>&1; then
+        if apk add --quiet build-base cmake git curl jq linux-headers musl-dev >"$apk_log" 2>&1; then
             apk_ok=1
             break
         fi
