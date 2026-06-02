@@ -1,5 +1,8 @@
 package com.ether4o4.morsvitaest.ui.settings
 
+import android.app.ActivityManager
+import android.content.Context
+import android.os.StatFs
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
@@ -167,31 +171,68 @@ actual fun PlatformGgufModelsCard() {
                 modifier = Modifier.handCursor(),
             ) { Text("Set up engine") }
         } else {
-            // Quick-install buttons: curated GGUF models that are known to work
-            // with the current llama.cpp build. Removes the "what do I type"
-            // friction for new users — one tap and the right repo id is filled in.
+            // Read device specs so we can recommend a GGUF that actually fits
+            // this phone instead of asking the user to guess. Total RAM drives
+            // which parameter count is realistic; free storage gates downloads.
+            val context = LocalContext.current
+            val deviceProfile = remember(context) { readDeviceProfile(context) }
+            val pick = pickRecommendedModel(deviceProfile)
+
             Text(
-                text = "Quick install — tap to fill in a known-working model:",
+                text = "Your phone — ${formatGb(deviceProfile.totalRamBytes)} RAM, ${formatGb(deviceProfile.freeStorageBytes)} free storage",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "Recommended for your device — tap to download. Other options below.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(6.dp))
+
+            // Primary recommendation — filled button, prominent.
+            Button(
+                onClick = { repoInput = pick.recommended.repoId },
+                modifier = Modifier.fillMaxWidth().handCursor(),
+            ) {
+                Text(
+                    text = "${pick.recommended.label} • ${pick.recommended.sizeLabel}\n${pick.recommended.tagline}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            if (pick.warning != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = pick.warning,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+
+            // Alternatives — show the other size buckets as outlined buttons.
+            Text(
+                text = "Other sizes:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                OutlinedButton(
-                    onClick = { repoInput = "bartowski/Qwen2.5-0.5B-Instruct-GGUF" },
-                    modifier = Modifier.weight(1f).handCursor(),
-                ) { Text("Tiny\n(0.5B • ~400MB)", style = MaterialTheme.typography.bodySmall) }
-                OutlinedButton(
-                    onClick = { repoInput = "bartowski/Qwen2.5-3B-Instruct-GGUF" },
-                    modifier = Modifier.weight(1f).handCursor(),
-                ) { Text("Recommended\n(3B • ~2GB)", style = MaterialTheme.typography.bodySmall) }
-                OutlinedButton(
-                    onClick = { repoInput = "bartowski/Qwen2.5-7B-Instruct-GGUF" },
-                    modifier = Modifier.weight(1f).handCursor(),
-                ) { Text("Big\n(7B • ~4.5GB)", style = MaterialTheme.typography.bodySmall) }
+                pick.alternatives.forEach { alt ->
+                    OutlinedButton(
+                        onClick = { repoInput = alt.repoId },
+                        modifier = Modifier.weight(1f).handCursor(),
+                    ) {
+                        Text(
+                            text = "${alt.label}\n${alt.sizeLabel}",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
             Spacer(Modifier.height(10.dp))
 
@@ -426,4 +467,130 @@ private fun humanSize(bytes: Long): String {
     } else {
         "${mb.toLong()} MB"
     }
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Hardware-aware model recommendation
+//
+// Instead of asking the user to guess between Tiny / Recommended / Big, scan
+// the device's total RAM and free storage and surface the model that's most
+// likely to actually run well. Phone CPUs vary wildly; RAM is the ceiling
+// that gates which parameter count is even loadable.
+//
+// Heuristic uses RAM only — storage is just a sanity check against models
+// that wouldn't fit at all. The "fits in RAM" rule of thumb for Q4_K_M
+// GGUF: model file size + ~30% headroom for KV cache & context window.
+// ────────────────────────────────────────────────────────────────────────
+
+private data class DeviceProfile(
+    val totalRamBytes: Long,
+    val freeStorageBytes: Long,
+)
+
+private data class ModelOption(
+    val repoId: String,
+    val label: String,
+    val sizeLabel: String,
+    val approxDownloadBytes: Long,
+    val approxRamBytes: Long,
+    val tagline: String,
+)
+
+private data class Recommendation(
+    val recommended: ModelOption,
+    val alternatives: List<ModelOption>,
+    val warning: String?,
+)
+
+private val ALL_QUICK_INSTALLS = listOf(
+    ModelOption(
+        repoId = "bartowski/Qwen2.5-0.5B-Instruct-GGUF",
+        label = "Qwen2.5 0.5B",
+        sizeLabel = "~400 MB",
+        approxDownloadBytes = 400L * 1024 * 1024,
+        approxRamBytes = 600L * 1024 * 1024,
+        tagline = "Smallest, fastest, low quality",
+    ),
+    ModelOption(
+        repoId = "bartowski/Qwen2.5-1.5B-Instruct-GGUF",
+        label = "Qwen2.5 1.5B",
+        sizeLabel = "~1 GB",
+        approxDownloadBytes = 1L * 1024 * 1024 * 1024,
+        approxRamBytes = 1500L * 1024 * 1024,
+        tagline = "Compact but usable",
+    ),
+    ModelOption(
+        repoId = "bartowski/Qwen2.5-3B-Instruct-GGUF",
+        label = "Qwen2.5 3B",
+        sizeLabel = "~2 GB",
+        approxDownloadBytes = 2L * 1024 * 1024 * 1024,
+        approxRamBytes = 3L * 1024 * 1024 * 1024,
+        tagline = "Sweet spot for most phones",
+    ),
+    ModelOption(
+        repoId = "bartowski/Qwen2.5-7B-Instruct-GGUF",
+        label = "Qwen2.5 7B",
+        sizeLabel = "~4.5 GB",
+        approxDownloadBytes = 4500L * 1024 * 1024,
+        approxRamBytes = 6L * 1024 * 1024 * 1024,
+        tagline = "High-end phones only",
+    ),
+)
+
+private fun readDeviceProfile(context: Context): DeviceProfile {
+    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+    val totalRam = if (activityManager != null) {
+        val info = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(info)
+        info.totalMem
+    } else {
+        Runtime.getRuntime().maxMemory()
+    }
+    val filesDir = context.filesDir
+    val freeStorage = runCatching {
+        val statFs = StatFs(filesDir.absolutePath)
+        statFs.availableBytes
+    }.getOrDefault(0L)
+    return DeviceProfile(totalRamBytes = totalRam, freeStorageBytes = freeStorage)
+}
+
+private fun pickRecommendedModel(profile: DeviceProfile): Recommendation {
+    // Conservative rule: a model is "comfortable" if total RAM is at least
+    // 1.6x the model's expected runtime footprint (allows the OS, MVE, and
+    // the proot sandbox to coexist without thrashing).
+    val ramHeadroom = (profile.totalRamBytes / 1.6).toLong()
+    val storageHeadroom = profile.freeStorageBytes - (500L * 1024 * 1024) // keep 500 MB for OS overhead
+
+    val viable = ALL_QUICK_INSTALLS.filter {
+        it.approxRamBytes <= ramHeadroom && it.approxDownloadBytes <= storageHeadroom
+    }
+
+    return when {
+        viable.isEmpty() -> {
+            // Nothing fits — recommend the smallest and warn explicitly.
+            val smallest = ALL_QUICK_INSTALLS.first()
+            Recommendation(
+                recommended = smallest,
+                alternatives = ALL_QUICK_INSTALLS.drop(1).take(2),
+                warning = "Your device may be tight on resources for any local model. Cloud services in Settings → Services may be a better fit.",
+            )
+        }
+        else -> {
+            // Pick the LARGEST viable option (better quality), but keep the
+            // others as alternatives for users who prioritize speed/storage.
+            val pick = viable.last()
+            val others = ALL_QUICK_INSTALLS.filter { it.repoId != pick.repoId }.take(3)
+            Recommendation(
+                recommended = pick,
+                alternatives = others,
+                warning = null,
+            )
+        }
+    }
+}
+
+private fun formatGb(bytes: Long): String {
+    if (bytes <= 0) return "?"
+    val gb = bytes / (1024.0 * 1024.0 * 1024.0)
+    return if (gb >= 10) "${gb.toLong()} GB" else "${(gb * 10).toLong() / 10.0} GB"
 }
