@@ -151,6 +151,35 @@ cmd_provision() {
     provision_emitted=0
     trap '[ "${provision_emitted:-0}" = "1" ] || emit "{\"ok\":false,\"error\":\"provision_crashed\",\"detail\":\"line ${LINENO}\"}"' EXIT
 
+    # Fast path: try downloading the pre-built llama-server binary from our
+    # release artifact. Cuts provision time from 10-30 min compile-in-proot
+    # to <1 minute download + chmod. Same aarch64-linux-musl static build
+    # we'd produce in-sandbox, just cross-compiled in CI and published as a
+    # release asset. Falls through to source compile if download or exec
+    # check fails (network down, release not built yet, arch mismatch).
+    if [ ! -x "$LLAMA_SERVER" ]; then
+        prebuilt_url="https://github.com/ether4o4/MorsVitaEst/releases/download/llama-server-prebuilt-latest/llama-server-aarch64-musl"
+        mkdir -p "$BIN_DIR"
+        log "provision: trying pre-built binary at $prebuilt_url"
+        if curl -fsSL --max-time 120 -o "$LLAMA_SERVER.tmp" "$prebuilt_url" 2>/dev/null \
+            && [ -s "$LLAMA_SERVER.tmp" ]; then
+            chmod 755 "$LLAMA_SERVER.tmp"
+            if "$LLAMA_SERVER.tmp" --version >/dev/null 2>&1; then
+                mv "$LLAMA_SERVER.tmp" "$LLAMA_SERVER"
+                log "provision: pre-built binary installed -> $LLAMA_SERVER"
+                emit "{\"ok\":true,\"prebuilt\":true,\"path\":\"$LLAMA_SERVER\"}"
+                provision_emitted=1
+                return 0
+            else
+                log "provision: pre-built binary downloaded but exec check failed, falling back to source compile"
+                rm -f "$LLAMA_SERVER.tmp"
+            fi
+        else
+            log "provision: pre-built download failed or empty, falling back to source compile"
+            rm -f "$LLAMA_SERVER.tmp"
+        fi
+    fi
+
     apk_log="$LOGS_DIR/apk.log"
     mkdir -p "$LOGS_DIR"
 

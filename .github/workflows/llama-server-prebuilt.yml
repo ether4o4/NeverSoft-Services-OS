@@ -1,0 +1,150 @@
+name: Pre-built llama-server binary
+
+# Cross-compiles a static aarch64-linux-musl `llama-server` binary inside an
+# Alpine Docker container so users don't have to compile llama.cpp from
+# source inside MVE's proot sandbox (which takes 10-30 min on phone CPU and
+# has been a parade of edge cases — see commit history around 4885791
+# through 1256491).
+#
+# The binary is published as a release artifact at the rolling tag
+# `llama-server-prebuilt-latest` so `morsllm.sh cmd_provision` can fetch it
+# first and only fall back to source compile if the download fails.
+#
+# Build environment matches the one MVE's sandbox provides (Alpine + musl)
+# so the binary runs natively inside the proot sandbox without library
+# weirdness. Applies the exact same CMake patches morsllm.sh applies in
+# the in-sandbox build path so the produced binary has the same surface.
+
+on:
+  workflow_dispatch:
+    inputs:
+      llama_cpp_ref:
+        description: 'llama.cpp git ref to build (branch / tag / commit). Default master.'
+        required: false
+        default: 'master'
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'composeApp/src/androidMain/assets/sandbox/morsllm.sh'
+      - '.github/workflows/llama-server-prebuilt.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: llama-server-prebuilt-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Cross-compile llama-server (aarch64-linux-musl)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build llama-server inside Alpine container
+        env:
+          LLAMA_CPP_REF: ${{ github.event.inputs.llama_cpp_ref || 'master' }}
+        run: |
+          set -euxo pipefail
+          mkdir -p out
+          docker run --rm \
+            --platform linux/arm64 \
+            -e LLAMA_CPP_REF="$LLAMA_CPP_REF" \
+            -v "$PWD/out:/out" \
+            alpine:3.20 \
+            sh -ec '
+              set -eux
+              apk add --no-cache build-base cmake git curl jq linux-headers musl-dev
+              cd /tmp
+              git clone --depth=1 --branch "$LLAMA_CPP_REF" https://github.com/ggml-org/llama.cpp.git || \
+                git clone --depth=1 https://github.com/ggml-org/llama.cpp.git
+              cd llama.cpp
+              git log -1 --oneline > /out/llama-cpp-commit.txt
+
+              # Apply the same UI subtree removal + linker token strip + ui.h
+              # stub that morsllm.sh applies in the in-sandbox build. Keeps
+              # the prebuilt binary surface identical to a successful
+              # in-sandbox build.
+              if [ -f tools/CMakeLists.txt ]; then
+                sed -i "/add_subdirectory(ui)/d" tools/CMakeLists.txt || true
+              fi
+              if [ -f tools/server/CMakeLists.txt ]; then
+                sed -i "/llama-ui-assets/d" tools/server/CMakeLists.txt || true
+                sed -i "s/ llama-ui\b//g" tools/server/CMakeLists.txt || true
+              fi
+              if [ -d tools/server ] && [ ! -f tools/server/ui.h ]; then
+                cat > tools/server/ui.h <<UI_H_EOF
+#pragma once
+struct llama_ui_asset {
+    const unsigned char * data;
+    unsigned int size;
+    const char * etag;
+};
+inline const llama_ui_asset * llama_ui_find_asset(const char *) { return nullptr; }
+UI_H_EOF
+              fi
+
+              cmake -B build \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DLLAMA_BUILD_TESTS=OFF \
+                -DLLAMA_BUILD_EXAMPLES=OFF \
+                -DLLAMA_BUILD_SERVER=ON \
+                -DGGML_OPENMP=OFF \
+                -DBUILD_SHARED_LIBS=OFF \
+                -DCMAKE_AR=/usr/bin/ar \
+                -DCMAKE_RANLIB=/usr/bin/ranlib \
+                -DCMAKE_NM=/usr/bin/nm
+
+              cmake --build build --target llama-server -j "$(nproc)"
+
+              # Locate the binary (path varies across llama.cpp versions).
+              for candidate in build/bin/llama-server build/server/llama-server build/llama-server; do
+                if [ -f "$candidate" ]; then
+                  cp "$candidate" /out/llama-server-aarch64-musl
+                  strip /out/llama-server-aarch64-musl
+                  break
+                fi
+              done
+              ls -la /out/
+              file /out/llama-server-aarch64-musl
+            '
+
+      - name: SHA-256
+        run: |
+          sha256sum out/llama-server-aarch64-musl | tee out/sha256.txt
+
+      - name: Publish dated pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: llama-server-prebuilt-${{ github.run_number }}
+          name: llama-server (aarch64 musl) build ${{ github.run_number }}
+          prerelease: true
+          overwrite_files: true
+          make_latest: false
+          body_path: out/llama-cpp-commit.txt
+          files: |
+            out/llama-server-aarch64-musl
+            out/sha256.txt
+            out/llama-cpp-commit.txt
+          fail_on_unmatched_files: true
+
+      - name: Update rolling latest pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: llama-server-prebuilt-latest
+          name: llama-server (aarch64 musl) — latest
+          prerelease: true
+          overwrite_files: true
+          make_latest: false
+          body_path: out/llama-cpp-commit.txt
+          files: |
+            out/llama-server-aarch64-musl
+            out/sha256.txt
+            out/llama-cpp-commit.txt
+          fail_on_unmatched_files: true
