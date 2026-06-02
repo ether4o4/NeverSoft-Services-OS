@@ -455,6 +455,10 @@ fun SettingsScreenContent(
                                 ServicesContent(uiState = filteredUiState, actions = actions)
                             }
 
+                            SettingsTab.Compare -> {
+                                CompareContent(uiState = filteredUiState, actions = actions)
+                            }
+
                             SettingsTab.Integrations -> {
                                 IntegrationsContent()
                             }
@@ -562,6 +566,7 @@ private fun SettingsTabSelector(
                             SettingsTab.Agent -> stringResource(Res.string.settings_tab_agent)
                             SettingsTab.Projects -> "Projects"
                             SettingsTab.Services -> stringResource(Res.string.settings_tab_services)
+                            SettingsTab.Compare -> "Compare"
                             SettingsTab.Tools -> stringResource(Res.string.settings_tab_tools)
                             SettingsTab.Sandbox -> stringResource(Res.string.settings_tab_sandbox)
                             SettingsTab.Integrations -> stringResource(Res.string.settings_tab_integrations)

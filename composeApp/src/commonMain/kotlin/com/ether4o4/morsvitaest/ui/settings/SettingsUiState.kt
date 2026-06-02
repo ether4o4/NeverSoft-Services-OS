@@ -51,6 +51,7 @@ enum class SettingsTab {
     Agent,
     Projects,
     Services,
+    Compare,
     Tools,
     Sandbox,
     Integrations,
