@@ -69,11 +69,17 @@ ensure_binutils_shortcuts() {
     # the real binary under /usr/<triplet>/bin/. Handles the case where
     # the triplet-prefixed copy in /usr/bin didn't get extracted either
     # (both names ship as hardlinks in the apk and both can fail).
+    #
+    # Loop var name is `bin_source` (not `src`) to avoid clobbering the
+    # outer `src=$BUILD_DIR/llama.cpp` variable that cmd_provision sets
+    # later — sh `for` doesn't scope its iterator, so reusing `src`
+    # here was leaking into cmake -S calls and pointing them at a
+    # binutils binary instead of the llama.cpp source tree.
     for s in ar as ld ld.bfd nm objcopy objdump ranlib strip readelf addr2line; do
         [ -e "/usr/bin/$s" ] && continue
-        for src in /usr/*-alpine-linux-musl/bin/$s; do
-            if [ -e "$src" ]; then
-                ln -sf "$src" "/usr/bin/$s" 2>/dev/null
+        for bin_source in /usr/*-alpine-linux-musl/bin/$s; do
+            if [ -e "$bin_source" ]; then
+                ln -sf "$bin_source" "/usr/bin/$s" 2>/dev/null
                 break
             fi
         done
