@@ -125,6 +125,8 @@ class SettingsViewModel(
         onAddService = ::onAddService,
         onRemoveService = ::onRemoveService,
         onReorderServices = ::onReorderServices,
+        onMoveServiceUp = ::onMoveServiceUp,
+        onMoveServiceDown = ::onMoveServiceDown,
         onToggleServiceEnabled = ::onToggleServiceEnabled,
         onExpandService = ::onExpandService,
         onChangeApiKey = ::onChangeApiKey,
@@ -300,6 +302,30 @@ class SettingsViewModel(
 
     private fun onReorderServices(orderedIds: List<String>) {
         dataRepository.reorderConfiguredServices(orderedIds)
+        refreshServiceList()
+    }
+
+    private fun onMoveServiceUp(instanceId: String) {
+        val current = _state.value.configuredServices.map { it.instanceId }
+        val idx = current.indexOf(instanceId)
+        if (idx <= 0) return
+        val reordered = current.toMutableList().apply {
+            removeAt(idx)
+            add(idx - 1, instanceId)
+        }
+        dataRepository.reorderConfiguredServices(reordered)
+        refreshServiceList()
+    }
+
+    private fun onMoveServiceDown(instanceId: String) {
+        val current = _state.value.configuredServices.map { it.instanceId }
+        val idx = current.indexOf(instanceId)
+        if (idx < 0 || idx >= current.size - 1) return
+        val reordered = current.toMutableList().apply {
+            removeAt(idx)
+            add(idx + 1, instanceId)
+        }
+        dataRepository.reorderConfiguredServices(reordered)
         refreshServiceList()
     }
 
