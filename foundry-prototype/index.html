@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="theme-color" content="#0F0F0F">
+<title>MorsVitaEst — Foundry Prototype</title>
+<style>
+/* ============================================================
+   Foundry — brushed-metal UI prototype.
+   Mobile-first. All metallic surfaces are pure CSS gradients;
+   no images, no JS frameworks — just hash routing for the SPA.
+   ============================================================ */
+:root {
+  --bg: #0F0F0F;
+  --bg-panel: #1A1A1A;
+  --bg-deep: #0A0A0A;
+  --steel-highlight: #B8B8B8;
+  --steel-light: #8A8A8A;
+  --steel-mid: #555555;
+  --steel-dark: #2B2B2B;
+  --steel-shadow: #161616;
+  --label-primary: #F5F5F5;
+  --label-secondary: #B8B8B8;
+  --label-muted: #7C7C7C;
+  --wordmark: #E8E2D5;
+  --red: #E53935;
+  --red-glow: rgba(229, 57, 53, 0.5);
+  --gap: 10px;
+  --pad: 12px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--label-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  overscroll-behavior: none;
+}
+
+body {
+  /* respect notches + gesture nav */
+  padding:
+    env(safe-area-inset-top, 0)
+    env(safe-area-inset-right, 0)
+    env(safe-area-inset-bottom, 0)
+    env(safe-area-inset-left, 0);
+}
+
+/* ============================================================
+   Brushed-metal surfaces
+   ============================================================ */
+.bevel {
+  border: 1.5px solid;
+  border-image: linear-gradient(180deg,
+    var(--steel-highlight) 0%,
+    var(--steel-light) 25%,
+    var(--steel-mid) 50%,
+    var(--steel-dark) 75%,
+    var(--steel-shadow) 100%) 1;
+  border-radius: 14px;
+}
+
+.brushed-horizontal {
+  background: linear-gradient(90deg,
+    var(--steel-dark) 0%,
+    var(--steel-mid) 16%,
+    var(--steel-light) 33%,
+    var(--steel-mid) 50%,
+    var(--steel-dark) 66%,
+    var(--steel-mid) 83%,
+    var(--steel-shadow) 100%);
+}
+
+.brushed-radial {
+  background:
+    radial-gradient(ellipse at center,
+      var(--steel-light) 0%,
+      var(--steel-mid) 35%,
+      var(--steel-dark) 70%,
+      var(--steel-shadow) 100%);
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 12px 18px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+/* top gloss lip on all pills */
+.pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.4) 0%,
+    rgba(255,255,255,0.13) 30%,
+    rgba(255,255,255,0) 50%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.pill-red {
+  background: linear-gradient(180deg, #FF6B6B 0%, #E53935 35%, #B71C1C 70%, #7F1010 100%);
+  border: 1.5px solid #5C0000;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -2px 4px rgba(0,0,0,0.4),
+    0 1px 3px rgba(0,0,0,0.5);
+}
+
+.pill-blue {
+  background: linear-gradient(180deg, #64B5F6 0%, #1E88E5 35%, #1565C0 70%, #0D3F7F 100%);
+  border: 1.5px solid #07254D;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -2px 4px rgba(0,0,0,0.4),
+    0 1px 3px rgba(0,0,0,0.5);
+}
+
+.pill-purple {
+  background: linear-gradient(180deg, #CE93D8 0%, #8E24AA 35%, #5E35B1 70%, #311B92 100%);
+  border: 1.5px solid #1B0A4F;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -2px 4px rgba(0,0,0,0.4),
+    0 1px 3px rgba(0,0,0,0.5);
+}
+
+.pill-steel {
+  border: 1.5px solid #1A1A1A;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.2) 0%,
+      rgba(255,255,255,0) 50%),
+    linear-gradient(90deg,
+      var(--steel-dark) 0%,
+      var(--steel-mid) 25%,
+      var(--steel-light) 50%,
+      var(--steel-mid) 75%,
+      var(--steel-shadow) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -2px 4px rgba(0,0,0,0.4),
+    0 1px 3px rgba(0,0,0,0.5);
+  color: var(--label-primary);
+}
+
+.card {
+  background:
+    radial-gradient(ellipse at center,
+      var(--steel-light) 0%,
+      var(--steel-mid) 35%,
+      var(--steel-dark) 70%,
+      var(--steel-shadow) 100%);
+  border: 1.5px solid #1A1A1A;
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 4px rgba(0,0,0,0.5),
+    0 2px 5px rgba(0,0,0,0.6);
+  padding: var(--pad);
+  cursor: pointer;
+  user-select: none;
+  color: var(--label-primary);
+}
+
+.card-large {
+  border-radius: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.card-title {
+  font-weight: bold;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.card-subtitle {
+  color: var(--label-secondary);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--label-secondary);
+  flex-shrink: 0;
+}
+
+.indicator-green { border-color: #4caf50; box-shadow: 0 0 4px #4caf50; }
+.indicator-red { border-color: var(--red); box-shadow: 0 0 4px var(--red); }
+
+/* ============================================================
+   Layout — top title plate + main grid
+   ============================================================ */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: var(--pad);
+  gap: var(--gap);
+}
+
+.title-plate {
+  text-align: center;
+  padding: 16px 12px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.18) 0%,
+      rgba(255,255,255,0) 30%),
+    linear-gradient(90deg,
+      var(--steel-mid) 0%,
+      var(--steel-light) 50%,
+      var(--steel-mid) 100%);
+  border: 2px solid;
+  border-image: linear-gradient(180deg,
+    var(--steel-highlight) 0%,
+    var(--steel-light) 25%,
+    var(--steel-mid) 50%,
+    var(--steel-dark) 75%,
+    var(--steel-shadow) 100%) 1;
+  box-shadow:
+    0 0 30px var(--red-glow),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+  position: relative;
+}
+
+.wordmark {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: clamp(24px, 8vw, 38px);
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  color: var(--wordmark);
+  margin: 0;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.3),
+    0 -1px 0 rgba(0,0,0,0.5);
+}
+
+.wordmark-sub {
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: var(--label-secondary);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Home grid — left feed column + right control column
+   ============================================================ */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+  flex: 1;
+  min-height: 0;
+}
+
+/* On narrow screens, stack columns instead of side-by-side. */
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: min-content;
+  }
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at center,
+      var(--steel-light) 0%,
+      var(--steel-mid) 35%,
+      var(--steel-dark) 70%,
+      var(--steel-shadow) 100%);
+  border: 1.5px solid #1A1A1A;
+}
+
+.feed h2 {
+  margin: 6px 4px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  font-weight: bold;
+  color: var(--label-primary);
+}
+
+.feed-item {
+  background: var(--bg-panel);
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid #2A2A2A;
+}
+
+.feed-item-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--label-primary);
+  line-height: 1.3;
+}
+
+.feed-item-source {
+  color: var(--red);
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 4px 0 4px;
+}
+
+.feed-item-summary {
+  color: var(--label-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.control-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+}
+
+.row {
+  display: flex;
+  gap: var(--gap);
+}
+
+.row > * {
+  flex: 1;
+}
+
+.text-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+}
+
+.text-field-label {
+  font-size: 13px;
+  color: var(--label-primary);
+}
+
+.text-field-icon {
+  color: var(--label-secondary);
+  font-size: 14px;
+}
+
+/* Shell tile */
+.shell-tile {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+.shell-tabs {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2A2A2A;
+  margin-bottom: 8px;
+}
+
+.shell-tab {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: var(--label-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  user-select: none;
+}
+
+.shell-tab.active {
+  color: var(--label-primary);
+  font-weight: bold;
+}
+
+.shell-body {
+  flex: 1;
+  background: var(--bg-deep);
+  border-radius: 8px;
+  padding: 10px;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  color: var(--label-muted);
+  overflow: auto;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.shell-prompt {
+  color: var(--red);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   Detail pages — back button + content card
+   ============================================================ */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--pad);
+  min-height: 100vh;
+}
+
+.back-pill {
+  align-self: flex-start;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.detail-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-title {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.detail-description {
+  color: var(--label-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.coming-soon {
+  background: var(--bg-panel);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--label-muted);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   Routing
+   ============================================================ */
+.page { display: none; }
+.page.active { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* Hide ::before pseudo on disabled to avoid accidental gloss strip */
+.pill-disabled { opacity: 0.6; cursor: not-allowed; }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HOME
+     ============================================================ -->
+<div class="page active app" data-route="/">
+
+  <div class="title-plate">
+    <div class="wordmark">MORSVITAEST</div>
+    <div class="wordmark-sub">N E V E R S O F T &nbsp; S E R V I C E S</div>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT: News feed -->
+    <div class="feed">
+      <h2>NEWS FEED</h2>
+
+      <div class="feed-item">
+        <div class="feed-item-title">Customizable feed coming online</div>
+        <div class="feed-item-source">MorsVitaEst</div>
+        <div class="feed-item-summary">Paste any URL — RSS / Atom / JSON feed / generic page — and MVE pulls it into your feed with refreshing images.</div>
+      </div>
+
+      <div class="feed-item">
+        <div class="feed-item-title">HuggingFace daily papers</div>
+        <div class="feed-item-source">Default widget</div>
+        <div class="feed-item-summary">Top papers + trending models surface here automatically. Tap an item to open the source in a sheet.</div>
+      </div>
+
+      <div class="feed-item">
+        <div class="feed-item-title">GitHub trending AI repos</div>
+        <div class="feed-item-source">Default widget</div>
+        <div class="feed-item-summary">Filtered by AI / LLM / ML topics. New MCP servers and inference engines drop here as they hit the trending page.</div>
+      </div>
+
+      <div class="feed-item">
+        <div class="feed-item-title">Heartbeat task notes</div>
+        <div class="feed-item-source">Pinned</div>
+        <div class="feed-item-summary">Your own notes posted from any agent. Reminders, links to revisit, things the system surfaced for you.</div>
+      </div>
+
+      <div class="feed-item">
+        <div class="feed-item-title">Litert-community + bartowski drops</div>
+        <div class="feed-item-source">Model drops</div>
+        <div class="feed-item-summary">New on-device-runnable models. One tap installs through the GGUF / LLM Search tile.</div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Control column -->
+    <div class="control-column">
+
+      <div class="row">
+        <div class="pill pill-red" onclick="route('/chat')">ACTIVATE</div>
+        <div class="pill pill-blue" onclick="route('/diagnostics')">ANALYZE</div>
+      </div>
+
+      <div class="pill pill-steel text-field" onclick="route('/active-model')">
+        <span class="text-field-label">Active Model</span>
+        <span class="text-field-icon">▼</span>
+      </div>
+
+      <div class="pill pill-steel text-field" onclick="route('/llm-search')">
+        <span class="text-field-label">🔍 &nbsp; GGUF / LLM Search</span>
+        <span class="text-field-icon">✦</span>
+      </div>
+
+      <div class="pill pill-steel" onclick="route('/chat')">CHAT</div>
+
+      <div class="row">
+        <div class="card" onclick="route('/agents')">
+          <div class="card-header">
+            <div>
+              <div class="card-title">AGENTS</div>
+              <div class="card-subtitle">5 modes</div>
+            </div>
+            <div class="indicator"></div>
+          </div>
+        </div>
+        <div class="card" onclick="route('/plugins')">
+          <div class="card-header">
+            <div>
+              <div class="card-title">PLUGINS</div>
+              <div class="card-subtitle">MCP</div>
+            </div>
+            <div class="indicator"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shell tile -->
+      <div class="card shell-tile" onclick="route('/shell')">
+        <div class="shell-tabs" onclick="event.stopPropagation();">
+          <span class="shell-tab active" data-tab="shell">shell</span>
+          <span class="shell-tab" data-tab="files">files</span>
+          <span class="shell-tab" data-tab="pkgs">pkgs</span>
+          <span class="shell-tab" data-tab="settings">*</span>
+        </div>
+        <div class="shell-body">
+          <div data-tab-content="shell">Default project<br>Network logs<br>Project files</div>
+          <div data-tab-content="files" style="display:none">~/.morsvitaest/<br>llm/<br>memories/</div>
+          <div data-tab-content="pkgs" style="display:none">cmake — installed<br>git — installed<br>jq — installed</div>
+          <div data-tab-content="settings" style="display:none">PATH<br>HF_TOKEN<br>cwd: /root</div>
+          <div class="shell-prompt">mve$ &nbsp; enter command…</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="pill pill-purple" onclick="route('/update-engine')">INITIALIZE UPGRADE</div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================================================
+     DETAIL PAGES — generic via JS render
+     ============================================================ -->
+<div class="page detail" data-route="/chat">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">Activate Core</div>
+    <div class="detail-description">New conversation with the agent. Spins up a session, drops you straight at the prompt. Voice mode optional.</div>
+    <div class="coming-soon">In the real app, this routes to the existing ChatScreen — same content, brushed frame around it.</div>
+  </div>
+</div>
+
+<div class="page detail" data-route="/diagnostics">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">Analyze Projections</div>
+    <div class="detail-description">Logs, inference stats, sandbox + engine health. Tokens / sec, RAM headroom, request queue, recent errors, CI status of bundled components.</div>
+    <div class="coming-soon">Phase 2 destination. Will pull from morsllm logs + AppDiagnostics.</div>
+  </div>
+</div>
+
+<div class="page detail" data-route="/active-model">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">Active Model</div>
+    <div class="detail-description">Pick the model the agent talks to. Local GGUF runtime, remote via OpenAI-compatible endpoint, Anthropic, Gemini, or anything else added under Services.</div>
+    <div class="coming-soon">Phase 2 — surfaces Services + downloaded GGUF models in one picker.</div>
+  </div>
+</div>
+
+<div class="page detail" data-route="/llm-search">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">GGUF / LLM Search</div>
+    <div class="detail-description">Discovery across HuggingFace litert-community, bartowski's GGUF repos, locally-installed models, and anything an Ollama / remote endpoint exposes.</div>
+    <div class="coming-soon">Phase 2 — paste a HF repo, hit Run, model serves on /v1.</div>
+  </div>
+</div>
+
+<div class="page detail" data-route="/agents">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">Agents</div>
+    <div class="detail-description">The five-color agent system. Planner / Safety / Operator / Memory / Synthesis. Configure which colors are active, voice personalities per lane, escalation thresholds.</div>
+    <div class="coming-soon">Phase 2 — visual roster + per-agent config.</div>
+  </div>
+</div>
+
+<div class="page detail" data-route="/plugins">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">Plugins / MCP</div>
+    <div class="detail-description">Connected MCP servers + installed skills. Add a new MCP endpoint, browse capabilities, toggle individual tools on / off per agent.</div>
+    <div class="coming-soon">Phase 2 — same content as Settings → Tools / Integrations, restyled.</div>
+  </div>
+</div>
+
+<div class="page detail" data-route="/shell">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">Shell</div>
+    <div class="detail-description">Full-screen in-app terminal. Same tabs (shell / files / pkgs / settings) as the home tile, but expanded. The agent can also run commands here.</div>
+    <div class="coming-soon">Phase 2 — same content as Settings → Sandbox → Linux Sandbox terminal.</div>
+  </div>
+</div>
+
+<div class="page detail" data-route="/update-engine">
+  <div class="pill pill-steel back-pill" onclick="history.back()">← BACK</div>
+  <div class="card detail-card">
+    <div class="detail-title">Initialize Upgrade</div>
+    <div class="detail-description">Rebuild the local llama.cpp engine, pull a fresh sandbox rootfs, or update an installed model in place. The 10-30 min compile lives here.</div>
+    <div class="coming-soon">Phase 2 — wires into the existing morsllm provision flow.</div>
+  </div>
+</div>
+
+<script>
+/* Hash routing. # -> #/home. #/foo -> show .page[data-route="/foo"]. */
+function route(path) {
+  if (path[0] !== '/') path = '/' + path;
+  window.location.hash = '#' + path;
+}
+
+function applyRoute() {
+  let path = window.location.hash.replace(/^#/, '') || '/';
+  if (!path.startsWith('/')) path = '/' + path;
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.toggle('active', p.dataset.route === path);
+  });
+  // If nothing matched, show home.
+  if (!document.querySelector('.page.active')) {
+    document.querySelector('[data-route="/"]').classList.add('active');
+  }
+  window.scrollTo(0, 0);
+}
+
+window.addEventListener('hashchange', applyRoute);
+window.addEventListener('load', applyRoute);
+
+/* Shell tile tabs */
+document.querySelectorAll('.shell-tab').forEach(t => {
+  t.addEventListener('click', e => {
+    e.stopPropagation();
+    const name = t.dataset.tab;
+    document.querySelectorAll('.shell-tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+    document.querySelectorAll('[data-tab-content]').forEach(b => {
+      b.style.display = (b.dataset.tabContent === name) ? '' : 'none';
+    });
+  });
+});
+</script>
+
+</body>
+</html>
