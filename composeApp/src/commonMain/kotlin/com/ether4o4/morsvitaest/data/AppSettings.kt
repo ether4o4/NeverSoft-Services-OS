@@ -580,6 +580,8 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_NOTIFICATIONS_STORE = "notifications_store"
         const val KEY_NOTIFICATIONS_SYNC_STATE = "notifications_sync_state"
         const val KEY_CONFIGURED_SERVICES = "configured_services"
+        const val KEY_PROJECTS = "projects_v1"
+        const val KEY_ACTIVE_PROJECT_ID = "active_project_id"
         const val KEY_FREE_FALLBACK_ENABLED = "free_fallback_enabled"
         const val KEY_FREE_MODE = "free_mode"
         const val KEY_FREE_SERVICE_PRIMARY = "free_service_primary"

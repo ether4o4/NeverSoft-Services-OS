@@ -59,6 +59,8 @@ class SettingsViewModel(
 
     private fun buildFullState(): SettingsUiState = SettingsUiState(
         configuredServices = buildConfiguredServiceEntries().toImmutableList(),
+        projects = dataRepository.getProjects().toImmutableList(),
+        activeProjectId = dataRepository.getActiveProject()?.id ?: com.ether4o4.morsvitaest.data.Project.NONE_ID,
         availableServicesToAdd = computeAvailableServices().toImmutableList(),
         tools = dataRepository.getToolDefinitions().toImmutableList(),
         soulText = dataRepository.getSoulText(),
@@ -128,6 +130,10 @@ class SettingsViewModel(
         onMoveServiceUp = ::onMoveServiceUp,
         onMoveServiceDown = ::onMoveServiceDown,
         onToggleServiceEnabled = ::onToggleServiceEnabled,
+        onCreateProject = ::onCreateProject,
+        onUpdateProject = ::onUpdateProject,
+        onDeleteProject = ::onDeleteProject,
+        onSelectActiveProject = ::onSelectActiveProject,
         onExpandService = ::onExpandService,
         onChangeApiKey = ::onChangeApiKey,
         onChangeBaseUrl = ::onChangeBaseUrl,
@@ -327,6 +333,37 @@ class SettingsViewModel(
         }
         dataRepository.reorderConfiguredServices(reordered)
         refreshServiceList()
+    }
+
+    private fun refreshProjectsState() {
+        _state.update {
+            it.copy(
+                projects = dataRepository.getProjects().toImmutableList(),
+                activeProjectId = dataRepository.getActiveProject()?.id ?: com.ether4o4.morsvitaest.data.Project.NONE_ID,
+            )
+        }
+    }
+
+    private fun onCreateProject(name: String, instructions: String) {
+        if (name.isBlank()) return
+        dataRepository.createProject(name, instructions)
+        refreshProjectsState()
+    }
+
+    private fun onUpdateProject(id: String, name: String, instructions: String) {
+        if (name.isBlank()) return
+        dataRepository.updateProject(id, name, instructions)
+        refreshProjectsState()
+    }
+
+    private fun onDeleteProject(id: String) {
+        dataRepository.deleteProject(id)
+        refreshProjectsState()
+    }
+
+    private fun onSelectActiveProject(id: String) {
+        dataRepository.setActiveProjectId(id)
+        _state.update { it.copy(activeProjectId = id) }
     }
 
     private fun onToggleServiceEnabled(instanceId: String, enabled: Boolean) {

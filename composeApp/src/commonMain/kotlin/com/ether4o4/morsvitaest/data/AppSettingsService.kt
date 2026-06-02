@@ -1,7 +1,9 @@
 package com.ether4o4.morsvitaest.data
 
+import com.ether4o4.morsvitaest.data.AppSettings.Companion.KEY_ACTIVE_PROJECT_ID
 import com.ether4o4.morsvitaest.data.AppSettings.Companion.KEY_CONFIGURED_SERVICES
 import com.ether4o4.morsvitaest.data.AppSettings.Companion.KEY_CURRENT_SERVICE_ID
+import com.ether4o4.morsvitaest.data.AppSettings.Companion.KEY_PROJECTS
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -94,6 +96,47 @@ fun AppSettings.getInstanceEnabled(instanceId: String): Boolean =
 
 fun AppSettings.setInstanceEnabled(instanceId: String, enabled: Boolean) {
     settings.putBoolean("instance_${instanceId}_enabled", enabled)
+}
+
+// Projects (app-owned context containers — see Project.kt for the architecture rationale).
+fun AppSettings.getProjects(): List<Project> {
+    val json = settings.getString(KEY_PROJECTS, "")
+    if (json.isBlank()) return emptyList()
+    return try {
+        val array = Json.parseToJsonElement(json).jsonArray
+        array.mapNotNull { element ->
+            if (element !is JsonObject) return@mapNotNull null
+            val id = element["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            val name = element["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            val instructions = element["instructions"]?.jsonPrimitive?.content ?: ""
+            val createdAt = element["createdAt"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+            Project(id = id, name = name, instructions = instructions, createdAt = createdAt)
+        }.filter { it.id.isNotBlank() && it.name.isNotBlank() }
+    } catch (_: Exception) {
+        emptyList()
+    }
+}
+
+fun AppSettings.setProjects(projects: List<Project>) {
+    val jsonArray = kotlinx.serialization.json.JsonArray(
+        projects.map { project ->
+            JsonObject(
+                mapOf(
+                    "id" to JsonPrimitive(project.id),
+                    "name" to JsonPrimitive(project.name),
+                    "instructions" to JsonPrimitive(project.instructions),
+                    "createdAt" to JsonPrimitive(project.createdAt.toString()),
+                ),
+            )
+        },
+    )
+    settings.putString(KEY_PROJECTS, jsonArray.toString())
+}
+
+fun AppSettings.getActiveProjectId(): String = settings.getString(KEY_ACTIVE_PROJECT_ID, Project.NONE_ID)
+
+fun AppSettings.setActiveProjectId(id: String) {
+    settings.putString(KEY_ACTIVE_PROJECT_ID, id)
 }
 
 fun AppSettings.setInstanceApiKey(instanceId: String, apiKey: String) {

@@ -49,6 +49,7 @@ enum class ConnectionStatus {
 enum class SettingsTab {
     General,
     Agent,
+    Projects,
     Services,
     Tools,
     Sandbox,
@@ -60,6 +61,8 @@ data class SettingsUiState(
     val currentTab: SettingsTab = SettingsTab.Services,
     val configuredServices: ImmutableList<ConfiguredServiceEntry> = persistentListOf(),
     val expandedServiceId: String? = null,
+    val projects: ImmutableList<com.ether4o4.morsvitaest.data.Project> = persistentListOf(),
+    val activeProjectId: String = com.ether4o4.morsvitaest.data.Project.NONE_ID,
     val availableServicesToAdd: ImmutableList<Service> = persistentListOf(),
     val tools: ImmutableList<ToolInfo> = persistentListOf(),
     val soulText: String = "",

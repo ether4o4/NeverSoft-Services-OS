@@ -355,6 +355,44 @@ class RemoteDataRepository(
         appSettings.setInstanceEnabled(instanceId, enabled)
     }
 
+    override fun getProjects(): List<Project> = appSettings.getProjects()
+
+    override fun getActiveProject(): Project? {
+        val id = appSettings.getActiveProjectId()
+        if (id.isBlank()) return null
+        return appSettings.getProjects().find { it.id == id }
+    }
+
+    override fun setActiveProjectId(id: String) {
+        appSettings.setActiveProjectId(id)
+    }
+
+    override fun createProject(name: String, instructions: String): Project {
+        val project = Project(
+            name = name.trim(),
+            instructions = instructions.trim(),
+            createdAt = Clock.System.now().toEpochMilliseconds(),
+        )
+        val updated = appSettings.getProjects() + project
+        appSettings.setProjects(updated)
+        return project
+    }
+
+    override fun updateProject(id: String, name: String, instructions: String) {
+        val updated = appSettings.getProjects().map {
+            if (it.id == id) it.copy(name = name.trim(), instructions = instructions.trim()) else it
+        }
+        appSettings.setProjects(updated)
+    }
+
+    override fun deleteProject(id: String) {
+        val updated = appSettings.getProjects().filter { it.id != id }
+        appSettings.setProjects(updated)
+        if (appSettings.getActiveProjectId() == id) {
+            appSettings.setActiveProjectId(Project.NONE_ID)
+        }
+    }
+
     override fun isFreeFallbackEnabled(): Boolean = appSettings.isFreeFallbackEnabled()
 
     override fun setFreeFallbackEnabled(enabled: Boolean) {
@@ -1805,9 +1843,26 @@ class RemoteDataRepository(
             else -> ChatPromptUiMode.NONE
         }
 
+        // Active project's instructions get prepended into the soul slot so
+        // the assembled prompt includes them naturally without changing the
+        // downstream prompt template. The app owns this context — every
+        // service sees it (cloud or on-device), and switching providers
+        // doesn't lose the project framing.
+        val activeProject = getActiveProject()
+        val projectedSoul = if (activeProject != null && activeProject.instructions.isNotBlank()) {
+            buildString {
+                append("PROJECT: ").appendLine(activeProject.name)
+                appendLine(activeProject.instructions.trim())
+                appendLine()
+                append(soul)
+            }
+        } else {
+            soul
+        }
+
         return buildChatSystemPrompt(
             variant = variant,
-            soul = soul,
+            soul = projectedSoul,
             memoryInstructions = memoryInstructions,
             generalMemories = byCategory[MemoryCategory.GENERAL].orEmpty(),
             preferenceMemories = byCategory[MemoryCategory.PREFERENCE].orEmpty(),
