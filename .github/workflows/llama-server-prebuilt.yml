@@ -81,15 +81,15 @@ jobs:
                 sed -i "s/ llama-ui\b//g" tools/server/CMakeLists.txt || true
               fi
               if [ -d tools/server ] && [ ! -f tools/server/ui.h ]; then
-                cat > tools/server/ui.h <<UI_H_EOF
-#pragma once
-struct llama_ui_asset {
-    const unsigned char * data;
-    unsigned int size;
-    const char * etag;
-};
-inline const llama_ui_asset * llama_ui_find_asset(const char *) { return nullptr; }
-UI_H_EOF
+                {
+                  echo "#pragma once"
+                  echo "struct llama_ui_asset {"
+                  echo "    const unsigned char * data;"
+                  echo "    unsigned int size;"
+                  echo "    const char * etag;"
+                  echo "};"
+                  echo "inline const llama_ui_asset * llama_ui_find_asset(const char *) { return nullptr; }"
+                } > tools/server/ui.h
               fi
 
               cmake -B build \
