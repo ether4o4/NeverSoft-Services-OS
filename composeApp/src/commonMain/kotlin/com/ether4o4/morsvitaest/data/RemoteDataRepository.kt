@@ -428,10 +428,11 @@ class RemoteDataRepository(
         appSettings.setActiveProjectId(id)
     }
 
-    override fun createProject(name: String, instructions: String): Project {
+    override fun createProject(name: String, instructions: String, documents: List<ProjectDocument>): Project {
         val project = Project(
             name = name.trim(),
             instructions = instructions.trim(),
+            documents = documents,
             createdAt = Clock.System.now().toEpochMilliseconds(),
         )
         val updated = appSettings.getProjects() + project
@@ -439,9 +440,9 @@ class RemoteDataRepository(
         return project
     }
 
-    override fun updateProject(id: String, name: String, instructions: String) {
+    override fun updateProject(id: String, name: String, instructions: String, documents: List<ProjectDocument>) {
         val updated = appSettings.getProjects().map {
-            if (it.id == id) it.copy(name = name.trim(), instructions = instructions.trim()) else it
+            if (it.id == id) it.copy(name = name.trim(), instructions = instructions.trim(), documents = documents) else it
         }
         appSettings.setProjects(updated)
     }
@@ -1904,16 +1905,31 @@ class RemoteDataRepository(
             else -> ChatPromptUiMode.NONE
         }
 
-        // Active project's instructions get prepended into the soul slot so
-        // the assembled prompt includes them naturally without changing the
-        // downstream prompt template. The app owns this context — every
-        // service sees it (cloud or on-device), and switching providers
-        // doesn't lose the project framing.
+        // Active project's instructions + documents get prepended into the
+        // soul slot so the assembled prompt includes them naturally without
+        // changing the downstream prompt template. The app owns this context
+        // — every service sees it (cloud or on-device), and switching
+        // providers doesn't lose the project framing or its reference docs.
         val activeProject = getActiveProject()
-        val projectedSoul = if (activeProject != null && activeProject.instructions.isNotBlank()) {
+        val projectedSoul = if (activeProject != null &&
+            (activeProject.instructions.isNotBlank() || activeProject.documents.any { it.content.isNotBlank() })
+        ) {
             buildString {
                 append("PROJECT: ").appendLine(activeProject.name)
-                appendLine(activeProject.instructions.trim())
+                if (activeProject.instructions.isNotBlank()) {
+                    appendLine(activeProject.instructions.trim())
+                }
+                val docsWithContent = activeProject.documents.filter { it.content.isNotBlank() }
+                if (docsWithContent.isNotEmpty()) {
+                    appendLine()
+                    appendLine("PROJECT DOCUMENTS — reference material the user has attached to this project:")
+                    docsWithContent.forEach { doc ->
+                        appendLine()
+                        appendLine("--- ${doc.name} ---")
+                        appendLine(doc.content)
+                    }
+                    appendLine("--- end of project documents ---")
+                }
                 appendLine()
                 append(soul)
             }

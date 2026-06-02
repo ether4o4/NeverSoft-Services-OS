@@ -344,15 +344,15 @@ class SettingsViewModel(
         }
     }
 
-    private fun onCreateProject(name: String, instructions: String) {
+    private fun onCreateProject(name: String, instructions: String, documents: List<com.ether4o4.morsvitaest.data.ProjectDocument>) {
         if (name.isBlank()) return
-        dataRepository.createProject(name, instructions)
+        dataRepository.createProject(name, instructions, documents)
         refreshProjectsState()
     }
 
-    private fun onUpdateProject(id: String, name: String, instructions: String) {
+    private fun onUpdateProject(id: String, name: String, instructions: String, documents: List<com.ether4o4.morsvitaest.data.ProjectDocument>) {
         if (name.isBlank()) return
-        dataRepository.updateProject(id, name, instructions)
+        dataRepository.updateProject(id, name, instructions, documents)
         refreshProjectsState()
     }
 

@@ -11,9 +11,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -22,15 +25,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ether4o4.morsvitaest.data.Project
+import com.ether4o4.morsvitaest.data.ProjectDocument
 import com.ether4o4.morsvitaest.ui.handCursor
 
 /**
@@ -73,9 +79,21 @@ internal fun ProjectsContent(uiState: SettingsUiState, actions: SettingsActions)
         )
 
         uiState.projects.forEach { project ->
+            val docCount = project.documents.count { it.content.isNotBlank() }
+            val preview = buildString {
+                if (project.instructions.isBlank()) {
+                    append("(no instructions)")
+                } else {
+                    append(project.instructions)
+                }
+                if (docCount > 0) {
+                    append(" • $docCount doc")
+                    if (docCount != 1) append("s")
+                }
+            }
             ProjectRow(
                 displayName = project.name,
-                instructionsPreview = project.instructions.ifBlank { "(no instructions)" },
+                instructionsPreview = preview,
                 isActive = uiState.activeProjectId == project.id,
                 onClick = { actions.onSelectActiveProject(project.id) },
                 onEdit = { editing = project },
@@ -93,10 +111,11 @@ internal fun ProjectsContent(uiState: SettingsUiState, actions: SettingsActions)
         ProjectEditDialog(
             initialName = "",
             initialInstructions = "",
+            initialDocuments = emptyList(),
             title = "New project",
             onDismiss = { showCreate = false },
-            onConfirm = { name, instructions ->
-                actions.onCreateProject(name, instructions)
+            onConfirm = { name, instructions, documents ->
+                actions.onCreateProject(name, instructions, documents)
                 showCreate = false
             },
         )
@@ -106,10 +125,11 @@ internal fun ProjectsContent(uiState: SettingsUiState, actions: SettingsActions)
         ProjectEditDialog(
             initialName = project.name,
             initialInstructions = project.instructions,
+            initialDocuments = project.documents,
             title = "Edit project",
             onDismiss = { editing = null },
-            onConfirm = { name, instructions ->
-                actions.onUpdateProject(project.id, name, instructions)
+            onConfirm = { name, instructions, documents ->
+                actions.onUpdateProject(project.id, name, instructions, documents)
                 editing = null
             },
         )
@@ -187,18 +207,20 @@ private fun ProjectRow(
 private fun ProjectEditDialog(
     initialName: String,
     initialInstructions: String,
+    initialDocuments: List<ProjectDocument>,
     title: String,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit,
+    onConfirm: (String, String, List<ProjectDocument>) -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
     var instructions by remember { mutableStateOf(initialInstructions) }
+    val documents = remember { initialDocuments.toMutableStateList() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -214,11 +236,48 @@ private fun ProjectEditDialog(
                     placeholder = { Text("e.g. \"You are helping me ship MVE. Be terse. Always include file:line references.\"") },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                 )
+
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "Documents",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Reference text the AI sees on every chat in this project (notes, specs, style guides, code snippets — markdown OK).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+
+                documents.forEachIndexed { idx, doc ->
+                    DocumentEditor(
+                        doc = doc,
+                        onChange = { updated -> documents[idx] = updated },
+                        onDelete = { documents.removeAt(idx) },
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        documents.add(
+                            ProjectDocument(name = "Document ${documents.size + 1}", content = ""),
+                        )
+                    },
+                    modifier = Modifier.handCursor(),
+                ) {
+                    Text("+ Add document")
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name, instructions) },
+                onClick = { onConfirm(name, instructions, documents.toList()) },
                 enabled = name.isNotBlank(),
             ) { Text("Save") }
         },
@@ -226,4 +285,39 @@ private fun ProjectEditDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+private fun DocumentEditor(
+    doc: ProjectDocument,
+    onChange: (ProjectDocument) -> Unit,
+    onDelete: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = doc.name,
+                onValueChange = { onChange(doc.copy(name = it)) },
+                label = { Text("Name") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(4.dp))
+            TextButton(onClick = onDelete, modifier = Modifier.handCursor()) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        OutlinedTextField(
+            value = doc.content,
+            onValueChange = { onChange(doc.copy(content = it)) },
+            label = { Text("Content") },
+            placeholder = { Text("Paste reference text, notes, code snippets, etc.") },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 240.dp),
+        )
+    }
 }

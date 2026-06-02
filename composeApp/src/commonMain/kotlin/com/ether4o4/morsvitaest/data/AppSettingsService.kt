@@ -110,7 +110,23 @@ fun AppSettings.getProjects(): List<Project> {
             val name = element["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
             val instructions = element["instructions"]?.jsonPrimitive?.content ?: ""
             val createdAt = element["createdAt"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
-            Project(id = id, name = name, instructions = instructions, createdAt = createdAt)
+            // Documents: new in Phase 2; absent from older persisted state.
+            // Empty list is the right default for projects created before the
+            // documents feature existed.
+            val documents = (element["documents"] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { doc ->
+                if (doc !is JsonObject) return@mapNotNull null
+                val docId = doc["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                val docName = doc["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                val docContent = doc["content"]?.jsonPrimitive?.content ?: ""
+                ProjectDocument(id = docId, name = docName, content = docContent)
+            }.orEmpty()
+            Project(
+                id = id,
+                name = name,
+                instructions = instructions,
+                createdAt = createdAt,
+                documents = documents,
+            )
         }.filter { it.id.isNotBlank() && it.name.isNotBlank() }
     } catch (_: Exception) {
         emptyList()
@@ -126,6 +142,17 @@ fun AppSettings.setProjects(projects: List<Project>) {
                     "name" to JsonPrimitive(project.name),
                     "instructions" to JsonPrimitive(project.instructions),
                     "createdAt" to JsonPrimitive(project.createdAt.toString()),
+                    "documents" to kotlinx.serialization.json.JsonArray(
+                        project.documents.map { doc ->
+                            JsonObject(
+                                mapOf(
+                                    "id" to JsonPrimitive(doc.id),
+                                    "name" to JsonPrimitive(doc.name),
+                                    "content" to JsonPrimitive(doc.content),
+                                ),
+                            )
+                        },
+                    ),
                 ),
             )
         },

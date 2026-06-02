@@ -39,8 +39,8 @@ interface DataRepository {
     fun getProjects(): List<Project>
     fun getActiveProject(): Project?
     fun setActiveProjectId(id: String)
-    fun createProject(name: String, instructions: String = ""): Project
-    fun updateProject(id: String, name: String, instructions: String)
+    fun createProject(name: String, instructions: String = "", documents: List<ProjectDocument> = emptyList()): Project
+    fun updateProject(id: String, name: String, instructions: String, documents: List<ProjectDocument> = emptyList())
     fun deleteProject(id: String)
     fun getInstanceBaseUrl(instanceId: String, service: Service): String
     fun updateInstanceBaseUrl(instanceId: String, baseUrl: String)
