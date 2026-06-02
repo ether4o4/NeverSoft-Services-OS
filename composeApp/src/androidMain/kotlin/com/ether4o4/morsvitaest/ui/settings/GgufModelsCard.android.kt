@@ -153,19 +153,53 @@ actual fun PlatformGgufModelsCard() {
                 modifier = Modifier.handCursor(),
             ) { Text("Set up engine") }
         } else {
+            // Quick-install buttons: curated GGUF models that are known to work
+            // with the current llama.cpp build. Removes the "what do I type"
+            // friction for new users — one tap and the right repo id is filled in.
+            Text(
+                text = "Quick install — tap to fill in a known-working model:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { repoInput = "bartowski/Qwen2.5-0.5B-Instruct-GGUF" },
+                    modifier = Modifier.weight(1f).handCursor(),
+                ) { Text("Tiny\n(0.5B • ~400MB)", style = MaterialTheme.typography.bodySmall) }
+                OutlinedButton(
+                    onClick = { repoInput = "bartowski/Qwen2.5-3B-Instruct-GGUF" },
+                    modifier = Modifier.weight(1f).handCursor(),
+                ) { Text("Recommended\n(3B • ~2GB)", style = MaterialTheme.typography.bodySmall) }
+                OutlinedButton(
+                    onClick = { repoInput = "bartowski/Qwen2.5-7B-Instruct-GGUF" },
+                    modifier = Modifier.weight(1f).handCursor(),
+                ) { Text("Big\n(7B • ~4.5GB)", style = MaterialTheme.typography.bodySmall) }
+            }
+            Spacer(Modifier.height(10.dp))
+
             OutlinedTextField(
                 value = repoInput,
                 onValueChange = { repoInput = it },
-                label = { Text("HuggingFace repo or .gguf URL") },
+                label = { Text("HuggingFace repo, repo URL, or .gguf URL") },
                 placeholder = { Text("bartowski/Qwen2.5-0.5B-Instruct-GGUF") },
                 singleLine = true,
+                supportingText = {
+                    Text(
+                        text = "Must be a GGUF repo (e.g. bartowski/…-GGUF or litert-community/…). Vanilla model repos like 'gpt2' don't contain .gguf files and won't work.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = quantInput,
                 onValueChange = { quantInput = it },
-                label = { Text("Quant (optional)") },
+                label = { Text("Quant (optional — default picks Q4_K_M)") },
                 placeholder = { Text("Q4_K_M") },
                 singleLine = true,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
@@ -176,7 +210,21 @@ actual fun PlatformGgufModelsCard() {
                 enabled = repoInput.isNotBlank(),
                 onClick = {
                     runOp("Downloading model…") {
-                        val r = manager.pull(repoInput.trim(), quantInput.trim().ifBlank { null })
+                        // Normalize: strip a full HuggingFace URL down to a repo id
+                        // so users can paste either "owner/repo", "https://huggingface.co/owner/repo",
+                        // or the file URL and it just works.
+                        val raw = repoInput.trim()
+                        val normalized = when {
+                            raw.startsWith("https://huggingface.co/") || raw.startsWith("http://huggingface.co/") -> {
+                                val path = raw.substringAfter("huggingface.co/").trimEnd('/')
+                                // Direct .gguf download URL: keep as-is, the script handles it.
+                                if (path.contains("/resolve/") && path.endsWith(".gguf", ignoreCase = true)) raw
+                                // Otherwise reduce to owner/repo (drop any /tree/main/... or /blob/... suffix)
+                                else path.split("/").take(2).joinToString("/")
+                            }
+                            else -> raw
+                        }
+                        val r = manager.pull(normalized, quantInput.trim().ifBlank { null })
                         if (r.ok) message = "Downloaded ${r.file ?: "model"}" else errorResult = r
                     }
                 },

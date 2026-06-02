@@ -468,7 +468,7 @@ cmd_pull() {
                 (.files | .[0].name) // empty')
         fi
         if [ -z "$chosen" ] || [ "$chosen" = "null" ]; then
-            emit "{\"ok\":false,\"error\":\"no_gguf_in_repo\",\"repo\":\"$target\"}"
+            emit "{\"ok\":false,\"error\":\"no_gguf_in_repo\",\"repo\":\"$target\",\"detail\":\"The HuggingFace repo '$target' does not contain any .gguf files. llama.cpp only loads GGUF format — try a repo like bartowski/Qwen2.5-0.5B-Instruct-GGUF, or convert your model to GGUF first.\",\"hint\":\"Tap 'Tiny' in the Quick install row for a known-working model, OR paste a repo whose name ends in -GGUF.\"}"
             return 1
         fi
         filename="$chosen"
