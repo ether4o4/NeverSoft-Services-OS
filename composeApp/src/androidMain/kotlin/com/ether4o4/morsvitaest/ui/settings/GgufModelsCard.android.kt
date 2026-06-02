@@ -92,15 +92,29 @@ actual fun PlatformGgufModelsCard() {
         if (sandboxStatus.ready) refresh()
     }
 
+    // Re-fetch every time the card composes — covers the case where a
+    // background pull / provision finished while the user was on another
+    // screen, so the model list and engine status show the latest truth
+    // when they return without needing a manual refresh.
+    LaunchedEffect(Unit) {
+        if (sandboxStatus.ready) refresh()
+    }
+
     // Fire-and-forget a long sandbox op while showing a single busy state.
     // The block sets `message` (toast-style) or `errorResult` (dialog) directly.
+    // Launches on the GgufServerManager's long-lived scope (not the composable's
+    // scope) so the underlying download / build keeps running even if the user
+    // navigates away from the card mid-operation. The composable-scoped `busy`
+    // flag still tracks UI state for the visible session; when the user returns
+    // the next composition starts fresh and the LaunchedEffect above re-pulls
+    // real state from the script.
     fun runOp(label: String, block: suspend () -> Unit) {
         if (busy) return
         busy = true
         busyLabel = label
         message = null
         errorResult = null
-        scope.launch {
+        manager.backgroundScope.launch {
             try {
                 block()
                 refresh()

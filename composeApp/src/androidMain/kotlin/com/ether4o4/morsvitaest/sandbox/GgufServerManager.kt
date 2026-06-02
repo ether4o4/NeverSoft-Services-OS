@@ -29,6 +29,17 @@ class GgufServerManager(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val installLock = Mutex()
 
+    /**
+     * Long-running operation scope that survives the GGUF card composable's
+     * lifecycle. Provision and pull take minutes; if the user navigates away
+     * from the card mid-flight (or backgrounds the app), the work shouldn't
+     * die just because the composable scope died. UI callers should
+     * `launchBackground { ... }` instead of using `rememberCoroutineScope`
+     * for these. When the user comes back, the UI just re-runs `refresh()`
+     * and picks up whatever final state the background work landed on.
+     */
+    val backgroundScope: CoroutineScope get() = scope
+
     @Volatile
     private var scriptInstalled = false
 
