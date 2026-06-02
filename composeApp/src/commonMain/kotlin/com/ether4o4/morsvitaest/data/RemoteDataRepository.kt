@@ -1402,8 +1402,12 @@ class RemoteDataRepository(
      * older ones with a single summary. Falls back to simple drop-oldest trimming on failure.
      */
     private suspend fun compactHistoryIfNeeded() {
-        // Use primary service's context window for compaction decisions
-        val firstInstance = getConfiguredServiceInstances().firstOrNull() ?: return
+        // Use primary enabled service's context window for compaction decisions.
+        // Disabled instances are skipped so their context window doesn't drive
+        // compaction on a chat that's actually routed elsewhere.
+        val firstInstance = getConfiguredServiceInstances()
+            .firstOrNull { appSettings.getInstanceEnabled(it.instanceId) }
+            ?: return
         val service = Service.fromId(firstInstance.serviceId)
         val modelId = appSettings.getSelectedModelId(service)
         val contextWindowTokens = ModelCatalog.estimateContextWindow(modelId)
@@ -1520,7 +1524,11 @@ class RemoteDataRepository(
 
     override fun currentService(): Service {
         if (appSettings.isFreeServicePrimary()) return Service.Free
+        // Skip disabled instances — chat send should never route to a
+        // service the user has toggled off. If every instance is
+        // disabled, fall through to Service.Free (shared key).
         val instances = getConfiguredServiceInstances()
+            .filter { appSettings.getInstanceEnabled(it.instanceId) }
         return instances.firstOrNull()?.let { Service.fromId(it.serviceId) } ?: Service.Free
     }
 
@@ -2024,7 +2032,9 @@ class RemoteDataRepository(
 
     override suspend fun askSilently(question: String): String {
         val service = currentService()
-        val firstInstance = getConfiguredServiceInstances().firstOrNull() ?: return ""
+        val firstInstance = getConfiguredServiceInstances()
+            .firstOrNull { appSettings.getInstanceEnabled(it.instanceId) }
+            ?: return ""
         val messages = listOf(History(role = History.Role.USER, content = question))
 
         if (service.isOnDevice) {
