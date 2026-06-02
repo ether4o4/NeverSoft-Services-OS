@@ -115,28 +115,40 @@ private const val COMPACTION_KEEP_RECENT = 4 // Number of recent user exchanges 
 private const val SEND_WINDOW_INPUT_RATIO = 0.8
 
 // Always preserve at least this many of the earliest non-system messages so
-// the model has some grounding context. Anything in the middle gets dropped
-// before recent messages do.
+// the model has some grounding context. Anything in the middle gets ranked
+// by relevance before being included or dropped.
 private const val TRUNCATE_KEEP_FIRST = 2
 
+// Always preserve the most recent N messages — the immediate thread state
+// the user is currently in. Middle messages between the first slice and
+// these are retrieved by relevance to the current user prompt.
+private const val TRUNCATE_KEEP_RECENT = 4
+
 /**
- * Send-boundary history truncation.
+ * Send-boundary history truncation with relevance-aware retrieval.
  *
  * The app stores the full conversation forever (the chat tab is the source
  * of truth, not whatever slice the AI happens to see on a given turn). When
  * the app is about to call the model, the messages list may exceed the
  * model's context window — especially after a failover from a large-context
- * cloud model to a smaller on-device one. This walks the list and returns
- * a slice that fits, keeping the first [keepFirst] messages for grounding
- * and the most recent messages that fit, dropping the middle.
+ * cloud model to a smaller on-device one.
  *
- * No synthetic "[truncated]" marker is injected — the prompt the model sees
- * is just a smaller real conversation. The app keeps the full record.
+ * Strategy:
+ *   1. Always keep the first [keepFirst] messages (grounding / persona-setting).
+ *   2. Always keep the most recent [keepRecent] messages (current thread).
+ *   3. With any remaining budget, score the messages in the middle by
+ *      Jaccard token overlap with the latest user message and slot the
+ *      highest-scoring ones in until the budget is exhausted.
+ *   4. Return the assembled slice in original chronological order.
+ *
+ * No synthetic "[truncated]" marker is injected — the prompt is just a
+ * smaller real conversation. The app keeps the full record either way.
  */
 private fun truncateHistoryToFitWindow(
     messages: List<History>,
     contextWindowTokens: Int,
     keepFirst: Int = TRUNCATE_KEEP_FIRST,
+    keepRecent: Int = TRUNCATE_KEEP_RECENT,
 ): List<History> {
     if (contextWindowTokens <= 0) return messages
     val maxInputChars = (contextWindowTokens * ESTIMATED_CHARS_PER_TOKEN * SEND_WINDOW_INPUT_RATIO).toInt()
@@ -146,18 +158,67 @@ private fun truncateHistoryToFitWindow(
     if (messages.size <= keepFirst + 1) return messages.takeLast(1)
 
     val firstSlice = messages.take(keepFirst)
-    var remaining = maxInputChars - firstSlice.sumOf { it.content.length }
-    if (remaining <= 0) return messages.takeLast(1)
+    val recentSlice = messages.takeLast(minOf(keepRecent, messages.size - keepFirst))
+    val middlePool = messages.drop(keepFirst).dropLast(recentSlice.size)
 
-    val recent = ArrayDeque<History>()
-    for (msg in messages.asReversed()) {
-        if (recent.size >= messages.size - keepFirst) break
-        val len = msg.content.length
-        if (len > remaining) break
-        recent.addFirst(msg)
-        remaining -= len
+    var budget = maxInputChars - firstSlice.sumOf { it.content.length } - recentSlice.sumOf { it.content.length }
+    if (budget < 0) {
+        // Recent + first already overflow; drop earliest of recent until they fit.
+        return assembleByBudget(firstSlice, recentSlice, maxInputChars)
     }
-    return firstSlice + recent
+
+    // Score middle messages by token overlap with the latest user message —
+    // a cheap stand-in for embedding retrieval that needs no extra deps and
+    // does meaningfully better than just keeping the temporally-nearest ones.
+    val query = messages.lastOrNull { it.role == History.Role.USER }?.content.orEmpty()
+    val queryTokens = tokenize(query)
+
+    val scored = middlePool
+        .map { msg -> msg to jaccardSimilarity(queryTokens, tokenize(msg.content)) }
+        .sortedByDescending { it.second }
+
+    val selectedFromMiddle = mutableListOf<History>()
+    for ((msg, _) in scored) {
+        val len = msg.content.length
+        if (len > budget) continue
+        selectedFromMiddle += msg
+        budget -= len
+    }
+
+    val originalOrder = messages.withIndex().associate { (i, m) -> m.id to i }
+    val orderedMiddle = selectedFromMiddle.sortedBy { originalOrder[it.id] ?: Int.MAX_VALUE }
+
+    return firstSlice + orderedMiddle + recentSlice
+}
+
+private fun assembleByBudget(
+    firstSlice: List<History>,
+    recentSlice: List<History>,
+    budget: Int,
+): List<History> {
+    val firstChars = firstSlice.sumOf { it.content.length }
+    var remaining = budget - firstChars
+    if (remaining <= 0) return firstSlice
+    val kept = ArrayDeque<History>()
+    for (msg in recentSlice.asReversed()) {
+        if (msg.content.length > remaining) break
+        kept.addFirst(msg)
+        remaining -= msg.content.length
+    }
+    return firstSlice + kept
+}
+
+private fun tokenize(text: String): Set<String> =
+    text.lowercase()
+        .splitToSequence(' ', '\n', '\t', ',', '.', '!', '?', ';', ':', '(', ')', '[', ']', '{', '}', '"', '\'', '/', '\\', '-')
+        .filter { it.length > 2 }
+        .toSet()
+
+private fun jaccardSimilarity(a: Set<String>, b: Set<String>): Double {
+    if (a.isEmpty() && b.isEmpty()) return 0.0
+    val intersection = a.intersect(b).size
+    val union = a.size + b.size - intersection
+    return if (union == 0) 0.0 else intersection.toDouble() / union
 }
 
 // Explicit allowlist of tools exposed to the on-device (LiteRT) model. We use a
