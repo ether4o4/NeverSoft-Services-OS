@@ -85,6 +85,7 @@ class GgufServerManager(
         val ok: Boolean = false,
         val error: String? = null,
         val detail: String? = null,
+        @SerialName("log_path") val logPath: String? = null,
         val hint: String? = null,
         @SerialName("base_url") val baseUrl: String? = null,
         val pid: Long? = null,
@@ -100,34 +101,48 @@ class GgufServerManager(
         if (scriptInstalled) return true
         installLock.withLock {
             if (scriptInstalled) return true
-            val raw = readAssetText("sandbox/morsllm.sh") ?: return false
-            // Strip CR so a CRLF-mangled asset can't turn the shebang / `set`
-            // lines into "command not found" or syntax errors under bash.
-            val script = raw.replace("\r\n", "\n").replace("\r", "\n")
-            // Clear anything stale at the target first. If a prior run or a user
-            // experiment left a *directory* (or a non-file) at this path,
-            // writeTextFile refuses to overwrite it and the shell then reports
-            // "morsllm: Is a directory" on every invocation.
-            sandbox.executeCommand(
-                command = "rm -rf $SCRIPT_PATH 2>/dev/null; mkdir -p \$(dirname $SCRIPT_PATH)",
-                sessionId = SandboxSessions.SYSTEM,
-            )
-            val written = sandbox.writeTextFile(SCRIPT_PATH, script)
-            if (!written) return false
-            // writeTextFile doesn't set the executable bit.
-            sandbox.executeCommand(
-                command = "chmod 755 $SCRIPT_PATH",
-                sessionId = SandboxSessions.SYSTEM,
-            )
-            // Confirm it's an executable regular file before trusting it.
-            val verify = sandbox.executeCommand(
-                command = "test -x $SCRIPT_PATH && echo MORSLLM_OK",
-                sessionId = SandboxSessions.SYSTEM,
-            )
-            if (!verify.contains("MORSLLM_OK")) return false
-            scriptInstalled = true
-            return true
+            // Sandbox isn't always fully responsive the instant its status flag
+            // flips to ready — writeTextFile + executeCommand can intermittently
+            // come back garbled or refuse on the first try after a cold mount.
+            // Retry up to 3 times with a brief backoff so the first script call
+            // after app launch doesn't race the install and report
+            // "not built yet" until the user manually re-taps Set up engine.
+            for (attempt in 1..3) {
+                if (installScriptAsset("sandbox/morsllm.sh", SCRIPT_PATH)) {
+                    // Best-effort install of the manual-recovery helper. Failure
+                    // here doesn't block provisioning — it's only an escape
+                    // hatch the user can invoke from the terminal.
+                    installScriptAsset("sandbox/morsllm-setup.sh", SETUP_SCRIPT_PATH)
+                    scriptInstalled = true
+                    return true
+                }
+                kotlinx.coroutines.delay(1500L * attempt)
+            }
+            return false
         }
+    }
+
+    private suspend fun installScriptAsset(asset: String, path: String): Boolean {
+        val raw = readAssetText(asset) ?: return false
+        // Strip CR so a CRLF-mangled asset can't turn the shebang / `set`
+        // lines into "command not found" or syntax errors under bash.
+        val script = raw.replace("\r\n", "\n").replace("\r", "\n")
+        // Clear anything stale at the target first (file, dir, or symlink).
+        sandbox.executeCommand(
+            command = "rm -rf $path 2>/dev/null; mkdir -p \$(dirname $path)",
+            sessionId = SandboxSessions.SYSTEM,
+        )
+        val written = sandbox.writeTextFile(path, script)
+        if (!written) return false
+        sandbox.executeCommand(
+            command = "chmod 755 $path",
+            sessionId = SandboxSessions.SYSTEM,
+        )
+        val verify = sandbox.executeCommand(
+            command = "test -x $path && echo INSTALL_OK",
+            sessionId = SandboxSessions.SYSTEM,
+        )
+        return verify.contains("INSTALL_OK")
     }
 
     private fun readAssetText(path: String): String? = runCatching {
@@ -192,6 +207,14 @@ class GgufServerManager(
 
     suspend fun stop(): GenericResult = decodeOr(runQuick("stop"), GenericResult(ok = false, error = "stop_unparseable"))
 
+    /** Read the tail of a log file from inside the sandbox; capped so we don't
+     * push huge text into a Compose dialog. Returns empty string if missing. */
+    suspend fun readLogTail(path: String, maxBytes: Int = 8000): String =
+        sandbox.executeCommand(
+            command = "tail -c $maxBytes ${shellQuote(path)} 2>/dev/null",
+            sessionId = SandboxSessions.SYSTEM,
+        )
+
     private inline fun <reified T> decodeOr(raw: String, fallback: T): T = runCatching {
         if (raw.isBlank()) fallback else json.decodeFromString<T>(raw)
     }.getOrDefault(fallback)
@@ -212,6 +235,7 @@ class GgufServerManager(
     companion object {
         const val DEFAULT_PORT = 8080
         private const val SCRIPT_PATH = "/usr/local/bin/morsllm"
+        private const val SETUP_SCRIPT_PATH = "/usr/local/bin/morsllm-setup"
         private const val SCRIPT_INSTALL_FAILED_JSON = """{"ok":false,"error":"script_install_failed"}"""
     }
 }

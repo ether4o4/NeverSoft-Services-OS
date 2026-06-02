@@ -85,6 +85,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_arrow_drop_down
+import morsvitaest.composeapp.generated.resources.ic_arrow_drop_up
 import morsvitaest.composeapp.generated.resources.litert_browse_huggingface
 import morsvitaest.composeapp.generated.resources.litert_browse_ollama
 import morsvitaest.composeapp.generated.resources.litert_cancel
@@ -180,7 +181,7 @@ internal fun ServicesContent(uiState: SettingsUiState, actions: SettingsActions)
             actions.onReorderServices(ids)
         },
         verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) { _, entry, isDragging ->
+    ) { index, entry, isDragging ->
         key(entry.instanceId) {
             ReorderableItem {
                 ConfiguredServiceCardContent(
@@ -191,6 +192,11 @@ internal fun ServicesContent(uiState: SettingsUiState, actions: SettingsActions)
                     onChangeBaseUrl = { baseUrl -> actions.onChangeBaseUrl(entry.instanceId, baseUrl) },
                     onSelectModel = { modelId -> actions.onSelectModel(entry.instanceId, modelId) },
                     onRemove = { actions.onRemoveService(entry.instanceId) },
+                    onToggleEnabled = { enabled -> actions.onToggleServiceEnabled(entry.instanceId, enabled) },
+                    onMoveUp = { actions.onMoveServiceUp(entry.instanceId) },
+                    onMoveDown = { actions.onMoveServiceDown(entry.instanceId) },
+                    canMoveUp = index > 0,
+                    canMoveDown = index < entries.size - 1,
                     isDragging = isDragging,
                     dragHandleModifier = if (entries.size >= 2) Modifier.draggableHandle() else null,
                     localAvailableModels = uiState.localAvailableModels,
@@ -308,6 +314,11 @@ private fun ConfiguredServiceCardContent(
     onChangeBaseUrl: (String) -> Unit,
     onSelectModel: (String) -> Unit,
     onRemove: () -> Unit,
+    onToggleEnabled: (Boolean) -> Unit = {},
+    onMoveUp: () -> Unit = {},
+    onMoveDown: () -> Unit = {},
+    canMoveUp: Boolean = false,
+    canMoveDown: Boolean = false,
     isDragging: Boolean = false,
     dragHandleModifier: Modifier? = null,
     localAvailableModels: ImmutableList<LocalModel> = persistentListOf(),
@@ -335,7 +346,41 @@ private fun ConfiguredServiceCardContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Drag handle
+                // Explicit Up/Down reorder buttons. More discoverable than
+                // the drag handle (which is hidden + long-press), and lets
+                // the user set fallback order one position at a time.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy((-8).dp),
+                    modifier = Modifier.padding(end = 4.dp),
+                ) {
+                    IconButton(
+                        onClick = onMoveUp,
+                        enabled = canMoveUp,
+                        modifier = Modifier.size(28.dp).handCursor(),
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.ic_arrow_drop_up),
+                            contentDescription = "Move up",
+                            tint = if (canMoveUp) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    }
+                    IconButton(
+                        onClick = onMoveDown,
+                        enabled = canMoveDown,
+                        modifier = Modifier.size(28.dp).handCursor(),
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.ic_arrow_drop_down),
+                            contentDescription = "Move down",
+                            tint = if (canMoveDown) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    }
+                }
+
+                // Drag handle stays as a power-user shortcut for batch
+                // reordering when many services are configured.
                 if (dragHandleModifier != null) {
                     Icon(
                         imageVector = Icons.Rounded.DragIndicator,
@@ -379,6 +424,18 @@ private fun ConfiguredServiceCardContent(
                         )
                     }
                 }
+
+                // Enable / disable toggle. Disabled services stay configured
+                // (api key, model, etc. preserved) but hidden from the chat
+                // service picker so the user can pick which model is active
+                // and which are kept as backups for later.
+                Switch(
+                    checked = entry.enabled,
+                    onCheckedChange = onToggleEnabled,
+                    modifier = Modifier.handCursor(),
+                )
+
+                Spacer(Modifier.width(8.dp))
 
                 // Expand/collapse chevron
                 Icon(

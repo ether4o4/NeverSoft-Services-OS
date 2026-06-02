@@ -28,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.ether4o4.morsvitaest.mcp.AWESOME_MCP_SERVERS_URL
 import com.ether4o4.morsvitaest.mcp.PopularMcpServer
 import com.ether4o4.morsvitaest.mcp.popularMcpServers
 import com.ether4o4.morsvitaest.ui.MorsVitaEstOutlinedTextField
@@ -376,40 +378,68 @@ private fun AddMcpServerDialog(
                 }
 
                 if (popularMcpServers.isNotEmpty()) {
+                    val uriHandler = LocalUriHandler.current
                     Spacer(Modifier.height(16.dp))
                     Text(
                         text = stringResource(Res.string.settings_mcp_popular_servers),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "MCP is the open standard for connecting AI chats to tools and data. Tap any server to one-click add.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Spacer(Modifier.height(8.dp))
-                    for (server in popularMcpServers) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(CardDefaults.shape)
-                                .clickable {
-                                    onAddPopular(server)
-                                }
-                                .handCursor(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            ),
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = server.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    text = server.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                    // Group by category so the list stays scannable as it
+                    // grows. Categories appear in enum order; servers within
+                    // each category preserve the order they were declared.
+                    val byCategory = popularMcpServers.groupBy { it.category }
+                    PopularMcpServer.Category.entries.forEach { category ->
+                        val servers = byCategory[category].orEmpty()
+                        if (servers.isEmpty()) return@forEach
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = category.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                         Spacer(Modifier.height(4.dp))
+                        for (server in servers) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(CardDefaults.shape)
+                                    .clickable { onAddPopular(server) }
+                                    .handCursor(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                ),
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = server.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = server.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = { uriHandler.openUri(AWESOME_MCP_SERVERS_URL) },
+                        modifier = Modifier.fillMaxWidth().handCursor(),
+                    ) {
+                        Text("Browse hundreds more MCP servers →")
                     }
                 }
 

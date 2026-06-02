@@ -6,8 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -15,7 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +30,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.ether4o4.morsvitaest.SandboxController
@@ -54,25 +63,42 @@ actual fun PlatformGgufModelsCard() {
     var busy by remember { mutableStateOf(false) }
     var busyLabel by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    var errorResult by remember { mutableStateOf<GgufServerManager.GenericResult?>(null) }
 
     suspend fun refresh() {
-        status = manager.status()
-        models = manager.listModels().models
+        // Defensive: don't overwrite `status` or `models` with empty/failed
+        // results — if the script-install race causes runQuick to return the
+        // SCRIPT_INSTALL_FAILED_JSON sentinel, the resulting Status has
+        // provisioned=false and ListModelsResult has empty models. Overwriting
+        // a previously-correct state with that wipes the UI back to "not built
+        // yet" + no downloaded models even though both are actually fine on
+        // disk. Only commit a new status if the call returned a non-default
+        // shape; only commit a new model list if the call reported ok.
+        val newStatus = manager.status()
+        if (newStatus.provisioned || newStatus.running || status == null) {
+            status = newStatus
+        }
+        val newModels = manager.listModels()
+        if (newModels.ok || (status?.provisioned != true)) {
+            models = newModels.models
+        }
     }
 
-    androidx.compose.runtime.LaunchedEffect(sandboxStatus.ready) {
+    LaunchedEffect(sandboxStatus.ready) {
         if (sandboxStatus.ready) refresh()
     }
 
     // Fire-and-forget a long sandbox op while showing a single busy state.
-    fun runOp(label: String, block: suspend () -> String?) {
+    // The block sets `message` (toast-style) or `errorResult` (dialog) directly.
+    fun runOp(label: String, block: suspend () -> Unit) {
         if (busy) return
         busy = true
         busyLabel = label
         message = null
+        errorResult = null
         scope.launch {
             try {
-                block()?.let { message = it }
+                block()
                 refresh()
             } finally {
                 busy = false
@@ -135,31 +161,59 @@ actual fun PlatformGgufModelsCard() {
                 onClick = {
                     runOp("Building engine… one-time, may take 10–30 min") {
                         val r = manager.provision()
-                        if (r.ok) {
-                            "Engine ready"
-                        } else {
-                            val code = r.error ?: "unknown"
-                            val detail = r.detail?.takeIf { it.isNotBlank() }
-                            if (detail != null) "Provision failed: $code — $detail" else "Provision failed: $code"
-                        }
+                        if (r.ok) message = "Engine ready" else errorResult = r
                     }
                 },
                 modifier = Modifier.handCursor(),
             ) { Text("Set up engine") }
         } else {
+            // Quick-install buttons: curated GGUF models that are known to work
+            // with the current llama.cpp build. Removes the "what do I type"
+            // friction for new users — one tap and the right repo id is filled in.
+            Text(
+                text = "Quick install — tap to fill in a known-working model:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { repoInput = "bartowski/Qwen2.5-0.5B-Instruct-GGUF" },
+                    modifier = Modifier.weight(1f).handCursor(),
+                ) { Text("Tiny\n(0.5B • ~400MB)", style = MaterialTheme.typography.bodySmall) }
+                OutlinedButton(
+                    onClick = { repoInput = "bartowski/Qwen2.5-3B-Instruct-GGUF" },
+                    modifier = Modifier.weight(1f).handCursor(),
+                ) { Text("Recommended\n(3B • ~2GB)", style = MaterialTheme.typography.bodySmall) }
+                OutlinedButton(
+                    onClick = { repoInput = "bartowski/Qwen2.5-7B-Instruct-GGUF" },
+                    modifier = Modifier.weight(1f).handCursor(),
+                ) { Text("Big\n(7B • ~4.5GB)", style = MaterialTheme.typography.bodySmall) }
+            }
+            Spacer(Modifier.height(10.dp))
+
             OutlinedTextField(
                 value = repoInput,
                 onValueChange = { repoInput = it },
-                label = { Text("HuggingFace repo or .gguf URL") },
+                label = { Text("HuggingFace repo, repo URL, or .gguf URL") },
                 placeholder = { Text("bartowski/Qwen2.5-0.5B-Instruct-GGUF") },
                 singleLine = true,
+                supportingText = {
+                    Text(
+                        text = "Must be a GGUF repo (e.g. bartowski/…-GGUF or litert-community/…). Vanilla model repos like 'gpt2' don't contain .gguf files and won't work.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = quantInput,
                 onValueChange = { quantInput = it },
-                label = { Text("Quant (optional)") },
+                label = { Text("Quant (optional — default picks Q4_K_M)") },
                 placeholder = { Text("Q4_K_M") },
                 singleLine = true,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
@@ -170,8 +224,22 @@ actual fun PlatformGgufModelsCard() {
                 enabled = repoInput.isNotBlank(),
                 onClick = {
                     runOp("Downloading model…") {
-                        val r = manager.pull(repoInput.trim(), quantInput.trim().ifBlank { null })
-                        if (r.ok) "Downloaded ${r.file ?: "model"}" else "Download failed: ${r.error ?: "unknown"}"
+                        // Normalize: strip a full HuggingFace URL down to a repo id
+                        // so users can paste either "owner/repo", "https://huggingface.co/owner/repo",
+                        // or the file URL and it just works.
+                        val raw = repoInput.trim()
+                        val normalized = when {
+                            raw.startsWith("https://huggingface.co/") || raw.startsWith("http://huggingface.co/") -> {
+                                val path = raw.substringAfter("huggingface.co/").trimEnd('/')
+                                // Direct .gguf download URL: keep as-is, the script handles it.
+                                if (path.contains("/resolve/") && path.endsWith(".gguf", ignoreCase = true)) raw
+                                // Otherwise reduce to owner/repo (drop any /tree/main/... or /blob/... suffix)
+                                else path.split("/").take(2).joinToString("/")
+                            }
+                            else -> raw
+                        }
+                        val r = manager.pull(normalized, quantInput.trim().ifBlank { null })
+                        if (r.ok) message = "Downloaded ${r.file ?: "model"}" else errorResult = r
                     }
                 },
                 modifier = Modifier.handCursor(),
@@ -211,8 +279,8 @@ actual fun PlatformGgufModelsCard() {
                             OutlinedButton(
                                 onClick = {
                                     runOp("Stopping…") {
-                                        manager.stop()
-                                        "Stopped"
+                                        val r = manager.stop()
+                                        if (r.ok) message = "Stopped" else errorResult = r
                                     }
                                 },
                                 modifier = Modifier.handCursor(),
@@ -222,7 +290,7 @@ actual fun PlatformGgufModelsCard() {
                                 onClick = {
                                     runOp("Starting ${m.name}…") {
                                         val r = manager.serve(m.name)
-                                        if (r.ok) "Running. Tap \"Add as service\" below." else "Start failed: ${r.error ?: "unknown"}"
+                                        if (r.ok) message = "Running. Tap \"Add as service\" below." else errorResult = r
                                     }
                                 },
                                 modifier = Modifier.handCursor(),
@@ -262,6 +330,91 @@ actual fun PlatformGgufModelsCard() {
             )
         }
     }
+
+    val err = errorResult
+    if (err != null) {
+        ProvisionErrorDialog(
+            result = err,
+            manager = manager,
+            onDismiss = { errorResult = null },
+        )
+    }
+}
+
+@Composable
+private fun ProvisionErrorDialog(
+    result: GgufServerManager.GenericResult,
+    manager: GgufServerManager,
+    onDismiss: () -> Unit,
+) {
+    var logTail by remember(result) { mutableStateOf<String?>(null) }
+    var loadingLog by remember(result) { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+
+    LaunchedEffect(result) {
+        val path = result.logPath
+        if (!path.isNullOrBlank()) {
+            loadingLog = true
+            logTail = runCatching { manager.readLogTail(path) }.getOrNull()
+            loadingLog = false
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Error: ${result.error ?: "unknown"}") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                result.detail?.takeIf { it.isNotBlank() }?.let {
+                    Text("Detail", style = MaterialTheme.typography.titleSmall)
+                    Text(it, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(12.dp))
+                }
+                result.hint?.takeIf { it.isNotBlank() }?.let {
+                    Text("Suggested fix", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+                when {
+                    loadingLog -> {
+                        Text("Log", style = MaterialTheme.typography.titleSmall)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("loading…", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    !logTail.isNullOrBlank() -> {
+                        Text("Log (last 8KB)", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            text = logTail.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.heightIn(max = 240.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val text = buildString {
+                    appendLine("Error: ${result.error ?: "unknown"}")
+                    result.detail?.takeIf { it.isNotBlank() }?.let { appendLine("Detail: $it") }
+                    result.hint?.takeIf { it.isNotBlank() }?.let { appendLine("Hint: $it") }
+                    logTail?.takeIf { it.isNotBlank() }?.let { appendLine("Log:\n$it") }
+                }
+                clipboard.setText(AnnotatedString(text))
+            }) { Text("Copy") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Dismiss") }
+        },
+    )
 }
 
 private fun humanSize(bytes: Long): String {

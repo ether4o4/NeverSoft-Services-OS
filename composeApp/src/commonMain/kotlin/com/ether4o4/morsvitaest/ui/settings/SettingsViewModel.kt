@@ -59,6 +59,8 @@ class SettingsViewModel(
 
     private fun buildFullState(): SettingsUiState = SettingsUiState(
         configuredServices = buildConfiguredServiceEntries().toImmutableList(),
+        projects = dataRepository.getProjects().toImmutableList(),
+        activeProjectId = dataRepository.getActiveProject()?.id ?: com.ether4o4.morsvitaest.data.Project.NONE_ID,
         availableServicesToAdd = computeAvailableServices().toImmutableList(),
         tools = dataRepository.getToolDefinitions().toImmutableList(),
         soulText = dataRepository.getSoulText(),
@@ -125,6 +127,13 @@ class SettingsViewModel(
         onAddService = ::onAddService,
         onRemoveService = ::onRemoveService,
         onReorderServices = ::onReorderServices,
+        onMoveServiceUp = ::onMoveServiceUp,
+        onMoveServiceDown = ::onMoveServiceDown,
+        onToggleServiceEnabled = ::onToggleServiceEnabled,
+        onCreateProject = ::onCreateProject,
+        onUpdateProject = ::onUpdateProject,
+        onDeleteProject = ::onDeleteProject,
+        onSelectActiveProject = ::onSelectActiveProject,
         onExpandService = ::onExpandService,
         onChangeApiKey = ::onChangeApiKey,
         onChangeBaseUrl = ::onChangeBaseUrl,
@@ -244,6 +253,7 @@ class SettingsViewModel(
             baseUrl = dataRepository.getInstanceBaseUrl(instance.instanceId, service),
             selectedModel = models.firstOrNull { it.isSelected },
             models = models.toImmutableList(),
+            enabled = dataRepository.isInstanceEnabled(instance.instanceId),
         )
     }
 
@@ -299,6 +309,72 @@ class SettingsViewModel(
     private fun onReorderServices(orderedIds: List<String>) {
         dataRepository.reorderConfiguredServices(orderedIds)
         refreshServiceList()
+    }
+
+    private fun onMoveServiceUp(instanceId: String) {
+        val current = _state.value.configuredServices.map { it.instanceId }
+        val idx = current.indexOf(instanceId)
+        if (idx <= 0) return
+        val reordered = current.toMutableList().apply {
+            removeAt(idx)
+            add(idx - 1, instanceId)
+        }
+        dataRepository.reorderConfiguredServices(reordered)
+        refreshServiceList()
+    }
+
+    private fun onMoveServiceDown(instanceId: String) {
+        val current = _state.value.configuredServices.map { it.instanceId }
+        val idx = current.indexOf(instanceId)
+        if (idx < 0 || idx >= current.size - 1) return
+        val reordered = current.toMutableList().apply {
+            removeAt(idx)
+            add(idx + 1, instanceId)
+        }
+        dataRepository.reorderConfiguredServices(reordered)
+        refreshServiceList()
+    }
+
+    private fun refreshProjectsState() {
+        _state.update {
+            it.copy(
+                projects = dataRepository.getProjects().toImmutableList(),
+                activeProjectId = dataRepository.getActiveProject()?.id ?: com.ether4o4.morsvitaest.data.Project.NONE_ID,
+            )
+        }
+    }
+
+    private fun onCreateProject(name: String, instructions: String) {
+        if (name.isBlank()) return
+        dataRepository.createProject(name, instructions)
+        refreshProjectsState()
+    }
+
+    private fun onUpdateProject(id: String, name: String, instructions: String) {
+        if (name.isBlank()) return
+        dataRepository.updateProject(id, name, instructions)
+        refreshProjectsState()
+    }
+
+    private fun onDeleteProject(id: String) {
+        dataRepository.deleteProject(id)
+        refreshProjectsState()
+    }
+
+    private fun onSelectActiveProject(id: String) {
+        dataRepository.setActiveProjectId(id)
+        _state.update { it.copy(activeProjectId = id) }
+    }
+
+    private fun onToggleServiceEnabled(instanceId: String, enabled: Boolean) {
+        dataRepository.setInstanceEnabled(instanceId, enabled)
+        _state.update { current ->
+            current.copy(
+                configuredServices = current.configuredServices.map { entry ->
+                    if (entry.instanceId == instanceId) entry.copy(enabled = enabled) else entry
+                }.toImmutableList(),
+            )
+        }
     }
 
     private fun onExpandService(instanceId: String?) {

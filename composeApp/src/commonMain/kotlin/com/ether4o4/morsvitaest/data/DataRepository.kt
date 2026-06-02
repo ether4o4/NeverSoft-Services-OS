@@ -32,6 +32,16 @@ interface DataRepository {
     // Per-instance settings
     fun getInstanceApiKey(instanceId: String): String
     fun updateInstanceApiKey(instanceId: String, apiKey: String)
+    fun isInstanceEnabled(instanceId: String): Boolean
+    fun setInstanceEnabled(instanceId: String, enabled: Boolean)
+
+    // Projects (app-owned context containers)
+    fun getProjects(): List<Project>
+    fun getActiveProject(): Project?
+    fun setActiveProjectId(id: String)
+    fun createProject(name: String, instructions: String = ""): Project
+    fun updateProject(id: String, name: String, instructions: String)
+    fun deleteProject(id: String)
     fun getInstanceBaseUrl(instanceId: String, service: Service): String
     fun updateInstanceBaseUrl(instanceId: String, baseUrl: String)
     fun getInstanceModels(instanceId: String, service: Service): StateFlow<List<SettingsModel>>

@@ -28,6 +28,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.toRoute
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.compose.setSingletonImageLoaderFactory
@@ -49,6 +50,9 @@ import com.ether4o4.morsvitaest.ui.Theme
 import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
+import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
+import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
+import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.withBlackBackground
@@ -72,6 +76,16 @@ object Home
 @Serializable
 @SerialName("settings")
 object Settings
+
+// Foundry home tile destinations. Chat reuses the existing ChatScreen;
+// the rest land on the placeholder screen until Phase 2 wires them up.
+@Serializable
+@SerialName("foundry.chat")
+object FoundryChat
+
+@Serializable
+@SerialName("foundry.stub")
+data class FoundryStub(val title: String, val description: String)
 
 @Composable
 fun App(
@@ -210,6 +224,11 @@ private fun AppContent(
                     modifier = Modifier.background(MaterialTheme.colorScheme.background),
                 ) {
                     composable<Home> {
+                        // Foundry home is gated off — files are still in the repo
+                        // (commonMain/.../ui/foundry/*) for the next iteration, but
+                        // ship as the existing ChatScreen until the layout is
+                        // polished (system-bar insets, responsive sizing for small
+                        // screens, the title plate PNG asset).
                         ChatScreen(
                             viewModel = chatViewModel,
                             textToSpeech = textToSpeech,
@@ -218,6 +237,25 @@ private fun AppContent(
                             },
                             isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
                             navigationTabBar = if (showTabBar) navigationTabBar else null,
+                        )
+                    }
+                    composable<FoundryChat> {
+                        ChatScreen(
+                            viewModel = chatViewModel,
+                            textToSpeech = textToSpeech,
+                            onNavigateToSettings = {
+                                navController.navigate(Settings)
+                            },
+                            isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
+                            navigationTabBar = if (showTabBar) navigationTabBar else null,
+                        )
+                    }
+                    composable<FoundryStub> { entry ->
+                        val stub: FoundryStub = entry.toRoute()
+                        FoundryPlaceholderScreen(
+                            title = stub.title,
+                            description = stub.description,
+                            onBack = { navController.navigateUp() },
                         )
                     }
                     composable<Settings> {

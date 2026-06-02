@@ -447,6 +447,10 @@ fun SettingsScreenContent(
                                 AgentContent(uiState = filteredUiState, actions = actions)
                             }
 
+                            SettingsTab.Projects -> {
+                                ProjectsContent(uiState = filteredUiState, actions = actions)
+                            }
+
                             SettingsTab.Services -> {
                                 ServicesContent(uiState = filteredUiState, actions = actions)
                             }
@@ -556,6 +560,7 @@ private fun SettingsTabSelector(
                         text = when (tab) {
                             SettingsTab.General -> stringResource(Res.string.settings_tab_general)
                             SettingsTab.Agent -> stringResource(Res.string.settings_tab_agent)
+                            SettingsTab.Projects -> "Projects"
                             SettingsTab.Services -> stringResource(Res.string.settings_tab_services)
                             SettingsTab.Tools -> stringResource(Res.string.settings_tab_tools)
                             SettingsTab.Sandbox -> stringResource(Res.string.settings_tab_sandbox)

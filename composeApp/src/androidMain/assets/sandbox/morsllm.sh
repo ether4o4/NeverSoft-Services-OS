@@ -44,61 +44,251 @@ require_jq() {
     }
 }
 
+# Walk every triplet-prefixed binary in /usr/bin and create the short
+# shortcut (e.g. /usr/bin/ar -> aarch64-alpine-linux-musl-ar) if the
+# short name is missing. Idempotent. Called after every install path
+# (apk add success, tar fallback, preflight) so cmake can find `ar`,
+# `as`, `ld`, etc. regardless of how the binaries got there.
+ensure_binutils_shortcuts() {
+    # Pass 1: walk triplet-prefixed binaries in /usr/bin and create the
+    # short shortcut (e.g. /usr/bin/ar -> aarch64-alpine-linux-musl-ar).
+    for triplet_bin in /usr/bin/*-alpine-linux-musl-*; do
+        [ -e "$triplet_bin" ] || continue
+        local base
+        base=$(basename "$triplet_bin")
+        local short="${base##*-alpine-linux-musl-}"
+        case "$short" in
+            *-[0-9]*) continue ;;
+        esac
+        if [ ! -e "/usr/bin/$short" ]; then
+            ln -sf "$base" "/usr/bin/$short" 2>/dev/null
+        fi
+    done
+
+    # Pass 2: for any standard binutils tool still missing, point it at
+    # the real binary under /usr/<triplet>/bin/. Handles the case where
+    # the triplet-prefixed copy in /usr/bin didn't get extracted either
+    # (both names ship as hardlinks in the apk and both can fail).
+    for s in ar as ld ld.bfd nm objcopy objdump ranlib strip readelf addr2line; do
+        [ -e "/usr/bin/$s" ] && continue
+        for src in /usr/*-alpine-linux-musl/bin/$s; do
+            if [ -e "$src" ]; then
+                ln -sf "$src" "/usr/bin/$s" 2>/dev/null
+                break
+            fi
+        done
+    done
+
+    # Pass 3: gcc-* archiver wrappers. cmake with gcc as the C++ compiler
+    # defaults `CMAKE_<LANG>_COMPILER_AR` to `gcc-ar` (for LTO). The gcc
+    # apk ships these as native names (no triplet prefix), so if the apk
+    # install failed they need to be pointed at the plain binutils tools.
+    # Fine for non-LTO builds, which is what we configure.
+    for tool in ar ranlib nm; do
+        if [ -e "/usr/bin/$tool" ] && [ ! -e "/usr/bin/gcc-$tool" ]; then
+            ln -sf "$tool" "/usr/bin/gcc-$tool" 2>/dev/null
+        fi
+    done
+}
+
+# Fall-back installer for apk packages whose `apk add` fails under proot
+# due to hardlink-translation issues (binutils, gcc, g++ etc.). Fetches the
+# .apk files, extracts each with tar to /, then post-processes failed
+# hardlinks into symlinks AND explicitly creates the standard short-name
+# shortcuts (gcc, g++, c++, ar, as, ld, etc.) pointing at the triplet-
+# prefixed binaries when the package shipped them as hardlinks that tar
+# couldn't materialize.
+#
+# Usage: tar_extract_with_symlinks pkg1 pkg2 ...
+tar_extract_with_symlinks() {
+    local pkgs="$*"
+    [ -z "$pkgs" ] && return 1
+    cd /tmp || return 1
+    rm -f *.apk
+    apk fetch $pkgs || return 1
+    for apk_file in $(echo "$pkgs" | tr ' ' '\n' | while read p; do ls "${p}"-*.apk 2>/dev/null | head -1; done); do
+        [ -z "$apk_file" ] && continue
+        echo "tar: extracting $apk_file"
+        # Capture stderr separately so we can post-process the hardlink errors
+        # into symlinks. Many secondary names (e.g. *-gcc-14.2.0) ship as
+        # hardlinks in the apk that proot's link emulation refuses.
+        tar -xzf "$apk_file" -C / 2>&1 | grep "can't create hardlink" \
+            | sed "s/.*hardlink '\([^']*\)' to '\([^']*\)'.*/\2 \1/" \
+            | while read -r tgt lnk; do
+                [ -n "$tgt" ] && [ -n "$lnk" ] && ln -sf "/$tgt" "/$lnk" 2>/dev/null \
+                    && echo "  linked /$lnk -> /$tgt"
+            done
+    done
+    # Explicitly recreate the standard binary shortcuts. These ship as
+    # hardlinks in the apk too — to the triplet-prefixed versions — but
+    # because BOTH names are missing from disk at extraction time, the
+    # link-target ordering means tar may silently drop the shortcut without
+    # an error line we can parse. Walk every triplet-prefixed binary and
+    # create the short symlink if it's missing.
+    for triplet_bin in /usr/bin/*-alpine-linux-musl*-*; do
+        [ -e "$triplet_bin" ] || continue
+        local base
+        base=$(basename "$triplet_bin")
+        # Strip the leading triplet to get the short name (e.g. "g++").
+        local short="${base##*-alpine-linux-musl-}"
+        # Skip versioned suffixes like gcc-14.2.0 — keep only bare names.
+        case "$short" in
+            *-[0-9]*) continue ;;
+        esac
+        if [ ! -e "/usr/bin/$short" ]; then
+            ln -sf "$base" "/usr/bin/$short" 2>/dev/null \
+                && echo "  shortcut /usr/bin/$short -> $base"
+        fi
+    done
+    return 0
+}
+
 cmd_provision() {
-    log "provision: refreshing alpine package index"
+    # Catch-all so an unexpected exit (set -e + pipefail tripping on something
+    # we didn't anticipate, OOM kill, etc.) doesn't leave the UI staring at
+    # `provision_unparseable`. provision_emitted is flipped to 1 immediately
+    # after every explicit emit below; the trap only fires when no emit ran.
+    provision_emitted=0
+    trap '[ "${provision_emitted:-0}" = "1" ] || emit "{\"ok\":false,\"error\":\"provision_crashed\",\"detail\":\"line ${LINENO}\"}"' EXIT
+
+    # Fast path: try downloading the pre-built llama-server binary from our
+    # release artifact. Cuts provision time from 10-30 min compile-in-proot
+    # to <1 minute download + chmod. Same aarch64-linux-musl static build
+    # we'd produce in-sandbox, just cross-compiled in CI and published as a
+    # release asset. Falls through to source compile if download or exec
+    # check fails (network down, release not built yet, arch mismatch).
+    if [ ! -x "$LLAMA_SERVER" ]; then
+        prebuilt_url="https://github.com/ether4o4/MorsVitaEst/releases/download/llama-server-prebuilt-latest/llama-server-aarch64-musl"
+        mkdir -p "$BIN_DIR"
+        log "provision: trying pre-built binary at $prebuilt_url"
+        if curl -fsSL --max-time 120 -o "$LLAMA_SERVER.tmp" "$prebuilt_url" 2>/dev/null \
+            && [ -s "$LLAMA_SERVER.tmp" ]; then
+            chmod 755 "$LLAMA_SERVER.tmp"
+            if "$LLAMA_SERVER.tmp" --version >/dev/null 2>&1; then
+                mv "$LLAMA_SERVER.tmp" "$LLAMA_SERVER"
+                log "provision: pre-built binary installed -> $LLAMA_SERVER"
+                emit "{\"ok\":true,\"prebuilt\":true,\"path\":\"$LLAMA_SERVER\"}"
+                provision_emitted=1
+                return 0
+            else
+                log "provision: pre-built binary downloaded but exec check failed, falling back to source compile"
+                rm -f "$LLAMA_SERVER.tmp"
+            fi
+        else
+            log "provision: pre-built download failed or empty, falling back to source compile"
+            rm -f "$LLAMA_SERVER.tmp"
+        fi
+    fi
+
     apk_log="$LOGS_DIR/apk.log"
     mkdir -p "$LOGS_DIR"
-    if ! apk update --quiet >"$apk_log" 2>&1; then
-        # Surface the last line of apk's stderr so the UI can show *why* (network,
-        # mirror unreachable, repo signing, etc.) instead of an opaque code.
-        detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
-        emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\"}"
-        return 1
+
+    # Skip the entire apk install pipeline if the build deps are already
+    # present — e.g. the user (or a prior provision attempt) manually
+    # extracted them with tar+symlink to bypass proot's hardlink failures.
+    # Without this short-circuit, the pre-clean step below would delete
+    # the user's hand-crafted symlinks and apk would loop forever trying
+    # to reinstall packages that already exist on disk.
+    # Try to fill in any missing short-name shortcuts (ar, as, ld, etc.)
+    # from triplet-prefixed binaries before checking — handles the case
+    # where a user manually installed the compilers but didn't link the
+    # binutils tools.
+    ensure_binutils_shortcuts
+
+    if command -v g++ >/dev/null 2>&1 && \
+       command -v gcc >/dev/null 2>&1 && \
+       command -v cmake >/dev/null 2>&1 && \
+       command -v git >/dev/null 2>&1 && \
+       command -v curl >/dev/null 2>&1 && \
+       command -v jq >/dev/null 2>&1; then
+        log "provision: build deps already present (g++, cmake, git, curl, jq); skipping apk add"
+        apk_ok=1
+    else
+        apk_ok=0
     fi
-    log "provision: installing build deps (build-base cmake git curl jq)"
-    # Under proot, apk's atomic 'rename .apk.<hash>_<size> -> /usr/bin/<binary>'
-    # can fail with 'failed to rename' when the destination already exists
-    # (often a symlink from the Alpine base image, or a partial file from a
-    # prior aborted install). Pre-clearing the common compiler binaries plus
-    # any stale .apk.* temp files lets apk just write the new file outright.
-    log "provision: clearing potential rename targets and stale apk temp files"
-    rm -f /usr/bin/g++ /usr/bin/gcc /usr/bin/cc /usr/bin/c++ \
-          /usr/bin/cpp /usr/bin/ar /usr/bin/as /usr/bin/ld 2>/dev/null || true
-    find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
-    find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+
+    # Everything below is gated on the preflight: if the build deps are
+    # already present (apk_ok=1), skip every step that could disturb the
+    # user's working install (the pre-clean rm would nuke their symlinks).
+    if [ "$apk_ok" != "1" ]; then
+        log "provision: refreshing alpine package index"
+        if ! apk update --quiet >"$apk_log" 2>&1; then
+            detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+            emit "{\"ok\":false,\"error\":\"apk_update_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"Network or apk repo unreachable. Test in terminal: ping -c1 dl-cdn.alpinelinux.org\"}"
+            provision_emitted=1
+            return 1
+        fi
+
+        # Reconcile any partially-installed packages from a prior aborted attempt.
+        # Idempotent on a clean db; cheap to always run.
+        log "provision: reconciling apk db (fix)"
+        apk fix --quiet >"$apk_log" 2>&1 || true
+
+        log "provision: installing build deps (build-base cmake git curl jq)"
+        log "provision: clearing potential rename targets and stale apk temp files"
+        rm -f /usr/bin/g++ /usr/bin/gcc /usr/bin/cc /usr/bin/c++ \
+              /usr/bin/cpp /usr/bin/ar /usr/bin/as /usr/bin/ld 2>/dev/null || true
+        find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
+        find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+    fi
 
     # Up to 3 attempts: proot's renameat() emulation is occasionally flaky
     # and a fresh attempt after parsing the failing path from the error and
-    # clearing it usually succeeds.
-    apk_ok=0
+    # clearing it usually succeeds. Skipped entirely if the preflight passed.
+    [ "$apk_ok" = "1" ] && goto_build=1 || goto_build=0
     for attempt in 1 2 3; do
-        if apk add --quiet build-base cmake git curl jq >"$apk_log" 2>&1; then
+        [ "$goto_build" = "1" ] && break
+        if apk add --quiet build-base cmake git curl jq linux-headers musl-dev >"$apk_log" 2>&1; then
             apk_ok=1
             break
         fi
         log "provision: apk attempt $attempt failed; clearing failing target and retrying"
-        # Parse the failing destination from apk's error and clear it.
-        grep -oE "rename [^ ]+ to /?[^ ]+" "$apk_log" 2>/dev/null \
-            | awk '{print $NF}' \
-            | while read -r p; do
-                case "$p" in
-                    /*) rm -f "$p" 2>/dev/null ;;
-                    *) rm -f "/$p" 2>/dev/null ;;
-                esac
-            done
+        # Parse the failing destination from apk's error and clear it. The
+        # `|| true` here is load-bearing: if apk's error doesn't include the
+        # word "rename" (a different failure mode entirely), grep exits 1 and
+        # `set -o pipefail` would otherwise propagate that and `set -e` would
+        # exit the script before we can emit a JSON failure.
+        {
+            grep -oE "rename [^ ]+ to /?[^ ]+" "$apk_log" 2>/dev/null \
+                | awk '{print $NF}' \
+                | while read -r p; do
+                    case "$p" in
+                        /*) rm -f "$p" 2>/dev/null ;;
+                        *) rm -f "/$p" 2>/dev/null ;;
+                    esac
+                done
+        } || true
         find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
         find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+        # Also try `apk fix` between retries in case the failure left the db
+        # in a state where the next install can't proceed.
+        apk fix --quiet >>"$apk_log" 2>&1 || true
         sleep 1
     done
     if [ "$apk_ok" != "1" ]; then
-        detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
-        emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"attempts\":3}"
-        return 1
+        log "provision: apk install failed 3x; falling back to manual tar extract + symlink"
+        if ! tar_extract_with_symlinks "binutils" "gcc" "g++" >>"$apk_log" 2>&1; then
+            detail=$(tail -n 1 "$apk_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+            manual_extract='cd /tmp && apk fetch binutils gcc g++ && tar -xzf binutils-*.apk -C / && tar -xzf gcc-*.apk -C / && tar -xzf g++-*.apk -C /'
+            emit "{\"ok\":false,\"error\":\"apk_install_failed\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\",\"hint\":\"apk add failed 3x AND tar fallback failed. Try in terminal: $manual_extract\",\"attempts\":3}"
+            provision_emitted=1
+            return 1
+        fi
+        # Make the script visible to the caller's PATH for the rest of provision.
+        export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+        if ! command -v g++ >/dev/null 2>&1; then
+            detail="manual tar extract succeeded but g++ still not on PATH after creating standard shortcuts"
+            emit "{\"ok\":false,\"error\":\"manual_extract_incomplete\",\"detail\":\"$detail\",\"log_path\":\"$apk_log\"}"
+            provision_emitted=1
+            return 1
+        fi
+        log "provision: tar fallback succeeded; g++ now functional"
     fi
 
     if [ -x "$LLAMA_SERVER" ]; then
         log "provision: llama-server already built at $LLAMA_SERVER"
         emit "{\"ok\":true,\"already_built\":true,\"path\":\"$LLAMA_SERVER\"}"
+        provision_emitted=1
         return 0
     fi
 
@@ -108,28 +298,123 @@ cmd_provision() {
         rm -rf "$src"
         git clone --depth=1 "$LLAMA_CPP_REPO" "$src" >&2 || {
             emit '{"ok":false,"error":"clone_failed"}'
+            provision_emitted=1
             return 1
         }
     else
         log "provision: reusing existing llama.cpp checkout"
     fi
 
-    log "provision: configuring cmake (CPU only, Release)"
-    cmake -S "$src" -B "$src/build" \
+    # Surgically remove llama.cpp's web-UI build step. The `llama-ui-assets`
+    # target invokes `llama-ui-embed` mid-build to bundle the web UI's
+    # HTML/CSS/JS into a C++ source. Under proot the exec call fails with
+    # "permission denied" regardless of chmod state — proot's exec
+    # emulation rejects freshly-linked binaries in the build dir. MVE
+    # never serves the web UI (it talks to llama-server via /v1), so the
+    # entire UI subtree is dead weight; cutting it out skips the wall.
+    if [ -f "$src/tools/CMakeLists.txt" ]; then
+        sed -i.morsbak '/add_subdirectory(ui)/d' "$src/tools/CMakeLists.txt" 2>/dev/null || true
+    fi
+    if [ -f "$src/tools/server/CMakeLists.txt" ]; then
+        # Drop any reference to the ui-assets target from server (deps,
+        # link libs, includes). Server itself doesn't need UI assets at
+        # runtime; it just had a build-time dep on the embed step.
+        sed -i.morsbak '/llama-ui-assets/d' "$src/tools/server/CMakeLists.txt" 2>/dev/null || true
+        # Also drop the `llama-ui` library token from any
+        # target_link_libraries line. Even with the UI subdirectory gone,
+        # tools/server/CMakeLists.txt still tells the linker to bind
+        # `-lllama-ui`, which fails with "cannot find -lllama-ui" at the
+        # final link step. Sed removes just that token (note the leading
+        # space) so the rest of the link line stays intact.
+        sed -i 's/ llama-ui\b//g' "$src/tools/server/CMakeLists.txt" 2>/dev/null || true
+    fi
+    # server-http.cpp unconditionally `#include "ui.h"` which used to be
+    # generated by the UI build step we just deleted. Stub it out with a
+    # no-op header so the include compiles and any UI-asset lookups return
+    # nullptr (server just 404s on UI routes — fine, MVE never hits them).
+    # Credit to whichever in-app AI session worked this out live; baking
+    # it in so the next fresh sandbox doesn't need to do it manually.
+    if [ -d "$src/tools/server" ] && [ ! -f "$src/tools/server/ui.h" ]; then
+        cat > "$src/tools/server/ui.h" <<'UI_H_EOF'
+#pragma once
+struct llama_ui_asset {
+    const unsigned char * data;
+    unsigned int size;
+    const char * etag;
+};
+inline const llama_ui_asset * llama_ui_find_asset(const char *) { return nullptr; }
+UI_H_EOF
+    fi
+
+    # Ensure binutils shortcuts (ar, as, ld, nm, etc.) exist regardless
+    # of how the compilers were installed — cmake's link step calls `ar`
+    # by short name and silently fails with "no such file or directory"
+    # if only the triplet-prefixed version exists.
+    ensure_binutils_shortcuts
+
+    cmake_log="$LOGS_DIR/cmake.log"
+    # Stale build dir from a prior FAILED attempt gets wiped so cmake
+    # re-runs configure cleanly with the latest UI/linker patches. If a
+    # successful build already produced llama-server, leave the tree
+    # intact — the cached object files mean the next provision can short-
+    # circuit to "already built" without a 30-min recompile.
+    if [ -d "$src/build" ] && [ ! -f "$src/build/bin/llama-server" ]; then
+        log "provision: removing stale build dir from prior failed attempt"
+        rm -rf "$src/build"
+    fi
+
+    log "provision: configuring cmake (CPU only, Release, static libs, no UI)"
+    # BUILD_SHARED_LIBS=OFF: proot's symlink emulation rejects the SO
+    # version chain (.so -> .so.0 -> .so.0.13.1). Static archives sidestep
+    # it. Explicit CMAKE_AR/RANLIB/NM so cmake doesn't try to auto-detect
+    # gcc-ar (which can fail-and-cache under partial installs).
+    if ! cmake -S "$src" -B "$src/build" \
         -DCMAKE_BUILD_TYPE=Release \
         -DLLAMA_BUILD_TESTS=OFF \
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_SERVER=ON \
-        -DGGML_OPENMP=OFF >&2 || {
-        emit '{"ok":false,"error":"cmake_configure_failed"}'
+        -DGGML_OPENMP=OFF \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DCMAKE_AR=/usr/bin/ar \
+        -DCMAKE_RANLIB=/usr/bin/ranlib \
+        -DCMAKE_NM=/usr/bin/nm \
+        -DCMAKE_C_COMPILER_AR=/usr/bin/gcc-ar \
+        -DCMAKE_CXX_COMPILER_AR=/usr/bin/gcc-ar \
+        -DCMAKE_C_COMPILER_RANLIB=/usr/bin/gcc-ranlib \
+        -DCMAKE_CXX_COMPILER_RANLIB=/usr/bin/gcc-ranlib >"$cmake_log" 2>&1; then
+        detail=$(tail -n 1 "$cmake_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+        emit "{\"ok\":false,\"error\":\"cmake_configure_failed\",\"detail\":\"$detail\",\"log_path\":\"$cmake_log\",\"hint\":\"Check compiler is on PATH: g++ --version. If missing, paste the workaround command from your prior chat.\"}"
+        provision_emitted=1
         return 1
-    }
+    fi
 
-    log "provision: building llama-server (this is the slow step)"
-    cmake --build "$src/build" --target llama-server -j 2 >&2 || {
-        emit '{"ok":false,"error":"cmake_build_failed"}'
-        return 1
-    }
+    # Pre-build llama-ui-embed first and chmod +x it. llama.cpp's server
+    # build target depends on the llama-ui-assets target which runs
+    # llama-ui-embed as part of the build (to bundle web-UI files into a
+    # C++ source). Under proot the linker output sometimes lands without
+    # the executable bit set, so when cmake tries to exec the binary it
+    # fails with "permission denied" mid-build. Building the binary
+    # separately and force-chmodding it before the server target runs
+    # avoids that race.
+    log "provision: pre-building llama-ui-embed and forcing +x on build artifacts"
+    cmake --build "$src/build" --target llama-ui-embed -j 2 >>"$cmake_log" 2>&1 || true
+    find "$src/build" -type f \( -name "llama-*" -o -name "*-embed" \) -exec chmod 755 {} \; 2>/dev/null || true
+
+    log "provision: building llama-server (this is the slow step, real 10-30 min)"
+    if ! cmake --build "$src/build" --target llama-server -j 2 >"$cmake_log" 2>&1; then
+        # Second-chance: sweep the build dir for any newly-built binary
+        # that proot might have stripped +x from, then retry. If the
+        # llama-server build itself produces a binary that needs to be
+        # invoked downstream, this saves us another full provision cycle.
+        log "provision: cmake build failed once, chmodding +x build dir and retrying"
+        find "$src/build" -type f -exec sh -c 'head -c 4 "$1" 2>/dev/null | grep -q ELF && chmod 755 "$1"' _ {} \; 2>/dev/null || true
+        if ! cmake --build "$src/build" --target llama-server -j 2 >>"$cmake_log" 2>&1; then
+            detail=$(tail -n 1 "$cmake_log" 2>/dev/null | tr -d '"\\' | head -c 200)
+            emit "{\"ok\":false,\"error\":\"cmake_build_failed\",\"detail\":\"$detail\",\"log_path\":\"$cmake_log\",\"hint\":\"Common: OOM (-j 1 instead of -j 2), missing header, or proot symlink issue. Last 8KB of cmake output is in the log.\"}"
+            provision_emitted=1
+            return 1
+        fi
+    fi
 
     local built=""
     for candidate in \
@@ -140,6 +425,7 @@ cmd_provision() {
     done
     if [ -z "$built" ]; then
         emit '{"ok":false,"error":"build_artifact_missing"}'
+        provision_emitted=1
         return 1
     fi
 
@@ -147,6 +433,7 @@ cmd_provision() {
     chmod +x "$LLAMA_SERVER"
     log "provision: done -> $LLAMA_SERVER"
     emit "{\"ok\":true,\"path\":\"$LLAMA_SERVER\"}"
+    provision_emitted=1
 }
 
 cmd_list_quants() {
@@ -210,7 +497,7 @@ cmd_pull() {
                 (.files | .[0].name) // empty')
         fi
         if [ -z "$chosen" ] || [ "$chosen" = "null" ]; then
-            emit "{\"ok\":false,\"error\":\"no_gguf_in_repo\",\"repo\":\"$target\"}"
+            emit "{\"ok\":false,\"error\":\"no_gguf_in_repo\",\"repo\":\"$target\",\"detail\":\"The HuggingFace repo '$target' does not contain any .gguf files. llama.cpp only loads GGUF format — try a repo like bartowski/Qwen2.5-0.5B-Instruct-GGUF, or convert your model to GGUF first.\",\"hint\":\"Tap 'Tiny' in the Quick install row for a known-working model, OR paste a repo whose name ends in -GGUF.\"}"
             return 1
         fi
         filename="$chosen"

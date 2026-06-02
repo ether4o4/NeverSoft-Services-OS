@@ -109,6 +109,118 @@ private const val ESTIMATED_CHARS_PER_TOKEN = 4
 private const val COMPACTION_THRESHOLD = 0.7 // Compact when history exceeds 70% of context window
 private const val COMPACTION_KEEP_RECENT = 4 // Number of recent user exchanges to keep verbatim
 
+// Send-boundary truncation: reserve some context for the model's response so
+// we don't send a prompt that fills the window edge-to-edge with no room left
+// to generate. 80% of the window is given to input; 20% headroom for output.
+private const val SEND_WINDOW_INPUT_RATIO = 0.8
+
+// Always preserve at least this many of the earliest non-system messages so
+// the model has some grounding context. Anything in the middle gets ranked
+// by relevance before being included or dropped.
+private const val TRUNCATE_KEEP_FIRST = 2
+
+// Always preserve the most recent N messages — the immediate thread state
+// the user is currently in. Middle messages between the first slice and
+// these are retrieved by relevance to the current user prompt.
+private const val TRUNCATE_KEEP_RECENT = 4
+
+/**
+ * Send-boundary history truncation with relevance-aware retrieval.
+ *
+ * The app stores the full conversation forever (the chat tab is the source
+ * of truth, not whatever slice the AI happens to see on a given turn). When
+ * the app is about to call the model, the messages list may exceed the
+ * model's context window — especially after a failover from a large-context
+ * cloud model to a smaller on-device one.
+ *
+ * Strategy:
+ *   1. Always keep the first [keepFirst] messages (grounding / persona-setting).
+ *   2. Always keep the most recent [keepRecent] messages (current thread).
+ *   3. With any remaining budget, score the messages in the middle by
+ *      Jaccard token overlap with the latest user message and slot the
+ *      highest-scoring ones in until the budget is exhausted.
+ *   4. Return the assembled slice in original chronological order.
+ *
+ * No synthetic "[truncated]" marker is injected — the prompt is just a
+ * smaller real conversation. The app keeps the full record either way.
+ */
+private fun truncateHistoryToFitWindow(
+    messages: List<History>,
+    contextWindowTokens: Int,
+    keepFirst: Int = TRUNCATE_KEEP_FIRST,
+    keepRecent: Int = TRUNCATE_KEEP_RECENT,
+): List<History> {
+    if (contextWindowTokens <= 0) return messages
+    val maxInputChars = (contextWindowTokens * ESTIMATED_CHARS_PER_TOKEN * SEND_WINDOW_INPUT_RATIO).toInt()
+    if (maxInputChars <= 0) return messages
+    val totalChars = messages.sumOf { it.content.length }
+    if (totalChars <= maxInputChars) return messages
+    if (messages.size <= keepFirst + 1) return messages.takeLast(1)
+
+    val firstSlice = messages.take(keepFirst)
+    val recentSlice = messages.takeLast(minOf(keepRecent, messages.size - keepFirst))
+    val middlePool = messages.drop(keepFirst).dropLast(recentSlice.size)
+
+    var budget = maxInputChars - firstSlice.sumOf { it.content.length } - recentSlice.sumOf { it.content.length }
+    if (budget < 0) {
+        // Recent + first already overflow; drop earliest of recent until they fit.
+        return assembleByBudget(firstSlice, recentSlice, maxInputChars)
+    }
+
+    // Score middle messages by token overlap with the latest user message —
+    // a cheap stand-in for embedding retrieval that needs no extra deps and
+    // does meaningfully better than just keeping the temporally-nearest ones.
+    val query = messages.lastOrNull { it.role == History.Role.USER }?.content.orEmpty()
+    val queryTokens = tokenize(query)
+
+    val scored = middlePool
+        .map { msg -> msg to jaccardSimilarity(queryTokens, tokenize(msg.content)) }
+        .sortedByDescending { it.second }
+
+    val selectedFromMiddle = mutableListOf<History>()
+    for ((msg, _) in scored) {
+        val len = msg.content.length
+        if (len > budget) continue
+        selectedFromMiddle += msg
+        budget -= len
+    }
+
+    val originalOrder = messages.withIndex().associate { (i, m) -> m.id to i }
+    val orderedMiddle = selectedFromMiddle.sortedBy { originalOrder[it.id] ?: Int.MAX_VALUE }
+
+    return firstSlice + orderedMiddle + recentSlice
+}
+
+private fun assembleByBudget(
+    firstSlice: List<History>,
+    recentSlice: List<History>,
+    budget: Int,
+): List<History> {
+    val firstChars = firstSlice.sumOf { it.content.length }
+    var remaining = budget - firstChars
+    if (remaining <= 0) return firstSlice
+    val kept = ArrayDeque<History>()
+    for (msg in recentSlice.asReversed()) {
+        if (msg.content.length > remaining) break
+        kept.addFirst(msg)
+        remaining -= msg.content.length
+    }
+    return firstSlice + kept
+}
+
+private fun tokenize(text: String): Set<String> =
+    text.lowercase()
+        .splitToSequence(' ', '\n', '\t', ',', '.', '!', '?', ';', ':', '(', ')', '[', ']', '{', '}', '"', '\'', '/', '\\', '-')
+        .filter { it.length > 2 }
+        .toSet()
+
+private fun jaccardSimilarity(a: Set<String>, b: Set<String>): Double {
+    if (a.isEmpty() && b.isEmpty()) return 0.0
+    val intersection = a.intersect(b).size
+    val union = a.size + b.size - intersection
+    return if (union == 0) 0.0 else intersection.toDouble() / union
+}
+
 // Explicit allowlist of tools exposed to the on-device (LiteRT) model. We use a
 // hardcoded name list rather than a structural filter because small Gemma models hit
 // litert-lm's strict ANTLR function-call parser hard on anything more complex than
@@ -281,18 +393,65 @@ class RemoteDataRepository(
         appSettings.setConfiguredServiceInstances(reordered)
     }
 
-    override fun getServiceEntries(): List<ServiceEntry> = getConfiguredServiceInstances().map { instance ->
-        val service = Service.fromId(instance.serviceId)
-        val modelId = appSettings.getInstanceModelId(instance.instanceId).ifEmpty {
-            appSettings.getSelectedModelId(service)
+    override fun getServiceEntries(): List<ServiceEntry> = getConfiguredServiceInstances()
+        .filter { appSettings.getInstanceEnabled(it.instanceId) }
+        .map { instance ->
+            val service = Service.fromId(instance.serviceId)
+            val modelId = appSettings.getInstanceModelId(instance.instanceId).ifEmpty {
+                appSettings.getSelectedModelId(service)
+            }
+            ServiceEntry(
+                instanceId = instance.instanceId,
+                serviceId = service.id,
+                serviceName = service.displayName,
+                modelId = modelId,
+                icon = service.icon,
+            )
         }
-        ServiceEntry(
-            instanceId = instance.instanceId,
-            serviceId = service.id,
-            serviceName = service.displayName,
-            modelId = modelId,
-            icon = service.icon,
+
+    override fun isInstanceEnabled(instanceId: String): Boolean =
+        appSettings.getInstanceEnabled(instanceId)
+
+    override fun setInstanceEnabled(instanceId: String, enabled: Boolean) {
+        appSettings.setInstanceEnabled(instanceId, enabled)
+    }
+
+    override fun getProjects(): List<Project> = appSettings.getProjects()
+
+    override fun getActiveProject(): Project? {
+        val id = appSettings.getActiveProjectId()
+        if (id.isBlank()) return null
+        return appSettings.getProjects().find { it.id == id }
+    }
+
+    override fun setActiveProjectId(id: String) {
+        appSettings.setActiveProjectId(id)
+    }
+
+    override fun createProject(name: String, instructions: String): Project {
+        val project = Project(
+            name = name.trim(),
+            instructions = instructions.trim(),
+            createdAt = Clock.System.now().toEpochMilliseconds(),
         )
+        val updated = appSettings.getProjects() + project
+        appSettings.setProjects(updated)
+        return project
+    }
+
+    override fun updateProject(id: String, name: String, instructions: String) {
+        val updated = appSettings.getProjects().map {
+            if (it.id == id) it.copy(name = name.trim(), instructions = instructions.trim()) else it
+        }
+        appSettings.setProjects(updated)
+    }
+
+    override fun deleteProject(id: String) {
+        val updated = appSettings.getProjects().filter { it.id != id }
+        appSettings.setProjects(updated)
+        if (appSettings.getActiveProjectId() == id) {
+            appSettings.setActiveProjectId(Project.NONE_ID)
+        }
     }
 
     override fun isFreeFallbackEnabled(): Boolean = appSettings.isFreeFallbackEnabled()
@@ -548,7 +707,7 @@ class RemoteDataRepository(
             )
         }
 
-        val inferenceMessages = messages.mapNotNull { msg ->
+        val inferenceMessages = truncateHistoryToFitWindow(messages, contextTokens).mapNotNull { msg ->
             when (msg.role) {
                 History.Role.USER -> InferenceMessage(role = "user", content = msg.content)
                 History.Role.ASSISTANT -> InferenceMessage(role = "assistant", content = msg.content)
@@ -1393,8 +1552,12 @@ class RemoteDataRepository(
      * older ones with a single summary. Falls back to simple drop-oldest trimming on failure.
      */
     private suspend fun compactHistoryIfNeeded() {
-        // Use primary service's context window for compaction decisions
-        val firstInstance = getConfiguredServiceInstances().firstOrNull() ?: return
+        // Use primary enabled service's context window for compaction decisions.
+        // Disabled instances are skipped so their context window doesn't drive
+        // compaction on a chat that's actually routed elsewhere.
+        val firstInstance = getConfiguredServiceInstances()
+            .firstOrNull { appSettings.getInstanceEnabled(it.instanceId) }
+            ?: return
         val service = Service.fromId(firstInstance.serviceId)
         val modelId = appSettings.getSelectedModelId(service)
         val contextWindowTokens = ModelCatalog.estimateContextWindow(modelId)
@@ -1511,7 +1674,11 @@ class RemoteDataRepository(
 
     override fun currentService(): Service {
         if (appSettings.isFreeServicePrimary()) return Service.Free
+        // Skip disabled instances — chat send should never route to a
+        // service the user has toggled off. If every instance is
+        // disabled, fall through to Service.Free (shared key).
         val instances = getConfiguredServiceInstances()
+            .filter { appSettings.getInstanceEnabled(it.instanceId) }
         return instances.firstOrNull()?.let { Service.fromId(it.serviceId) } ?: Service.Free
     }
 
@@ -1737,9 +1904,26 @@ class RemoteDataRepository(
             else -> ChatPromptUiMode.NONE
         }
 
+        // Active project's instructions get prepended into the soul slot so
+        // the assembled prompt includes them naturally without changing the
+        // downstream prompt template. The app owns this context — every
+        // service sees it (cloud or on-device), and switching providers
+        // doesn't lose the project framing.
+        val activeProject = getActiveProject()
+        val projectedSoul = if (activeProject != null && activeProject.instructions.isNotBlank()) {
+            buildString {
+                append("PROJECT: ").appendLine(activeProject.name)
+                appendLine(activeProject.instructions.trim())
+                appendLine()
+                append(soul)
+            }
+        } else {
+            soul
+        }
+
         return buildChatSystemPrompt(
             variant = variant,
-            soul = soul,
+            soul = projectedSoul,
             memoryInstructions = memoryInstructions,
             generalMemories = byCategory[MemoryCategory.GENERAL].orEmpty(),
             preferenceMemories = byCategory[MemoryCategory.PREFERENCE].orEmpty(),
@@ -2015,7 +2199,9 @@ class RemoteDataRepository(
 
     override suspend fun askSilently(question: String): String {
         val service = currentService()
-        val firstInstance = getConfiguredServiceInstances().firstOrNull() ?: return ""
+        val firstInstance = getConfiguredServiceInstances()
+            .firstOrNull { appSettings.getInstanceEnabled(it.instanceId) }
+            ?: return ""
         val messages = listOf(History(role = History.Role.USER, content = question))
 
         if (service.isOnDevice) {
