@@ -109,6 +109,57 @@ private const val ESTIMATED_CHARS_PER_TOKEN = 4
 private const val COMPACTION_THRESHOLD = 0.7 // Compact when history exceeds 70% of context window
 private const val COMPACTION_KEEP_RECENT = 4 // Number of recent user exchanges to keep verbatim
 
+// Send-boundary truncation: reserve some context for the model's response so
+// we don't send a prompt that fills the window edge-to-edge with no room left
+// to generate. 80% of the window is given to input; 20% headroom for output.
+private const val SEND_WINDOW_INPUT_RATIO = 0.8
+
+// Always preserve at least this many of the earliest non-system messages so
+// the model has some grounding context. Anything in the middle gets dropped
+// before recent messages do.
+private const val TRUNCATE_KEEP_FIRST = 2
+
+/**
+ * Send-boundary history truncation.
+ *
+ * The app stores the full conversation forever (the chat tab is the source
+ * of truth, not whatever slice the AI happens to see on a given turn). When
+ * the app is about to call the model, the messages list may exceed the
+ * model's context window — especially after a failover from a large-context
+ * cloud model to a smaller on-device one. This walks the list and returns
+ * a slice that fits, keeping the first [keepFirst] messages for grounding
+ * and the most recent messages that fit, dropping the middle.
+ *
+ * No synthetic "[truncated]" marker is injected — the prompt the model sees
+ * is just a smaller real conversation. The app keeps the full record.
+ */
+private fun truncateHistoryToFitWindow(
+    messages: List<History>,
+    contextWindowTokens: Int,
+    keepFirst: Int = TRUNCATE_KEEP_FIRST,
+): List<History> {
+    if (contextWindowTokens <= 0) return messages
+    val maxInputChars = (contextWindowTokens * ESTIMATED_CHARS_PER_TOKEN * SEND_WINDOW_INPUT_RATIO).toInt()
+    if (maxInputChars <= 0) return messages
+    val totalChars = messages.sumOf { it.content.length }
+    if (totalChars <= maxInputChars) return messages
+    if (messages.size <= keepFirst + 1) return messages.takeLast(1)
+
+    val firstSlice = messages.take(keepFirst)
+    var remaining = maxInputChars - firstSlice.sumOf { it.content.length }
+    if (remaining <= 0) return messages.takeLast(1)
+
+    val recent = ArrayDeque<History>()
+    for (msg in messages.asReversed()) {
+        if (recent.size >= messages.size - keepFirst) break
+        val len = msg.content.length
+        if (len > remaining) break
+        recent.addFirst(msg)
+        remaining -= len
+    }
+    return firstSlice + recent
+}
+
 // Explicit allowlist of tools exposed to the on-device (LiteRT) model. We use a
 // hardcoded name list rather than a structural filter because small Gemma models hit
 // litert-lm's strict ANTLR function-call parser hard on anything more complex than
@@ -557,7 +608,7 @@ class RemoteDataRepository(
             )
         }
 
-        val inferenceMessages = messages.mapNotNull { msg ->
+        val inferenceMessages = truncateHistoryToFitWindow(messages, contextTokens).mapNotNull { msg ->
             when (msg.role) {
                 History.Role.USER -> InferenceMessage(role = "user", content = msg.content)
                 History.Role.ASSISTANT -> InferenceMessage(role = "assistant", content = msg.content)
