@@ -66,8 +66,22 @@ actual fun PlatformGgufModelsCard() {
     var errorResult by remember { mutableStateOf<GgufServerManager.GenericResult?>(null) }
 
     suspend fun refresh() {
-        status = manager.status()
-        models = manager.listModels().models
+        // Defensive: don't overwrite `status` or `models` with empty/failed
+        // results — if the script-install race causes runQuick to return the
+        // SCRIPT_INSTALL_FAILED_JSON sentinel, the resulting Status has
+        // provisioned=false and ListModelsResult has empty models. Overwriting
+        // a previously-correct state with that wipes the UI back to "not built
+        // yet" + no downloaded models even though both are actually fine on
+        // disk. Only commit a new status if the call returned a non-default
+        // shape; only commit a new model list if the call reported ok.
+        val newStatus = manager.status()
+        if (newStatus.provisioned || newStatus.running || status == null) {
+            status = newStatus
+        }
+        val newModels = manager.listModels()
+        if (newModels.ok || (status?.provisioned != true)) {
+            models = newModels.models
+        }
     }
 
     LaunchedEffect(sandboxStatus.ready) {

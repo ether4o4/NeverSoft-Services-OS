@@ -101,13 +101,24 @@ class GgufServerManager(
         if (scriptInstalled) return true
         installLock.withLock {
             if (scriptInstalled) return true
-            if (!installScriptAsset("sandbox/morsllm.sh", SCRIPT_PATH)) return false
-            // Best-effort install of the manual-recovery helper. Failure here
-            // doesn't block provisioning — the helper is only used as an
-            // escape hatch the user can invoke from the terminal.
-            installScriptAsset("sandbox/morsllm-setup.sh", SETUP_SCRIPT_PATH)
-            scriptInstalled = true
-            return true
+            // Sandbox isn't always fully responsive the instant its status flag
+            // flips to ready — writeTextFile + executeCommand can intermittently
+            // come back garbled or refuse on the first try after a cold mount.
+            // Retry up to 3 times with a brief backoff so the first script call
+            // after app launch doesn't race the install and report
+            // "not built yet" until the user manually re-taps Set up engine.
+            for (attempt in 1..3) {
+                if (installScriptAsset("sandbox/morsllm.sh", SCRIPT_PATH)) {
+                    // Best-effort install of the manual-recovery helper. Failure
+                    // here doesn't block provisioning — it's only an escape
+                    // hatch the user can invoke from the terminal.
+                    installScriptAsset("sandbox/morsllm-setup.sh", SETUP_SCRIPT_PATH)
+                    scriptInstalled = true
+                    return true
+                }
+                kotlinx.coroutines.delay(1500L * attempt)
+            }
+            return false
         }
     }
 
