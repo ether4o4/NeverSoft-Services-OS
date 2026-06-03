@@ -226,43 +226,80 @@ actual fun PlatformGgufModelsCard() {
                 Spacer(Modifier.height(2.dp))
             }
             Text(
-                text = if (specsKnown) {
-                    "Recommended for your device — tap to download. Other options below."
-                } else {
-                    "Quick install — tap to fill in a known-working model:"
-                },
+                text = "The MVE Assistant — your default on-device AI. Mobile-friendly, snappy, decent at code + reasoning, doesn't reflexively refuse. Pick this if you don't know which to pick.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Primary recommendation — filled button, prominent.
+            // Default MVE Assistant — opinionated single button. Dolphin3 tuning
+            // emphasizes helpfulness over refusals; 3B fits ~95% of modern
+            // phones at Q4_K_M; works on the bundled llama.cpp build.
+            val defaultFits = pick.alternatives.any { it.repoId == MVE_DEFAULT_MODEL.repoId } ||
+                pick.recommended.repoId == MVE_DEFAULT_MODEL.repoId ||
+                deviceProfile.totalRamBytes == 0L ||
+                MVE_DEFAULT_MODEL.approxRamBytes <= (deviceProfile.totalRamBytes / 1.6).toLong()
+
             Button(
-                onClick = { repoInput = pick.recommended.repoId },
+                onClick = { repoInput = MVE_DEFAULT_MODEL.repoId },
                 modifier = Modifier.fillMaxWidth().handCursor(),
             ) {
                 Text(
-                    text = "${pick.recommended.label} • ${pick.recommended.sizeLabel}\n${pick.recommended.tagline}",
+                    text = "Install MVE Assistant\n${MVE_DEFAULT_MODEL.label} • ${MVE_DEFAULT_MODEL.sizeLabel}",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            if (pick.warning != null) {
+            if (!defaultFits) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = pick.warning,
+                    text = "⚠️ Your device may be tight on RAM for the default. Consider a smaller pick below.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            Spacer(Modifier.height(8.dp))
 
-            // Alternatives — show the other size buckets as outlined buttons.
-            Text(
-                text = "Other sizes:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Spacer(Modifier.height(12.dp))
+
+            // Power-user fallback: hardware-aware size buckets, slightly
+            // de-emphasized. Most users should just tap the MVE Assistant
+            // above; this row is for "I want something specific."
+            if (specsKnown) {
+                Text(
+                    text = "Or pick a different size — your phone: ${formatGb(deviceProfile.totalRamBytes)} RAM, ${formatGb(deviceProfile.freeStorageBytes)} free",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    text = "Or pick a different size:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(Modifier.height(4.dp))
+
+            // Hardware-aware primary recommendation as one of the alternatives.
+            // Less prominent than the MVE default but called out if it differs.
+            if (pick.recommended.repoId != MVE_DEFAULT_MODEL.repoId) {
+                OutlinedButton(
+                    onClick = { repoInput = pick.recommended.repoId },
+                    modifier = Modifier.fillMaxWidth().handCursor(),
+                ) {
+                    Text(
+                        text = "Best for your hardware: ${pick.recommended.label} • ${pick.recommended.sizeLabel}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (pick.warning != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = pick.warning,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -545,6 +582,35 @@ private data class Recommendation(
     val recommended: ModelOption,
     val alternatives: List<ModelOption>,
     val warning: String?,
+)
+
+/**
+ * The opinionated MVE default. New users see this as the primary "just give
+ * me a working AI" button; the sized alternatives below are for power users
+ * who want to override.
+ *
+ * Selection criteria:
+ *   - 3B parameter count: fits ~95% of modern phones at Q4_K_M (~2 GB),
+ *     usable speed on phone CPU, decent reasoning + code quality.
+ *   - Dolphin tuning: emphasizes helpfulness over reflexive refusals
+ *     (the user's explicit ask — "not a super 'no I can't do that' type").
+ *   - Llama 3.2 base: strong general capability, well-supported in
+ *     llama.cpp, no known load-time issues on aarch64-musl builds.
+ *
+ * Update with care — this is the model new users will encounter as
+ * "MVE's AI" without any other context. It needs to actually work.
+ *
+ * TODO(future): consider a Coder-specialized variant (Qwen2.5-Coder-3B-
+ * abliterated) once we verify it loads cleanly. Coder models have better
+ * code quality but more aggressive refusal training to defeat.
+ */
+private val MVE_DEFAULT_MODEL = ModelOption(
+    repoId = "cognitivecomputations/Dolphin3.0-Llama3.2-3B-GGUF",
+    label = "Dolphin3 Llama3.2 3B",
+    sizeLabel = "~2 GB",
+    approxDownloadBytes = 2L * 1024 * 1024 * 1024,
+    approxRamBytes = 3L * 1024 * 1024 * 1024,
+    tagline = "Default MVE Assistant — permissive, code + reasoning",
 )
 
 private val ALL_QUICK_INSTALLS = listOf(
