@@ -188,18 +188,49 @@ actual fun PlatformGgufModelsCard() {
             // Read device specs so we can recommend a GGUF that actually fits
             // this phone instead of asking the user to guess. Total RAM drives
             // which parameter count is realistic; free storage gates downloads.
+            //
+            // Wrapped in runCatching as a safety net: ActivityManager /
+            // StatFs calls *shouldn't* throw on any modern Android, but if
+            // they ever do on a quirky device the whole Sandbox tab would
+            // crash on entry. Falling back to a static catalog keeps the
+            // download UI usable.
+            //
+            // TODO(phase 2 hardware rec): factor in CPU core count + arch
+            // (some quants are aarch64-only, some run faster with NEON).
+            // TODO(phase 2 hardware rec): warm-state probe — check actual
+            // free RAM instead of total, since OS + MVE + sandbox already
+            // claim ~1 GB at idle.
             val context = LocalContext.current
-            val deviceProfile = remember(context) { readDeviceProfile(context) }
-            val pick = pickRecommendedModel(deviceProfile)
+            val deviceProfile = remember(context) {
+                runCatching { readDeviceProfile(context) }.getOrDefault(
+                    DeviceProfile(totalRamBytes = 0L, freeStorageBytes = 0L),
+                )
+            }
+            val pick = remember(deviceProfile) {
+                runCatching { pickRecommendedModel(deviceProfile) }.getOrDefault(
+                    Recommendation(
+                        recommended = ALL_QUICK_INSTALLS[2], // 3B default
+                        alternatives = ALL_QUICK_INSTALLS.filterIndexed { i, _ -> i != 2 },
+                        warning = null,
+                    ),
+                )
+            }
+            val specsKnown = deviceProfile.totalRamBytes > 0L
 
+            if (specsKnown) {
+                Text(
+                    text = "Your phone — ${formatGb(deviceProfile.totalRamBytes)} RAM, ${formatGb(deviceProfile.freeStorageBytes)} free storage",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(2.dp))
+            }
             Text(
-                text = "Your phone — ${formatGb(deviceProfile.totalRamBytes)} RAM, ${formatGb(deviceProfile.freeStorageBytes)} free storage",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "Recommended for your device — tap to download. Other options below.",
+                text = if (specsKnown) {
+                    "Recommended for your device — tap to download. Other options below."
+                } else {
+                    "Quick install — tap to fill in a known-working model:"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

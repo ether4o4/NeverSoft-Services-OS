@@ -652,12 +652,96 @@ cmd_status() {
     emit "{\"ok\":true,\"provisioned\":$provisioned,\"running\":$running,\"pid\":\"$pid\",\"port\":\"$port\",\"model\":\"$model\",\"base_url\":\"$base_url\"}"
 }
 
+# Triage helper for the in-app AI session. Dumps a multi-line plain-text
+# digest of the sandbox state so a chat AI with shell access can `morsllm
+# diagnose` and see everything in one shot. Not consumed by MVE's Kotlin
+# side — purely a human / AI-readable diagnostic surface.
+#
+# Intended workflow: the user hits an error, the in-app AI runs
+# `morsllm diagnose`, the assistant gets a structured snapshot of what's
+# installed / what's running / what's missing / where the logs are, and
+# can decide whether to patch in-sandbox or escalate to a code change.
+cmd_diagnose() {
+    echo "=== morsllm diagnose ==="
+    echo "[paths]"
+    echo "  ROOT          $ROOT"
+    echo "  LLAMA_SERVER  $LLAMA_SERVER"
+    echo "  MODELS_DIR    $MODELS_DIR"
+    echo "  LOGS_DIR      $LOGS_DIR"
+    echo
+    echo "[binaries]"
+    for tool in g++ gcc cmake git curl jq ar gcc-ar ld nm; do
+        if command -v "$tool" >/dev/null 2>&1; then
+            echo "  $tool: $(command -v "$tool")"
+        else
+            echo "  $tool: MISSING"
+        fi
+    done
+    echo
+    echo "[llama-server]"
+    if [ -x "$LLAMA_SERVER" ]; then
+        echo "  installed at $LLAMA_SERVER"
+        echo "  size: $(stat -c %s "$LLAMA_SERVER" 2>/dev/null || echo '?') bytes"
+        echo "  --version: $($LLAMA_SERVER --version 2>&1 | head -1)"
+    else
+        echo "  NOT installed (no executable at $LLAMA_SERVER)"
+    fi
+    echo
+    echo "[server state]"
+    if [ -f "$PID_FILE" ]; then
+        local pid_val
+        pid_val=$(cat "$PID_FILE" 2>/dev/null)
+        if [ -n "$pid_val" ] && kill -0 "$pid_val" 2>/dev/null; then
+            echo "  RUNNING pid=$pid_val"
+            [ -f "$META_FILE" ] && cat "$META_FILE" | head -5 | sed 's/^/  meta: /'
+        else
+            echo "  PID file present but process dead (stale)"
+        fi
+    else
+        echo "  not running"
+    fi
+    echo
+    echo "[downloaded models]"
+    if [ -d "$MODELS_DIR" ]; then
+        local found=0
+        for f in "$MODELS_DIR"/*.gguf; do
+            [ -f "$f" ] || continue
+            found=1
+            echo "  $(basename "$f") — $(stat -c %s "$f" 2>/dev/null || echo '?') bytes"
+        done
+        [ "$found" = "0" ] && echo "  (none)"
+    else
+        echo "  (models dir doesn't exist)"
+    fi
+    echo
+    echo "[recent logs]"
+    if [ -d "$LOGS_DIR" ]; then
+        for f in "$LOGS_DIR"/*.log; do
+            [ -f "$f" ] || continue
+            echo "  --- $(basename "$f") (last 10 lines) ---"
+            tail -10 "$f" 2>/dev/null | sed 's/^/  /'
+        done
+    fi
+    echo
+    echo "[apk db]"
+    if command -v apk >/dev/null 2>&1; then
+        echo "  apk version: $(apk --version 2>&1 | head -1)"
+        echo "  build-base installed: $(apk info -e build-base 2>/dev/null | head -1)"
+        echo "  llama.cpp source: $([ -d "$BUILD_DIR/llama.cpp" ] && echo "yes" || echo "no")"
+    else
+        echo "  apk MISSING"
+    fi
+    echo
+    echo "=== end ==="
+}
+
 usage() {
     cat >&2 <<EOF
 morsllm — local GGUF runtime for MorsVitaEst
 
 Usage:
   morsllm provision                       Build llama-server (one-time, slow)
+  morsllm diagnose                        Dump sandbox state for triage (in-app AI / human)
   morsllm list-quants <repo>              List .gguf files in a HuggingFace repo
   morsllm pull <repo|url> [quant]         Download a GGUF (resumable). Default quant: $DEFAULT_QUANT_PREFERENCE
   morsllm list-models                     List downloaded GGUF files
@@ -683,6 +767,7 @@ main() {
         serve)         cmd_serve "$@" ;;
         stop)          cmd_stop "$@" ;;
         status)        cmd_status "$@" ;;
+        diagnose)      cmd_diagnose "$@" ;;
         -h|--help)     usage; exit 0 ;;
         "")            usage; exit 1 ;;
         *)             usage; exit 1 ;;
