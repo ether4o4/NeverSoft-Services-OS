@@ -97,6 +97,94 @@ ensure_binutils_shortcuts() {
     done
 }
 
+# Installs a llama-server binary from $1 (a staging path) to a location
+# where the kernel will actually exec() it. Under Android's data partition
+# the proot mount holding $BIN_DIR can be `noexec` — the file is chmod
+# 755 but every exec() call returns EACCES. When that happens we copy the
+# binary to /tmp/llama-server (proven exec-enabled in MVE's sandbox) and
+# leave a symlink at $LLAMA_SERVER so callers and -x tests still resolve
+# to the working binary. The working path is also cached in
+# $RUN_DIR/exec_path so subsequent commands can find it even if the
+# symlink itself didn't take.
+#
+# Echoes the final exec-ready path on success; returns 1 on failure.
+install_llama_server_binary() {
+    local staging="$1"
+    [ -s "$staging" ] || return 1
+    chmod 755 "$staging" 2>/dev/null || true
+    # Sanity-check the staging binary itself executes — otherwise we're
+    # not dealing with a noexec issue but a corrupt/wrong-arch download.
+    if ! "$staging" --version >/dev/null 2>&1; then
+        log "install_llama_server_binary: staging binary at $staging won't exec; likely corrupt or wrong arch"
+        return 1
+    fi
+
+    # Try the canonical install location first.
+    mkdir -p "$(dirname "$LLAMA_SERVER")" 2>/dev/null
+    rm -f "$LLAMA_SERVER" 2>/dev/null
+    if cp "$staging" "$LLAMA_SERVER" 2>/dev/null; then
+        chmod 755 "$LLAMA_SERVER" 2>/dev/null || true
+        if "$LLAMA_SERVER" --version >/dev/null 2>&1; then
+            rm -f "$RUN_DIR/exec_path" 2>/dev/null
+            echo "$LLAMA_SERVER"
+            return 0
+        fi
+    fi
+
+    log "install_llama_server_binary: $LLAMA_SERVER refuses exec (noexec mount?); trying fallbacks"
+    # /tmp first: in-app AI diagnostic confirmed it's exec-enabled.
+    # /usr/local/bin as a more canonical secondary option.
+    for target in /tmp/llama-server /usr/local/bin/llama-server; do
+        mkdir -p "$(dirname "$target")" 2>/dev/null
+        rm -f "$target" 2>/dev/null
+        if ! cp "$staging" "$target" 2>/dev/null; then
+            continue
+        fi
+        chmod 755 "$target" 2>/dev/null || true
+        if "$target" --version >/dev/null 2>&1; then
+            log "install_llama_server_binary: relocated to $target"
+            # Best-effort symlink at $LLAMA_SERVER so naive `-x` callers
+            # still find an executable here. If symlink creation fails
+            # (some proot configs reject cross-mount symlinks) the cache
+            # file is the source of truth.
+            rm -f "$LLAMA_SERVER" 2>/dev/null
+            ln -s "$target" "$LLAMA_SERVER" 2>/dev/null \
+                || cp "$staging" "$LLAMA_SERVER" 2>/dev/null  # leave marker
+            mkdir -p "$RUN_DIR" 2>/dev/null
+            printf '%s' "$target" > "$RUN_DIR/exec_path" 2>/dev/null || true
+            echo "$target"
+            return 0
+        fi
+        rm -f "$target" 2>/dev/null
+    done
+
+    log "install_llama_server_binary: no exec-enabled location worked"
+    return 1
+}
+
+# Resolves an actually-runnable llama-server path. Tries $LLAMA_SERVER
+# (handles the symlink case directly), then the cached relocation path
+# left by install_llama_server_binary, then falls back to $LLAMA_SERVER
+# even when broken so callers always get a path to print in errors.
+# Return code: 0 if the echoed path executes, 1 otherwise.
+llama_server_path() {
+    if "$LLAMA_SERVER" --version >/dev/null 2>&1; then
+        echo "$LLAMA_SERVER"
+        return 0
+    fi
+    local cached="$RUN_DIR/exec_path"
+    if [ -f "$cached" ]; then
+        local p
+        p=$(cat "$cached" 2>/dev/null || true)
+        if [ -n "$p" ] && "$p" --version >/dev/null 2>&1; then
+            echo "$p"
+            return 0
+        fi
+    fi
+    echo "$LLAMA_SERVER"
+    return 1
+}
+
 # Fall-back installer for apk packages whose `apk add` fails under proot
 # due to hardlink-translation issues (binutils, gcc, g++ etc.). Fetches the
 # .apk files, extracts each with tar to /, then post-processes failed
@@ -163,26 +251,31 @@ cmd_provision() {
     # we'd produce in-sandbox, just cross-compiled in CI and published as a
     # release asset. Falls through to source compile if download or exec
     # check fails (network down, release not built yet, arch mismatch).
-    if [ ! -x "$LLAMA_SERVER" ]; then
+    # Skip the prebuilt fetch entirely if we already have a working binary
+    # (canonical or relocated). Use llama_server_path so a noexec-relocated
+    # install is recognized as "already done".
+    if ! llama_server_path >/dev/null 2>&1; then
         prebuilt_url="https://github.com/ether4o4/MorsVitaEst/releases/download/llama-server-prebuilt-latest/llama-server-aarch64-musl"
-        mkdir -p "$BIN_DIR"
+        # Download to /tmp staging — proven exec-enabled in MVE's sandbox,
+        # so the --version probe inside install_llama_server_binary can
+        # actually run even when $BIN_DIR is noexec.
+        staging="/tmp/.morsllm-prebuilt.$$"
         log "provision: trying pre-built binary at $prebuilt_url"
-        if curl -fsSL --max-time 120 -o "$LLAMA_SERVER.tmp" "$prebuilt_url" 2>/dev/null \
-            && [ -s "$LLAMA_SERVER.tmp" ]; then
-            chmod 755 "$LLAMA_SERVER.tmp"
-            if "$LLAMA_SERVER.tmp" --version >/dev/null 2>&1; then
-                mv "$LLAMA_SERVER.tmp" "$LLAMA_SERVER"
-                log "provision: pre-built binary installed -> $LLAMA_SERVER"
-                emit "{\"ok\":true,\"prebuilt\":true,\"path\":\"$LLAMA_SERVER\"}"
+        if curl -fsSL --max-time 120 -o "$staging" "$prebuilt_url" 2>/dev/null \
+            && [ -s "$staging" ]; then
+            if installed=$(install_llama_server_binary "$staging"); then
+                rm -f "$staging" 2>/dev/null
+                log "provision: pre-built binary installed -> $installed"
+                emit "{\"ok\":true,\"prebuilt\":true,\"path\":\"$installed\"}"
                 provision_emitted=1
                 return 0
             else
-                log "provision: pre-built binary downloaded but exec check failed, falling back to source compile"
-                rm -f "$LLAMA_SERVER.tmp"
+                log "provision: pre-built binary downloaded but install failed (exec check or copy), falling back to source compile"
+                rm -f "$staging" 2>/dev/null
             fi
         else
             log "provision: pre-built download failed or empty, falling back to source compile"
-            rm -f "$LLAMA_SERVER.tmp"
+            rm -f "$staging" 2>/dev/null
         fi
     fi
 
@@ -291,9 +384,11 @@ cmd_provision() {
         log "provision: tar fallback succeeded; g++ now functional"
     fi
 
-    if [ -x "$LLAMA_SERVER" ]; then
-        log "provision: llama-server already built at $LLAMA_SERVER"
-        emit "{\"ok\":true,\"already_built\":true,\"path\":\"$LLAMA_SERVER\"}"
+    # Use llama_server_path so a relocated install (noexec workaround) is
+    # still recognized. The path it returns may be /tmp/llama-server etc.
+    if existing_path=$(llama_server_path 2>/dev/null); then
+        log "provision: llama-server already built at $existing_path"
+        emit "{\"ok\":true,\"already_built\":true,\"path\":\"$existing_path\"}"
         provision_emitted=1
         return 0
     fi
@@ -435,11 +530,27 @@ UI_H_EOF
         return 1
     fi
 
-    cp "$built" "$LLAMA_SERVER"
-    chmod +x "$LLAMA_SERVER"
-    log "provision: done -> $LLAMA_SERVER"
-    emit "{\"ok\":true,\"path\":\"$LLAMA_SERVER\"}"
-    provision_emitted=1
+    # Stage the freshly-built binary to /tmp first so install_llama_server_binary
+    # can probe --version even if $BIN_DIR's mount is noexec. The helper then
+    # picks the final destination ($LLAMA_SERVER if exec-enabled, otherwise
+    # /tmp/llama-server with a symlink left at $LLAMA_SERVER).
+    staging="/tmp/.morsllm-built.$$"
+    cp "$built" "$staging" 2>/dev/null || {
+        emit "{\"ok\":false,\"error\":\"stage_failed\",\"detail\":\"could not copy built binary to staging path\"}"
+        provision_emitted=1
+        return 1
+    }
+    if installed=$(install_llama_server_binary "$staging"); then
+        rm -f "$staging" 2>/dev/null
+        log "provision: done -> $installed"
+        emit "{\"ok\":true,\"path\":\"$installed\"}"
+        provision_emitted=1
+    else
+        rm -f "$staging" 2>/dev/null
+        emit "{\"ok\":false,\"error\":\"install_no_exec_path\",\"hint\":\"binary built but no exec-enabled location accepted it. Try in terminal: cp $built /tmp/llama-server && chmod 755 /tmp/llama-server && /tmp/llama-server --version\"}"
+        provision_emitted=1
+        return 1
+    fi
 }
 
 cmd_list_quants() {
@@ -570,7 +681,10 @@ cmd_serve() {
         emit "{\"ok\":false,\"error\":\"model_not_found\",\"model\":\"$model\"}"
         return 1
     fi
-    if [ ! -x "$LLAMA_SERVER" ]; then
+    # Resolve the actually-runnable binary. May be $LLAMA_SERVER directly
+    # or a relocated copy at /tmp if the install dir is noexec.
+    local exe
+    if ! exe=$(llama_server_path); then
         emit '{"ok":false,"error":"not_provisioned","hint":"run: morsllm provision"}'
         return 1
     fi
@@ -578,10 +692,10 @@ cmd_serve() {
     # Replace any prior server on this port.
     cmd_stop >/dev/null 2>&1 || true
 
-    log "serve: launching llama-server on 127.0.0.1:$port"
+    log "serve: launching llama-server ($exe) on 127.0.0.1:$port"
     local log_file="$LOGS_DIR/server.log"
     : > "$log_file"
-    nohup "$LLAMA_SERVER" \
+    nohup "$exe" \
         --host 127.0.0.1 \
         --port "$port" \
         -m "$model_path" \
@@ -648,7 +762,10 @@ cmd_status() {
         fi
     fi
     local provisioned=false
-    [ -x "$LLAMA_SERVER" ] && provisioned=true
+    # llama_server_path returns 0 only if the resolved binary actually
+    # responds to --version. A file at $LLAMA_SERVER that the kernel
+    # refuses to exec (noexec mount) correctly reports provisioned=false.
+    llama_server_path >/dev/null 2>&1 && provisioned=true
     emit "{\"ok\":true,\"provisioned\":$provisioned,\"running\":$running,\"pid\":\"$pid\",\"port\":\"$port\",\"model\":\"$model\",\"base_url\":\"$base_url\"}"
 }
 
@@ -679,12 +796,31 @@ cmd_diagnose() {
     done
     echo
     echo "[llama-server]"
-    if [ -x "$LLAMA_SERVER" ]; then
-        echo "  installed at $LLAMA_SERVER"
-        echo "  size: $(stat -c %s "$LLAMA_SERVER" 2>/dev/null || echo '?') bytes"
-        echo "  --version: $($LLAMA_SERVER --version 2>&1 | head -1)"
+    if [ -e "$LLAMA_SERVER" ]; then
+        echo "  primary path: $LLAMA_SERVER"
+        if [ -L "$LLAMA_SERVER" ]; then
+            echo "  symlink -> $(readlink "$LLAMA_SERVER" 2>/dev/null)"
+        fi
+        echo "  size: $(stat -L -c %s "$LLAMA_SERVER" 2>/dev/null || echo '?') bytes"
     else
-        echo "  NOT installed (no executable at $LLAMA_SERVER)"
+        echo "  primary path: $LLAMA_SERVER (missing)"
+    fi
+    local exec_cache="$RUN_DIR/exec_path"
+    if [ -f "$exec_cache" ]; then
+        echo "  exec cache: $(cat "$exec_cache" 2>/dev/null)"
+    fi
+    local resolved
+    if resolved=$(llama_server_path 2>/dev/null); then
+        echo "  resolved exec: $resolved (works)"
+        echo "  --version: $("$resolved" --version 2>&1 | head -1)"
+    else
+        echo "  resolved exec: NOT RUNNABLE (file may exist but noexec mount or wrong arch)"
+        if [ -e "$LLAMA_SERVER" ]; then
+            # Backticks must be escaped — bash inside double quotes would
+            # treat them as command substitution and execute the cp+chmod
+            # right here during diagnose, masking the actual hint output.
+            echo "  hint: try: cp $LLAMA_SERVER /tmp/llama-server && chmod 755 /tmp/llama-server && /tmp/llama-server --version"
+        fi
     fi
     echo
     echo "[server state]"
