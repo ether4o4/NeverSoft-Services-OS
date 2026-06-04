@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.ether4o4.morsvitaest.ui.settings
 
@@ -603,17 +603,20 @@ private fun BottomInfo() {
 
     val uriHandler = LocalUriHandler.current
 
-    Row(
+    // FlowRow so the links wrap onto a second line on narrow screens instead
+    // of being clipped or pushing the version text out of view. Adding two
+    // new entry points here (Latest builds + Report an issue) without
+    // wrapping was crowding the bar on phones.
+    FlowRow(
         modifier = Modifier.padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             stringResource(Res.string.settings_version, Version.appVersion),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground,
         )
-
-        Spacer(Modifier.width(8.dp))
 
         Icon(
             modifier = Modifier
@@ -628,14 +631,37 @@ private fun BottomInfo() {
             tint = MaterialTheme.colorScheme.onBackground,
         )
 
-        Spacer(Modifier.width(12.dp))
-
         Text(
             text = stringResource(Res.string.settings_documentation),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .clickable { uriHandler.openUri("https://github.com/ether4o4/MorsVitaEst/tree/main/docs/") }
+                .handCursor(),
+        )
+
+        // Releases page — sideload-only distribution means we can't push
+        // updates through the Play Store. One-tap shortcut here saves users
+        // from drilling repo → tags → releases on mobile.
+        Text(
+            text = stringResource(Res.string.settings_check_updates),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .clickable { uriHandler.openUri("https://github.com/ether4o4/MorsVitaEst/releases") }
+                .handCursor(),
+        )
+
+        // New-issue shortcut. Skipping a prefilled URL-encoded body —
+        // GitHub's issue template (when present) does a better job than we
+        // can do inline, and we have CONTRIBUTING.md telling reporters
+        // exactly what to include.
+        Text(
+            text = stringResource(Res.string.settings_report_issue),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .clickable { uriHandler.openUri("https://github.com/ether4o4/MorsVitaEst/issues/new") }
                 .handCursor(),
         )
     }
