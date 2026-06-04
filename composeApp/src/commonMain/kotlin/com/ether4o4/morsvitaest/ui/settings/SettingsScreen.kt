@@ -481,16 +481,14 @@ fun SettingsScreenContent(
                             }
 
                             SettingsTab.Sandbox -> {
-                                // Tab now reads "Local LLM" — users come here looking to
-                                // ADD a GGUF model, not to manage the Linux sandbox. The
-                                // Linux sandbox is plumbing for the engine; it's still
-                                // needed but it's not the headline action, so it renders
-                                // after the model-management UI. The GGUF card's "Set up
-                                // engine" button drives sandbox provisioning automatically
-                                // — most users never need to touch the Sandbox card
-                                // directly unless they want the in-app terminal.
-                                PlatformGgufModelsCard()
-                                Spacer(Modifier.height(16.dp))
+                                // Tab label is "Local LLM" so users looking for local
+                                // model setup land here. Sandbox card stays FIRST
+                                // because the GGUF card's "Set up engine" button only
+                                // renders once the sandbox is ready — putting GGUF on
+                                // top stranded fresh installs ("set up the sandbox
+                                // above first" pointed at nothing). Original order
+                                // restored; the tab rename alone solves the
+                                // discoverability problem the reorder was trying to.
                                 SandboxSettingsCard(
                                     sandboxState = sandboxState,
                                     onToggleSandbox = onToggleSandbox,
@@ -499,6 +497,8 @@ fun SettingsScreenContent(
                                     onResetSandbox = onResetSandbox,
                                     onInstallPackages = onInstallPackages,
                                 )
+                                Spacer(Modifier.height(16.dp))
+                                PlatformGgufModelsCard()
                             }
                         }
 
