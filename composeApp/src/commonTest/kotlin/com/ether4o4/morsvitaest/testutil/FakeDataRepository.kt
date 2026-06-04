@@ -12,6 +12,8 @@ import com.ether4o4.morsvitaest.data.HeartbeatConfig
 import com.ether4o4.morsvitaest.data.HeartbeatLogEntry
 import com.ether4o4.morsvitaest.data.ImportSection
 import com.ether4o4.morsvitaest.data.MemoryEntry
+import com.ether4o4.morsvitaest.data.Project
+import com.ether4o4.morsvitaest.data.ProjectDocument
 import com.ether4o4.morsvitaest.data.ScheduledTask
 import com.ether4o4.morsvitaest.data.Service
 import com.ether4o4.morsvitaest.data.ServiceEntry
@@ -162,6 +164,57 @@ class FakeDataRepository : DataRepository {
 
     override suspend fun validateConnection(service: Service, instanceId: String) {
         // No-op in tests
+    }
+
+    // Per-instance enabled state (Show-in-chat toggle). Default true matches
+    // production behaviour so existing tests don't have to opt in explicitly.
+    private val instanceEnabled = mutableMapOf<String, Boolean>()
+    override fun isInstanceEnabled(instanceId: String): Boolean =
+        instanceEnabled[instanceId] ?: true
+    override fun setInstanceEnabled(instanceId: String, enabled: Boolean) {
+        instanceEnabled[instanceId] = enabled
+    }
+
+    // Projects (persistent context containers). Stubbed in-memory.
+    private val projects = mutableListOf<Project>()
+    private var activeProjectId: String = Project.NONE_ID
+    override fun getProjects(): List<Project> = projects.toList()
+    override fun getActiveProject(): Project? =
+        projects.firstOrNull { it.id == activeProjectId }
+    override fun setActiveProjectId(id: String) {
+        activeProjectId = id
+    }
+    override fun createProject(
+        name: String,
+        instructions: String,
+        documents: List<ProjectDocument>,
+    ): Project {
+        val project = Project(
+            name = name,
+            instructions = instructions,
+            documents = documents,
+        )
+        projects.add(project)
+        return project
+    }
+    override fun updateProject(
+        id: String,
+        name: String,
+        instructions: String,
+        documents: List<ProjectDocument>,
+    ) {
+        val idx = projects.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            projects[idx] = projects[idx].copy(
+                name = name,
+                instructions = instructions,
+                documents = documents,
+            )
+        }
+    }
+    override fun deleteProject(id: String) {
+        projects.removeAll { it.id == id }
+        if (activeProjectId == id) activeProjectId = Project.NONE_ID
     }
 
     fun setConfiguredServices(vararg services: Service) {
