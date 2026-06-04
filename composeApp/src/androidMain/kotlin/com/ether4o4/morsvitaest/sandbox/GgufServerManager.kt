@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.security.MessageDigest
 
 /**
  * Typed orchestration over the `morsllm` shell runtime. Installs the script into
@@ -42,6 +43,14 @@ class GgufServerManager(
 
     @Volatile
     private var scriptInstalled = false
+
+    // Cached SHA256 of the bundled morsllm.sh + morsllm-setup.sh asset bytes.
+    // Computed once per process; used by the fast-path check below to skip the
+    // full install pipeline when the sandbox copy already matches the APK
+    // we're running. Either script changing invalidates the hash, triggering
+    // a fresh install on the next launch.
+    @Volatile
+    private var bundledScriptHashCached: String? = null
 
     val openAiBaseUrl: String = "http://127.0.0.1:8080/v1"
 
@@ -112,24 +121,89 @@ class GgufServerManager(
         if (scriptInstalled) return true
         installLock.withLock {
             if (scriptInstalled) return true
-            // Sandbox isn't always fully responsive the instant its status flag
-            // flips to ready — writeTextFile + executeCommand can intermittently
-            // come back garbled or refuse on the first try after a cold mount.
-            // Retry up to 3 times with a brief backoff so the first script call
-            // after app launch doesn't race the install and report
-            // "not built yet" until the user manually re-taps Set up engine.
+
+            // Fast path: if the sandbox already has these exact scripts
+            // installed (the on-disk hash sentinel matches the bundled
+            // asset's hash), skip the entire install pipeline. Saves ~8
+            // shell roundtrips and the matching backoff window every cold
+            // launch for users who already provisioned a previous build.
+            // Cold-launch hit drops from several seconds to one cheap
+            // `cat` + `test` roundtrip.
+            val expectedHash = computeBundledScriptHash()
+            if (expectedHash != null && sandboxScriptMatches(expectedHash)) {
+                scriptInstalled = true
+                return true
+            }
+
+            // Slow path: full install. Sandbox isn't always fully responsive
+            // the instant its status flag flips to ready — writeTextFile +
+            // executeCommand can intermittently come back garbled or refuse
+            // on the first try after a cold mount. Retry up to 3 times with
+            // a brief backoff so the first script call after app launch
+            // doesn't race the install and report "not built yet" until the
+            // user manually re-taps Set up engine.
             for (attempt in 1..3) {
                 if (installScriptAsset("sandbox/morsllm.sh", SCRIPT_PATH)) {
                     // Best-effort install of the manual-recovery helper. Failure
                     // here doesn't block provisioning — it's only an escape
                     // hatch the user can invoke from the terminal.
                     installScriptAsset("sandbox/morsllm-setup.sh", SETUP_SCRIPT_PATH)
+                    // Stamp the version sentinel so the next launch can
+                    // fast-path out of this whole pipeline. If the write
+                    // fails, no big deal — next launch just full-installs
+                    // again (same cost as today).
+                    if (expectedHash != null) {
+                        stampScriptHash(expectedHash)
+                    }
                     scriptInstalled = true
                     return true
                 }
                 kotlinx.coroutines.delay(1500L * attempt)
             }
             return false
+        }
+    }
+
+    /**
+     * SHA256 of the bundled morsllm.sh and morsllm-setup.sh assets concatenated.
+     * Returns null if either asset can't be read (e.g. APK packaging glitch);
+     * the caller treats null as "skip fast path, do full install".
+     */
+    private fun computeBundledScriptHash(): String? {
+        bundledScriptHashCached?.let { return it }
+        return runCatching {
+            val main = context.assets.open("sandbox/morsllm.sh").use { it.readBytes() }
+            val setup = context.assets.open("sandbox/morsllm-setup.sh").use { it.readBytes() }
+            val digest = MessageDigest.getInstance("SHA-256").apply {
+                update(main)
+                update(setup)
+            }.digest()
+            digest.joinToString("") { "%02x".format(it) }.also {
+                bundledScriptHashCached = it
+            }
+        }.getOrNull()
+    }
+
+    /**
+     * One shell roundtrip that returns the on-disk hash sentinel iff the main
+     * script is also executable. Empty output ⇒ either the script is missing
+     * or the sentinel hasn't been written yet — both mean "not current."
+     */
+    private suspend fun sandboxScriptMatches(expected: String): Boolean = runCatching {
+        val out = sandbox.executeCommand(
+            command = "test -x $SCRIPT_PATH && cat $SCRIPT_HASH_PATH 2>/dev/null",
+            sessionId = SandboxSessions.SYSTEM,
+        ).trim()
+        out == expected
+    }.getOrDefault(false)
+
+    private suspend fun stampScriptHash(hash: String) {
+        runCatching {
+            sandbox.executeCommand(
+                command = "mkdir -p \$(dirname $SCRIPT_HASH_PATH) 2>/dev/null",
+                sessionId = SandboxSessions.SYSTEM,
+            )
+            sandbox.writeTextFile(SCRIPT_HASH_PATH, hash)
         }
     }
 
@@ -247,6 +321,11 @@ class GgufServerManager(
         const val DEFAULT_PORT = 8080
         private const val SCRIPT_PATH = "/usr/local/bin/morsllm"
         private const val SETUP_SCRIPT_PATH = "/usr/local/bin/morsllm-setup"
+        // Lives next to the script so we share the same `/usr/local/bin`
+        // mount and don't need to mkdir a fresh path on every install.
+        // Leading dot so it doesn't pollute `ls /usr/local/bin/` for users
+        // poking around in the in-app terminal.
+        private const val SCRIPT_HASH_PATH = "/usr/local/bin/.morsllm.hash"
         private const val SCRIPT_INSTALL_FAILED_JSON = """{"ok":false,"error":"script_install_failed"}"""
     }
 }
