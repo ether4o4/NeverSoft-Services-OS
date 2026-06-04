@@ -448,15 +448,21 @@ private fun SoulEditor(
                 modifier = Modifier.weight(1f),
             )
             if (soulText.isNotEmpty()) {
-                IconButton(
+                // Replaced an icon-only button — too easy to miss, especially for
+                // users sitting on an older saved default who don't know the
+                // default soul has been updated. Text button with the label
+                // visible signals "this is how you adopt the new default".
+                TextButton(
                     onClick = { showResetDialog = true },
                     modifier = Modifier.handCursor(),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Replay,
-                        contentDescription = stringResource(Res.string.settings_soul_reset),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(Res.string.settings_soul_reset))
                 }
             }
         }

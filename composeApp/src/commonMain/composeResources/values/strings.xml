@@ -277,8 +277,8 @@
     <string name="settings_soul">Soul</string>
     <string name="settings_soul_description">Define how the AI behaves with a system prompt. The AI will also have access to its stored memories.</string>
     <string name="settings_soul_save">Save</string>
-    <string name="settings_soul_reset">Reset</string>
-    <string name="settings_soul_reset_confirm">This will reset the soul to the default system prompt. Are you sure?</string>
+    <string name="settings_soul_reset">Reset to default</string>
+    <string name="settings_soul_reset_confirm">Replace your saved soul with the current MVE default? The default has been updated to an operator-style framing that minimizes refusals — recommended unless you\'ve customized your soul on purpose.</string>
     <string name="settings_soul_reset_cancel">Cancel</string>
     <string name="settings_export_import_title">Export / Import</string>
     <string name="settings_export_import_description">The exported file contains sensitive data such as API keys and passwords.</string>
