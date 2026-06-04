@@ -377,7 +377,18 @@ actual fun PlatformGgufModelsCard() {
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
+                // Distinguishes this card's Run/Stop control from the Services
+                // tab's Show-in-chat toggle. Run = the llama.cpp engine for
+                // THIS model is loaded and serving; Show-in-chat = whether the
+                // service entry is visible in the chat AI picker. Both need to
+                // be on to chat with this model.
+                Text(
+                    text = "Run loads this model into the llama.cpp engine. Use in chat registers it as a service so it shows up in the chat AI picker. Separate from the LiteRT on-device option in Services.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(6.dp))
                 models.forEach { m ->
                     val isRunning = st.running && st.model == m.name
                     Row(
@@ -413,7 +424,7 @@ actual fun PlatformGgufModelsCard() {
                                 onClick = {
                                     runOp("Starting ${m.name}…") {
                                         val r = manager.serve(m.name)
-                                        if (r.ok) message = "Running. Tap \"Add as service\" below." else errorResult = r
+                                        if (r.ok) message = "Running. Tap \"Use in chat\" below." else errorResult = r
                                     }
                                 },
                                 modifier = Modifier.handCursor(),
@@ -434,13 +445,13 @@ actual fun PlatformGgufModelsCard() {
                         }
                         val instance = existing ?: dataRepository.addConfiguredService(Service.OpenAICompatible.id)
                             .also { dataRepository.updateInstanceBaseUrl(it.instanceId, baseUrl) }
-                        message = "Added OpenAI-Compatible service → open Services to pick the model"
+                        message = "Connected. Open Services and toggle \"Show in chat\" on the new entry to use it."
                         scope.launch {
                             runCatching { dataRepository.validateConnection(Service.OpenAICompatible, instance.instanceId) }
                         }
                     },
                     modifier = Modifier.handCursor(),
-                ) { Text("Add as service") }
+                ) { Text("Use in chat") }
             }
         }
 

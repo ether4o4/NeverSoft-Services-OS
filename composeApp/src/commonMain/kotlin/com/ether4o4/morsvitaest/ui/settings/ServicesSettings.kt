@@ -429,11 +429,23 @@ private fun ConfiguredServiceCardContent(
                 // (api key, model, etc. preserved) but hidden from the chat
                 // service picker so the user can pick which model is active
                 // and which are kept as backups for later.
-                Switch(
-                    checked = entry.enabled,
-                    onCheckedChange = onToggleEnabled,
-                    modifier = Modifier.handCursor(),
-                )
+                //
+                // Inline "Show in chat" label is load-bearing — the bare Switch
+                // collided semantically with the GGUF card's Run/Stop button
+                // (users couldn't tell which one actually selected the active
+                // local engine).
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = if (entry.enabled) "Show in chat" else "Hidden",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Switch(
+                        checked = entry.enabled,
+                        onCheckedChange = onToggleEnabled,
+                        modifier = Modifier.handCursor(),
+                    )
+                }
 
                 Spacer(Modifier.width(8.dp))
 

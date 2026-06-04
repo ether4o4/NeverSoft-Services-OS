@@ -461,7 +461,10 @@ sealed class Service(
 
     data object LiteRT : Service(
         id = "litert",
-        displayName = "Local Model",
+        // Was "Local Model" — too generic, collided in the UI with the GGUF /
+        // llama.cpp on-device path (which also runs a model "locally"). Naming
+        // by engine keeps the two distinguishable in the Services list.
+        displayName = "On-Device (LiteRT)",
         icon = Res.drawable.ic_service_litert,
         requiresApiKey = false,
         defaultModel = null,
