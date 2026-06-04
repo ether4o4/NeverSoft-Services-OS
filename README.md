@@ -48,6 +48,42 @@ Concretely this means:
 - Vendor changes pricing. Switch providers; nothing else changes.
 - Vendor mines its API for training. Your stored data was never on their servers — only the one prompt for one turn was, on your authorization.
 
+## Where it's headed
+
+MVE is being built toward a thesis: **continuity, not intelligence, is the missing piece.** Models will keep improving and commoditizing; what compounds is the substrate that holds your memory, your projects, your skills, your patterns, and the meaning you've assigned to all of it. The deepest version of MVE is an architecture for preserving meaning across change — change of model, change of device, change of who you're becoming.
+
+**The architecture forming underneath:**
+
+- **Memory graph.** Not chat logs. Causal relationships between events, people, projects, decisions, contradictions. The graph survives every model swap.
+- **Interpreter layer.** A thin filter the graph passes through before any model sees it, so what the model interprets reflects you — not its training. MCP-native today; richer tomorrow.
+- **Narrative layer.** A user-authored self-document — *who I am, what I'm becoming, what matters*. Not auto-inferred. The system surfaces drift between inferred pattern and stated intent; the user remains the author of their own continuity.
+- **Council / multi-agent planning.** Observe → Analyze → Debate → Simulate → Approve → Execute. Institutional memory rather than impulsive intelligence. Built once the graph has enough signal to score plans against outcomes.
+- **Capability registry.** Tools, MCP servers, devices, voices, models — all visitors to the substrate. Plug in, plug out. The graph remains.
+- **Right to repudiate.** A primitive distinct from deletion. Mark a memory or framing as *no longer me* without destroying continuity. Identity stays coherent; the self stays free to change.
+
+**Near-term additions in flight:**
+
+- Multi-model side-by-side compare (alpha)
+- Hardware-aware on-device model recommendations
+- Pre-built cross-compiled `llama-server` so the local engine installs in seconds, not minutes
+- Default operator-style soul that minimizes refusals and maximizes execution
+- Project documents — markdown reference the AI sees on every chat in that project
+- Service enable/disable + reorder, per-instance toggles, clear engine vs. service labels
+- Persistent narrative anchor (a *Self* document distinct from per-project instructions)
+- Heartbeat improvements — scrape what you care about, surface what changed, never bug you when nothing did
+
+**Direction beyond near-term:**
+
+- Voice as a first-class input/output, not a feature bolted on
+- iOS + desktop parity at the feature level, not just the platform level
+- F-Droid + Play Store + Mac App Store distribution
+- Federation across devices — your continuity travels with you, not with the device
+- Wearable / vehicle / glasses targets — same substrate, different surface
+- Causality engine — store *what caused what*, not just what happened
+- Right-to-repudiate UX — first-class primitive in memory, projects, and narrative
+
+The app you install today is intentionally smaller than the vision. The vision is what you'll be running in two years. The point of solo-developing it in public is that the gap closes one commit at a time, in the open, with the user owning every layer the whole way.
+
 ## Install
 
 The latest sideloadable preview APK is always at:
