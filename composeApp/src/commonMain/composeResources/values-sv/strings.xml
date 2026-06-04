@@ -207,7 +207,6 @@ Om något behöver uppmärksamhet (föråldrade minnen, förfallna uppgifter, an
     <string name="settings_open_github_issue">Öppna GitHub Issue</string>
     <string name="notification_channel_name">AI-aviseringar</string>
     <string name="notification_channel_description">Aviseringar skickade av AI-assistenten</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Installera en Linux-miljö så att AI:n kan köra skalkommandon, skript och verktyg åt dig. Körs säkert inuti appen. ~3 MB nedladdning.</string>
     <string name="settings_sandbox_install">Installera</string>
     <string name="settings_sandbox_install_packages">Installera grundpaket</string>

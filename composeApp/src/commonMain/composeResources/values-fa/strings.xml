@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">ایجاد issue در GitHub</string>
     <string name="notification_channel_name">اعلان‌های هوش مصنوعی</string>
     <string name="notification_channel_description">اعلان‌های ارسال‌شده توسط دستیار هوش مصنوعی</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">یک محیط لینوکس نصب کنید تا هوش مصنوعی بتواند از طرف شما دستورات شل، اسکریپت‌ها و ابزارها را اجرا کند. به‌صورت امن درون برنامه اجرا می‌شود. ~۳ مگابایت دانلود.</string>
     <string name="settings_sandbox_install">نصب</string>
     <string name="settings_sandbox_install_packages">نصب بسته‌های پایه</string>

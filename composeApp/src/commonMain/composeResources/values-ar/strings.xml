@@ -207,7 +207,6 @@
     <string name="settings_open_github_issue">فتح مشكلة GitHub</string>
     <string name="notification_channel_name">إشعارات الذكاء الاصطناعي</string>
     <string name="notification_channel_description">إشعارات مرسلة من مساعد الذكاء الاصطناعي</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">ثبّت بيئة Linux ليتمكّن الذكاء الاصطناعي من تشغيل أوامر الطرفية والنصوص البرمجية والأدوات نيابةً عنك. يعمل بأمان داخل التطبيق. ~3 ميغابايت للتنزيل.</string>
     <string name="settings_sandbox_install">تثبيت</string>
     <string name="settings_sandbox_install_packages">تثبيت الحزم الأساسية</string>

@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Hap issue në GitHub</string>
     <string name="notification_channel_name">Njoftimet e AI</string>
     <string name="notification_channel_description">Njoftimet e dërguara nga asistenti AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Instaloni një mjedis Linux në mënyrë që IA të mund të ekzekutojë komanda shell, skripte dhe mjete në emrin tuaj. Ekzekutohet në mënyrë të sigurt brenda aplikacionit. ~3 MB shkarkim.</string>
     <string name="settings_sandbox_install">Instalo</string>
     <string name="settings_sandbox_install_packages">Instalo paketat bazë</string>

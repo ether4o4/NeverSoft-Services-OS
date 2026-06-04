@@ -46,7 +46,7 @@
     <string name="settings_tab_agent">Agent</string>
     <string name="settings_tab_services">Services</string>
     <string name="settings_tab_tools">Tools</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
+    <string name="settings_tab_sandbox">Local LLM</string>
     <string name="settings_tab_integrations">Integrations</string>
     <string name="tools_count">%1$d Tools</string>
     <string name="waiting_thinking">Thinking…</string>

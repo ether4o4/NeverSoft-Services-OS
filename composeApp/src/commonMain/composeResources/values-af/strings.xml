@@ -207,7 +207,6 @@ As iets aandag nodig het (verouderde herinneringe, verskuldigde take, gebruiker-
     <string name="settings_open_github_issue">Maak GitHub-kwessie oop</string>
     <string name="notification_channel_name">KI-kennisgewings</string>
     <string name="notification_channel_description">Kennisgewings gestuur deur KI-assistent</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Installeer 'n Linux-omgewing sodat die KI dopbevele, skrifte en gereedskap namens jou kan uitvoer. Dit werk veilig binne die toep. ~3 MB aflaai.</string>
     <string name="settings_sandbox_install">Installeer</string>
     <string name="settings_sandbox_install_packages">Installeer basispakkette</string>

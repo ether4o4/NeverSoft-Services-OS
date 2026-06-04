@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">เปิด Issue บน GitHub</string>
     <string name="notification_channel_name">การแจ้งเตือน AI</string>
     <string name="notification_channel_description">การแจ้งเตือนที่ส่งโดยผู้ช่วย AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">ติดตั้งสภาพแวดล้อม Linux เพื่อให้ AI สามารถเรียกใช้คำสั่ง shell สคริปต์ และเครื่องมือในนามของคุณ ทำงานอย่างปลอดภัยภายในแอป ดาวน์โหลด ~3 MB</string>
     <string name="settings_sandbox_install">ติดตั้ง</string>
     <string name="settings_sandbox_install_packages">ติดตั้งแพ็กเกจพื้นฐาน</string>

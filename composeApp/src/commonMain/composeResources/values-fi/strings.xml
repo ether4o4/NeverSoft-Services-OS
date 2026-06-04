@@ -207,7 +207,6 @@ Jos jokin vaatii huomiota (vanhentuneet muistot, erääntyneet tehtävät, käyt
     <string name="settings_open_github_issue">Avaa GitHub-issue</string>
     <string name="notification_channel_name">Tekoäly-ilmoitukset</string>
     <string name="notification_channel_description">Tekoälyavustajan lähettämät ilmoitukset</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Asenna Linux-ympäristö, jotta tekoäly voi suorittaa komentorivikomentoja, skriptejä ja työkaluja puolestasi. Toimii turvallisesti sovelluksen sisällä. ~3 Mt lataus.</string>
     <string name="settings_sandbox_install">Asenna</string>
     <string name="settings_sandbox_install_packages">Asenna peruspaketit</string>

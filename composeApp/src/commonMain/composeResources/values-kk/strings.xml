@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">GitHub issue ашу</string>
     <string name="notification_channel_name">AI хабарландырулары</string>
     <string name="notification_channel_description">AI көмекшісі жіберген хабарландырулар</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">AI сіздің атыңыздан shell командаларын, скрипттерді және құралдарды іске қоса алуы үшін Linux ортасын орнатыңыз. Қолданба ішінде қауіпсіз жұмыс істейді. ~3 МБ жүктеу.</string>
     <string name="settings_sandbox_install">Орнату</string>
     <string name="settings_sandbox_install_packages">Негізгі пакеттерді орнату</string>

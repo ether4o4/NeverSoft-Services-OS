@@ -207,7 +207,6 @@ Se qualcosa richiede attenzione (ricordi obsoleti, attività scadute, follow-up 
     <string name="settings_open_github_issue">Apri issue su GitHub</string>
     <string name="notification_channel_name">Notifiche AI</string>
     <string name="notification_channel_description">Notifiche inviate dall'assistente AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Installa un ambiente Linux in modo che l'IA possa eseguire comandi shell, script e strumenti per tuo conto. Funziona in modo sicuro all'interno dell'app. ~3 MB da scaricare.</string>
     <string name="settings_sandbox_install">Installa</string>
     <string name="settings_sandbox_install_packages">Installa pacchetti di base</string>

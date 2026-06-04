@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Otvoriť issue na GitHube</string>
     <string name="notification_channel_name">Upozornenia AI</string>
     <string name="notification_channel_description">Upozornenia odoslané AI asistentom</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Nainštalujte prostredie Linux, aby AI mohla vo vašom mene spúšťať príkazy shellu, skripty a nástroje. Beží bezpečne vnútri aplikácie. ~3 MB na stiahnutie.</string>
     <string name="settings_sandbox_install">Nainštalovať</string>
     <string name="settings_sandbox_install_packages">Nainštalovať základné balíky</string>

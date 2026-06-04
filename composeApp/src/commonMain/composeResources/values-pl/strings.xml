@@ -207,7 +207,6 @@ Jeśli coś wymaga uwagi (przestarzałe wspomnienia, zaległe zadania, dalsze dz
     <string name="settings_open_github_issue">Otwórz zgłoszenie na GitHubie</string>
     <string name="notification_channel_name">Powiadomienia AI</string>
     <string name="notification_channel_description">Powiadomienia wysyłane przez asystenta AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Zainstaluj środowisko Linux, aby AI mogło uruchamiać polecenia powłoki, skrypty i narzędzia w Twoim imieniu. Działa bezpiecznie wewnątrz aplikacji. ~3 MB do pobrania.</string>
     <string name="settings_sandbox_install">Zainstaluj</string>
     <string name="settings_sandbox_install_packages">Zainstaluj podstawowe pakiety</string>

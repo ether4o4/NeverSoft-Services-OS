@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">GitHub ইস্যু খুলুন</string>
     <string name="notification_channel_name">AI বিজ্ঞপ্তি</string>
     <string name="notification_channel_description">AI সহকারী দ্বারা প্রেরিত বিজ্ঞপ্তি</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">একটি Linux পরিবেশ ইনস্টল করুন যাতে AI আপনার পক্ষে শেল কমান্ড, স্ক্রিপ্ট এবং টুল চালাতে পারে। অ্যাপের ভিতরে নিরাপদে চলে। ~3 MB ডাউনলোড।</string>
     <string name="settings_sandbox_install">ইনস্টল করুন</string>
     <string name="settings_sandbox_install_packages">বেসিক প্যাকেজ ইনস্টল করুন</string>

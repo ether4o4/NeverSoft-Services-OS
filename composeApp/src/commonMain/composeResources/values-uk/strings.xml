@@ -207,7 +207,6 @@
     <string name="settings_open_github_issue">Відкрити GitHub Issue</string>
     <string name="notification_channel_name">Сповіщення ШІ</string>
     <string name="notification_channel_description">Сповіщення, надіслані ШІ-помічником</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Встановіть середовище Linux, щоб ШІ міг виконувати команди оболонки, скрипти та інструменти від вашого імені. Працює безпечно всередині додатка. ~3 МБ завантаження.</string>
     <string name="settings_sandbox_install">Встановити</string>
     <string name="settings_sandbox_install_packages">Встановити базові пакети</string>

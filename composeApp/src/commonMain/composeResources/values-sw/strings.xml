@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Fungua GitHub Issue</string>
     <string name="notification_channel_name">Arifa za AI</string>
     <string name="notification_channel_description">Arifa zilizotumwa na msaidizi wa AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Sakinisha mazingira ya Linux ili AI iweze kuendesha amri za shell, hati na zana kwa niaba yako. Inafanya kazi kwa usalama ndani ya programu. ~3 MB ya kupakua.</string>
     <string name="settings_sandbox_install">Sakinisha</string>
     <string name="settings_sandbox_install_packages">Sakinisha vifurushi vya msingi</string>

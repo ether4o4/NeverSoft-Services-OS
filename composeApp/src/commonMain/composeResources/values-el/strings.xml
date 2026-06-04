@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Άνοιγμα ζητήματος GitHub</string>
     <string name="notification_channel_name">Ειδοποιήσεις AI</string>
     <string name="notification_channel_description">Ειδοποιήσεις που αποστέλλονται από τον βοηθό AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Εγκαταστήστε ένα περιβάλλον Linux ώστε η AI να μπορεί να εκτελεί εντολές κελύφους, σενάρια και εργαλεία για λογαριασμό σας. Εκτελείται με ασφάλεια μέσα στην εφαρμογή. ~3 MB λήψη.</string>
     <string name="settings_sandbox_install">Εγκατάσταση</string>
     <string name="settings_sandbox_install_packages">Εγκατάσταση βασικών πακέτων</string>

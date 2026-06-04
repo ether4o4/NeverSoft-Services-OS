@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Atvērt GitHub problēmu</string>
     <string name="notification_channel_name">MI paziņojumi</string>
     <string name="notification_channel_description">Paziņojumi, ko nosūta MI asistents</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Instalējiet Linux vidi, lai MI varētu jūsu vārdā palaist čaulas komandas, skriptus un rīkus. Darbojas droši lietotnes iekšienē. ~3 MB lejupielāde.</string>
     <string name="settings_sandbox_install">Instalēt</string>
     <string name="settings_sandbox_install_packages">Instalēt pamata pakotnes</string>

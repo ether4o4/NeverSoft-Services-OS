@@ -207,7 +207,6 @@ Bir şey dikkat gerektiriyorsa (eski anılar, vadesi geçmiş görevler, kullan�
     <string name="settings_open_github_issue">GitHub Issue Aç</string>
     <string name="notification_channel_name">AI Bildirimleri</string>
     <string name="notification_channel_description">AI asistan tarafından gönderilen bildirimler</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Yapay zekanın sizin adınıza kabuk komutları, betikler ve araçlar çalıştırabilmesi için bir Linux ortamı kurun. Uygulama içinde güvenli şekilde çalışır. ~3 MB indirme.</string>
     <string name="settings_sandbox_install">Kur</string>
     <string name="settings_sandbox_install_packages">Temel paketleri kur</string>

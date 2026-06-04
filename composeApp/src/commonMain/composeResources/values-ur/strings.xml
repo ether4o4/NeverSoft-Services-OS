@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">GitHub Issue کھولیں</string>
     <string name="notification_channel_name">AI اطلاعات</string>
     <string name="notification_channel_description">AI اسسٹنٹ کی طرف سے بھیجی گئی اطلاعات</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">ایک Linux ماحول انسٹال کریں تاکہ AI آپ کی جانب سے شیل کمانڈز، اسکرپٹس اور ٹولز چلا سکے۔ ایپ کے اندر محفوظ طریقے سے چلتا ہے۔ ~3 MB ڈاؤن لوڈ۔</string>
     <string name="settings_sandbox_install">انسٹال کریں</string>
     <string name="settings_sandbox_install_packages">بنیادی پیکیجز انسٹال کریں</string>

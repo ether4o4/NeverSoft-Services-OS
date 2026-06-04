@@ -207,7 +207,6 @@
     <string name="settings_open_github_issue">GitHub issueを開く</string>
     <string name="notification_channel_name">AI通知</string>
     <string name="notification_channel_description">AIアシスタントから送信された通知</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Linux環境をインストールすると、AIがあなたの代わりにシェルコマンド、スクリプト、ツールを実行できます。アプリ内で安全に動作します。約3 MBのダウンロード。</string>
     <string name="settings_sandbox_install">インストール</string>
     <string name="settings_sandbox_install_packages">基本パッケージをインストール</string>

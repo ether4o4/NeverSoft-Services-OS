@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Отворете GitHub проблем</string>
     <string name="notification_channel_name">AI известия</string>
     <string name="notification_channel_description">Известия, изпратени от AI асистент</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Инсталирайте Linux среда, за да може ИИ да изпълнява команди, скриптове и инструменти от ваше име. Работи сигурно вътре в приложението. ~3 MB за изтегляне.</string>
     <string name="settings_sandbox_install">Инсталиране</string>
     <string name="settings_sandbox_install_packages">Инсталиране на основни пакети</string>

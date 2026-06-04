@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Отвори GitHub Issue</string>
     <string name="notification_channel_name">AI обавештења</string>
     <string name="notification_channel_description">Обавештења послата од стране AI асистента</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Инсталирајте Linux окружење како би АИ могао да покреће команде љуске, скрипте и алате у ваше име. Ради безбедно унутар апликације. ~3 MB преузимање.</string>
     <string name="settings_sandbox_install">Инсталирај</string>
     <string name="settings_sandbox_install_packages">Инсталирај основне пакете</string>

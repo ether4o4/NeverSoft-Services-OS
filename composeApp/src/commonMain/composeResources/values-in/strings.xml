@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Buka Isu GitHub</string>
     <string name="notification_channel_name">Notifikasi AI</string>
     <string name="notification_channel_description">Notifikasi yang dikirim oleh asisten AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Instal lingkungan Linux agar AI dapat menjalankan perintah shell, skrip, dan alat atas nama Anda. Berjalan dengan aman di dalam aplikasi. ~3 MB unduhan.</string>
     <string name="settings_sandbox_install">Pasang</string>
     <string name="settings_sandbox_install_packages">Pasang paket dasar</string>

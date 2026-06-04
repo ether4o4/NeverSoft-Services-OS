@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Deschide issue pe GitHub</string>
     <string name="notification_channel_name">Notificări AI</string>
     <string name="notification_channel_description">Notificări trimise de asistentul AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Instalează un mediu Linux pentru ca AI-ul să poată rula comenzi shell, scripturi și instrumente în numele tău. Rulează în siguranță în interiorul aplicației. ~3 MB descărcare.</string>
     <string name="settings_sandbox_install">Instalare</string>
     <string name="settings_sandbox_install_packages">Instalare pachete de bază</string>

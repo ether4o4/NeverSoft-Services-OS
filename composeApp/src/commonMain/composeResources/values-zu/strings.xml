@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Vula i-GitHub Issue</string>
     <string name="notification_channel_name">Izaziso ze-AI</string>
     <string name="notification_channel_description">Izaziso ezithunyelwe umsizi we-AI</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Faka imvelo ye-Linux ukuze i-AI ikwazi ukusebenzisa imiyalo ye-shell, amaskripthi namathuluzi egameni lakho. Isebenza ngokuphepha ngaphakathi kohlelo lokusebenza. ~3 MB ukudawuniloda.</string>
     <string name="settings_sandbox_install">Faka</string>
     <string name="settings_sandbox_install_packages">Faka amaphakheji ayisisekelo</string>

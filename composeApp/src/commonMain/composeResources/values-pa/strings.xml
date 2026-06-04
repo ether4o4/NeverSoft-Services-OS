@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">GitHub ਇਸ਼ੂ ਖੋਲ੍ਹੋ</string>
     <string name="notification_channel_name">AI ਸੂਚਨਾਵਾਂ</string>
     <string name="notification_channel_description">AI ਸਹਾਇਕ ਦੁਆਰਾ ਭੇਜੀਆਂ ਸੂਚਨਾਵਾਂ</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">ਇੱਕ Linux ਵਾਤਾਵਰਨ ਇੰਸਟਾਲ ਕਰੋ ਤਾਂ ਜੋ AI ਤੁਹਾਡੀ ਤਰਫ਼ੋਂ ਸ਼ੈੱਲ ਕਮਾਂਡਾਂ, ਸਕ੍ਰਿਪਟਾਂ ਅਤੇ ਟੂਲ ਚਲਾ ਸਕੇ। ਐਪ ਦੇ ਅੰਦਰ ਸੁਰੱਖਿਅਤ ਢੰਗ ਨਾਲ ਚੱਲਦਾ ਹੈ। ~3 MB ਡਾਊਨਲੋਡ।</string>
     <string name="settings_sandbox_install">ਇੰਸਟਾਲ ਕਰੋ</string>
     <string name="settings_sandbox_install_packages">ਮੁੱਢਲੇ ਪੈਕੇਜ ਇੰਸਟਾਲ ਕਰੋ</string>

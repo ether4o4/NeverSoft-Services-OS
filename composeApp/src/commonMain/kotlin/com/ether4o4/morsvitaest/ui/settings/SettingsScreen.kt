@@ -479,6 +479,16 @@ fun SettingsScreenContent(
                             }
 
                             SettingsTab.Sandbox -> {
+                                // Tab now reads "Local LLM" — users come here looking to
+                                // ADD a GGUF model, not to manage the Linux sandbox. The
+                                // Linux sandbox is plumbing for the engine; it's still
+                                // needed but it's not the headline action, so it renders
+                                // after the model-management UI. The GGUF card's "Set up
+                                // engine" button drives sandbox provisioning automatically
+                                // — most users never need to touch the Sandbox card
+                                // directly unless they want the in-app terminal.
+                                PlatformGgufModelsCard()
+                                Spacer(Modifier.height(16.dp))
                                 SandboxSettingsCard(
                                     sandboxState = sandboxState,
                                     onToggleSandbox = onToggleSandbox,
@@ -487,8 +497,6 @@ fun SettingsScreenContent(
                                     onResetSandbox = onResetSandbox,
                                     onInstallPackages = onInstallPackages,
                                 )
-                                Spacer(Modifier.height(16.dp))
-                                PlatformGgufModelsCard()
                             }
                         }
 

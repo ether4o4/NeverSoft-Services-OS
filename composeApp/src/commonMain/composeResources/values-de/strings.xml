@@ -207,7 +207,6 @@ Wenn etwas Aufmerksamkeit erfordert (veraltete Erinnerungen, fällige Aufgaben, 
     <string name="settings_open_github_issue">GitHub-Issue öffnen</string>
     <string name="notification_channel_name">KI-Benachrichtigungen</string>
     <string name="notification_channel_description">Benachrichtigungen vom KI-Assistenten</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Installiere eine Linux-Umgebung, damit die KI Shell-Befehle, Skripte und Tools in deinem Namen ausführen kann. Läuft sicher innerhalb der App. ~3 MB Download.</string>
     <string name="settings_sandbox_install">Installieren</string>
     <string name="settings_sandbox_install_packages">Basispakete installieren</string>

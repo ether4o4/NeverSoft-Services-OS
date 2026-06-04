@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">Адкрыць GitHub-задачу</string>
     <string name="notification_channel_name">Апавяшчэнні AI</string>
     <string name="notification_channel_description">Апавяшчэнні, адпраўленыя AI-памочнікам</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Усталюйце асяроддзе Linux, каб ШІ мог выконваць каманды абалонкі, скрыпты і інструменты ад вашага імя. Працуе бяспечна ўнутры праграмы. ~3 МБ спампоўка.</string>
     <string name="settings_sandbox_install">Усталяваць</string>
     <string name="settings_sandbox_install_packages">Усталяваць базавыя пакеты</string>

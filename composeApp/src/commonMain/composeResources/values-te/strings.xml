@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">GitHub Issue తెరువు</string>
     <string name="notification_channel_name">AI నోటిఫికేషన్లు</string>
     <string name="notification_channel_description">AI అసిస్టెంట్ పంపిన నోటిఫికేషన్లు</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">AI మీ తరపున షెల్ కమాండ్‌లు, స్క్రిప్ట్‌లు మరియు టూల్స్ అమలు చేయడానికి Linux వాతావరణాన్ని ఇన్‌స్టాల్ చేయండి. యాప్ లోపల సురక్షితంగా నడుస్తుంది. ~3 MB డౌన్‌లోడ్.</string>
     <string name="settings_sandbox_install">ఇన్‌స్టాల్ చేయండి</string>
     <string name="settings_sandbox_install_packages">ప్రాథమిక ప్యాకేజీలను ఇన్‌స్టాల్ చేయండి</string>

@@ -206,7 +206,6 @@
     <string name="settings_open_github_issue">GitHub Issue megnyitása</string>
     <string name="notification_channel_name">AI-értesítések</string>
     <string name="notification_channel_description">Az AI-asszisztens által küldött értesítések</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Telepítsen egy Linux környezetet, hogy az AI az Ön nevében futtasson parancsokat, szkripteket és eszközöket. Biztonságosan fut az alkalmazáson belül. ~3 MB letöltés.</string>
     <string name="settings_sandbox_install">Telepítés</string>
     <string name="settings_sandbox_install_packages">Alapcsomagok telepítése</string>

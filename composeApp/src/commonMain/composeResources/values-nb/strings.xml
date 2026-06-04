@@ -207,7 +207,6 @@ Hvis noe trenger oppmerksomhet (utdaterte minner, forfalte oppgaver, brukeroppf�
     <string name="settings_open_github_issue">Opprett GitHub-sak</string>
     <string name="notification_channel_name">AI-varsler</string>
     <string name="notification_channel_description">Varsler sendt av AI-assistent</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Installer et Linux-miljø slik at AI-en kan kjøre skallkommandoer, skript og verktøy på dine vegne. Kjører sikkert inne i appen. ~3 MB nedlasting.</string>
     <string name="settings_sandbox_install">Installer</string>
     <string name="settings_sandbox_install_packages">Installer grunnleggende pakker</string>

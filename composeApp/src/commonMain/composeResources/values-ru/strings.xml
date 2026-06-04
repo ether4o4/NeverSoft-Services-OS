@@ -207,7 +207,6 @@
     <string name="settings_open_github_issue">Открыть issue на GitHub</string>
     <string name="notification_channel_name">Уведомления ИИ</string>
     <string name="notification_channel_description">Уведомления, отправленные ИИ-ассистентом</string>
-    <string name="settings_tab_sandbox">Linux Sandbox</string>
     <string name="settings_sandbox_description">Установите среду Linux, чтобы ИИ мог выполнять команды оболочки, скрипты и инструменты от вашего имени. Работает безопасно внутри приложения. ~3 МБ загрузка.</string>
     <string name="settings_sandbox_install">Установить</string>
     <string name="settings_sandbox_install_packages">Установить базовые пакеты</string>
