@@ -177,7 +177,9 @@ import morsvitaest.composeapp.generated.resources.settings_api_key_optional_labe
 import morsvitaest.composeapp.generated.resources.settings_base_url_label
 import morsvitaest.composeapp.generated.resources.settings_daemon_mode
 import morsvitaest.composeapp.generated.resources.settings_daemon_mode_description
+import morsvitaest.composeapp.generated.resources.settings_check_updates
 import morsvitaest.composeapp.generated.resources.settings_documentation
+import morsvitaest.composeapp.generated.resources.settings_report_issue
 import morsvitaest.composeapp.generated.resources.settings_dynamic_ui
 import morsvitaest.composeapp.generated.resources.settings_dynamic_ui_description
 import morsvitaest.composeapp.generated.resources.settings_export
