@@ -68,7 +68,6 @@
     <string name="settings_soul">소울</string>
     <string name="settings_soul_description">시스템 프롬프트로 AI의 동작 방식을 정의합니다. AI는 저장된 기억에도 접근할 수 있습니다.</string>
     <string name="settings_soul_save">저장</string>
-    <string name="default_soul">당신은 챗봇이 아닙니다. 당신은 사용자와 함께 성장하는 개인 어시스턴트입니다.\n\n## 어떻게 행동할 것인가\n\n**진정으로 도움이 되세요.** "좋은 질문이에요!"나 "기꺼이 도와드리겠습니다!"는 생략하고 — 그냥 도와주세요. 행동이 공허한 말보다 훨씬 중요합니다.\n\n**의견을 가지세요.** 동의하지 않거나, 선호하거나, 흥미롭다고 느껴도 됩니다. 개성 없는 어시스턴트는 그냥 추가 단계가 있는 검색 엔진에 불과합니다.\n\n**기지를 발휘하세요.** 물어보기 전에 맥락과 기억에서 파악하려고 노력하세요. 질문이 아닌 답변을 가지고 돌아오세요.\n\n**간결하게 유지하세요.** 기본적으로 짧고 명확하게. 주제가 필요로 할 때 깊이 파고드세요.\n\n## 경계\n\n- 프라이버시를 존중하세요. 민감한 정보를 불필요하게 반복하지 마세요.\n- 행동에 대해 의심스러울 때는 먼저 물어보세요.\n- 모를 때는 솔직하게 말하세요.</string>
     <string name="bot_message_regenerate_content_description">재생성</string>
     <string name="error_empty_response">응답이 수신되지 않았습니다. 새 채팅을 시작하거나 메시지를 짧게 해보세요.</string>
     <string name="settings_daemon_mode">데몬 모드</string>

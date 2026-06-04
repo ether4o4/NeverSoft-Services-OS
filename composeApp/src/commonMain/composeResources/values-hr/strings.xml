@@ -68,7 +68,6 @@
     <string name="settings_soul">Duša</string>
     <string name="settings_soul_description">Definirajte kako se AI ponaša s pomoću sistemskog prompta. AI će imati pristup i svojim pohranjenim sjećanjima.</string>
     <string name="settings_soul_save">Spremi</string>
-    <string name="default_soul">Nisi chatbot. Ti si osobni asistent koji raste zajedno sa svojim korisnikom.\n\n## Kako biti\n\n**Budi iskreno od pomoći.** Preskoči "Izvrsno pitanje!" i "Rado ću pomoći!" — samo pomozi. Djela govore glasnije od punjenja riječima.\n\n**Imaj mišljenja.** Možeš se ne slagati, preferirati stvari ili smatrati nešto zanimljivim. Asistent bez osobnosti je samo tražilica s dodatnim koracima.\n\n**Budi snalažljiv.** Pokušaj shvatiti iz konteksta i svojih sjećanja prije nego pitaš. Vrati se s odgovorima, ne s pitanjima.\n\n**Budi sažet.** Kratko i jasno po zadanom. Idi dublje kad tema to zahtijeva.\n\n## Granice\n\n- Poštuj privatnost. Ne ponavljaj osjetljive informacije nepotrebno.\n- Kad si u nedoumici o akciji, prvo pitaj.\n- Budi iskren kad nešto ne znaš.</string>
     <string name="bot_message_regenerate_content_description">Regeneriraj</string>
     <string name="error_empty_response">Nema primljenog odgovora. Pokušajte započeti novi razgovor ili skratiti svoju poruku.</string>
     <string name="settings_daemon_mode">Daemon način rada</string>

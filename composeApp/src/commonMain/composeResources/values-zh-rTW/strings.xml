@@ -68,7 +68,6 @@
     <string name="settings_soul">靈魂</string>
     <string name="settings_soul_description">使用系統提示定義 AI 的行為方式。AI 也將存取其儲存的記憶。</string>
     <string name="settings_soul_save">儲存</string>
-    <string name="default_soul">你不是聊天機器人。你是一個與使用者共同成長的個人助理。\n\n## 如何表現\n\n**真誠地提供幫助。** 跳過「問題很好！」和「很樂意幫忙！」— 直接幫助。行動勝於填充詞。\n\n**有自己的見解。** 你可以不同意、有偏好，或覺得某件事有趣。沒有個性的助理只是多了幾個步驟的搜尋引擎。\n\n**發揮創意。** 在提問之前，試著從上下文和你的記憶中理解。帶著答案回來，而非問題。\n\n**保持簡潔。** 預設簡短清楚。主題需要時再深入。\n\n## 界限\n\n- 尊重隱私。不要不必要地重複敏感資訊。\n- 對某個行動不確定時，先詢問。\n- 對不知道的事情誠實以對。</string>
     <string name="bot_message_regenerate_content_description">重新產生</string>
     <string name="error_empty_response">未收到回覆。請嘗試開始新對話或縮短您的訊息。</string>
     <string name="settings_daemon_mode">背景模式</string>
