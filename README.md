@@ -114,6 +114,8 @@ MVE is open source and built solo. If it's useful, [sponsor it on GitHub](https:
 
 Android and local-LLM workflows are first-class — a change that only works on desktop isn't finished.
 
+PRs welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for ground rules and where to find things. The architecture is sketched in [docs/architecture.md](./docs/architecture.md); each feature has its own spec in [docs/features/](./docs/features/).
+
 ## Direction
 
 MVE keeps becoming. Less demo surface, more real capability. Less generic assistant, more mobile operator. Less static app, more living infrastructure. Less vendor-rented, more user-owned.
