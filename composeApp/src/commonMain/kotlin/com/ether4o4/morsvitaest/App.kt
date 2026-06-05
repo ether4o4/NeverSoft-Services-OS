@@ -49,6 +49,7 @@ import com.ether4o4.morsvitaest.ui.LightColorScheme
 import com.ether4o4.morsvitaest.ui.Theme
 import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
+import com.ether4o4.morsvitaest.ui.hud.MorsVitaEstHud
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
 import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
 import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
@@ -224,19 +225,15 @@ private fun AppContent(
                     modifier = Modifier.background(MaterialTheme.colorScheme.background),
                 ) {
                     composable<Home> {
-                        // Foundry home is gated off — files are still in the repo
-                        // (commonMain/.../ui/foundry/*) for the next iteration, but
-                        // ship as the existing ChatScreen until the layout is
-                        // polished (system-bar insets, responsive sizing for small
-                        // screens, the title plate PNG asset).
-                        ChatScreen(
+                        // Home is the mobile-first HUD: title, top menu, chat-
+                        // session glass panel with composer + red action, curated
+                        // link feed, bottom dock. Full-fat chat experience still
+                        // lives at FoundryChat — the HUD's "Open chat" + Chat tab
+                        // both navigate there for the existing message stream UI.
+                        MorsVitaEstHud(
                             viewModel = chatViewModel,
-                            textToSpeech = textToSpeech,
-                            onNavigateToSettings = {
-                                navController.navigate(Settings)
-                            },
-                            isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
-                            navigationTabBar = if (showTabBar) navigationTabBar else null,
+                            onNavigateToSettings = { navController.navigate(Settings) },
+                            onOpenFullChat = { navController.navigate(FoundryChat) },
                         )
                     }
                     composable<FoundryChat> {
