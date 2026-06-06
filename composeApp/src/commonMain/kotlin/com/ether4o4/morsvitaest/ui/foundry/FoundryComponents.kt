@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
+/*
  * Foundry — brushed-metal Compose primitives. Every component in this file
  * is dark-first, uses the [Foundry] token sweep + bevel for its surface,
  * and is meant to be composed directly into [com.ether4o4.morsvitaest.ui.foundry.FoundryHome].
