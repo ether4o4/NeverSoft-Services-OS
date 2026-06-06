@@ -12,6 +12,7 @@ import com.ether4o4.morsvitaest.data.HeartbeatConfig
 import com.ether4o4.morsvitaest.data.HeartbeatLogEntry
 import com.ether4o4.morsvitaest.data.ImportSection
 import com.ether4o4.morsvitaest.data.MemoryEntry
+import com.ether4o4.morsvitaest.data.Project
 import com.ether4o4.morsvitaest.data.ScheduledTask
 import com.ether4o4.morsvitaest.data.Service
 import com.ether4o4.morsvitaest.data.ServiceEntry
@@ -96,6 +97,45 @@ class FakeDataRepository : DataRepository {
         val reordered = orderedInstanceIds.mapNotNull { byId[it] }
         configuredInstances.clear()
         configuredInstances.addAll(reordered)
+    }
+
+    // Per-instance enable/disable (instances are enabled unless explicitly disabled)
+    private val disabledInstanceIds = mutableSetOf<String>()
+
+    override fun isInstanceEnabled(instanceId: String): Boolean = instanceId !in disabledInstanceIds
+
+    override fun setInstanceEnabled(instanceId: String, enabled: Boolean) {
+        if (enabled) disabledInstanceIds.remove(instanceId) else disabledInstanceIds.add(instanceId)
+    }
+
+    // Projects
+    private val projects = mutableListOf<Project>()
+    private var activeProjectId: String = Project.NONE_ID
+
+    override fun getProjects(): List<Project> = projects.toList()
+
+    override fun getActiveProject(): Project? = projects.find { it.id == activeProjectId }
+
+    override fun setActiveProjectId(id: String) {
+        activeProjectId = id
+    }
+
+    override fun createProject(name: String, instructions: String): Project {
+        val project = Project(name = name, instructions = instructions)
+        projects.add(project)
+        return project
+    }
+
+    override fun updateProject(id: String, name: String, instructions: String) {
+        val index = projects.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            projects[index] = projects[index].copy(name = name, instructions = instructions)
+        }
+    }
+
+    override fun deleteProject(id: String) {
+        projects.removeAll { it.id == id }
+        if (activeProjectId == id) activeProjectId = Project.NONE_ID
     }
 
     var fakeServiceEntries: List<ServiceEntry> = emptyList()
