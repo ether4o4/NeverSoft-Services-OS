@@ -56,6 +56,7 @@ import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
 import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
+import com.ether4o4.morsvitaest.ui.settings.SettingsTab
 import com.ether4o4.morsvitaest.ui.withBlackBackground
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -76,7 +77,7 @@ object Home
 
 @Serializable
 @SerialName("settings")
-object Settings
+data class Settings(val tab: String? = null)
 
 // Foundry home tile destinations. Chat reuses the existing ChatScreen;
 // the rest land on the placeholder screen until Phase 2 wires them up.
@@ -243,7 +244,19 @@ private fun AppContent(
 
                                     FoundryDestination.Compare -> navController.navigate(Compare)
 
-                                    else -> navController.navigate(Settings)
+                                    FoundryDestination.Mcp ->
+                                        navController.navigate(Settings(SettingsTab.Tools.name))
+
+                                    FoundryDestination.Projects ->
+                                        navController.navigate(Settings(SettingsTab.Projects.name))
+
+                                    FoundryDestination.Services,
+                                    FoundryDestination.Ollama,
+                                    FoundryDestination.HuggingFace,
+                                    FoundryDestination.LlmChooser,
+                                    -> navController.navigate(Settings(SettingsTab.Services.name))
+
+                                    else -> navController.navigate(Settings())
                                 }
                             },
                             navigationTabBar = navigationTabBar,
@@ -254,7 +267,7 @@ private fun AppContent(
                             viewModel = chatViewModel,
                             textToSpeech = textToSpeech,
                             onNavigateToSettings = {
-                                navController.navigate(Settings)
+                                navController.navigate(Settings())
                             },
                             isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
                             navigationTabBar = if (showTabBar) navigationTabBar else null,
@@ -273,13 +286,16 @@ private fun AppContent(
                             onNavigateBack = { navController.navigateUp() },
                         )
                     }
-                    composable<Settings> {
+                    composable<Settings> { entry ->
+                        val initialTab = entry.toRoute<Settings>().tab
+                            ?.let { runCatching { SettingsTab.valueOf(it) }.getOrNull() }
                         DisposableEffect(Unit) {
                             onDispose {
                                 chatViewModel.refreshSettings()
                             }
                         }
                         SettingsScreen(
+                            initialTab = initialTab,
                             onNavigateBack = {
                                 chatViewModel.refreshSettings()
                                 navController.navigateUp()
