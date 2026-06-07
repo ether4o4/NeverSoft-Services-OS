@@ -40,6 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -71,7 +75,11 @@ fun HelpBubble(
             .background(brush = Foundry.glossOverlay, shape = Foundry.pillShape)
             .border(Foundry.bevelThick, Foundry.pillShape)
             .handCursor()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics {
+                contentDescription = "Open help"
+                role = Role.Button
+            },
         contentAlignment = Alignment.Center,
     ) {
         Text(text = "?", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp)
@@ -246,6 +254,7 @@ fun HelpAssistantSheet(
                     },
                     size = 44.dp,
                     tint = if (input.isNotBlank() && !state.isLoading) Foundry.labelPrimary else Foundry.labelMuted,
+                    contentDescription = "Send",
                 )
             }
         }

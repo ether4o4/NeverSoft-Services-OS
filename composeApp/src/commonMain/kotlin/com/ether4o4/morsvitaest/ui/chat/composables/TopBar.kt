@@ -53,6 +53,7 @@ internal fun TopBar(
     onToggleSandbox: () -> Unit,
     onShowHistory: () -> Unit,
     navigationTabBar: (@Composable () -> Unit)? = null,
+    showSettingsButton: Boolean = true,
 ) {
     if (navigationTabBar != null) {
         Box(
@@ -68,15 +69,8 @@ internal fun TopBar(
                 if (textToSpeech != null) {
                     SpeechToggleButton(textToSpeech, isSpeechOutputEnabled, isSpeaking, actions)
                 }
-                IconButton(
-                    modifier = Modifier.handCursor(),
-                    onClick = onNavigateToSettings,
-                ) {
-                    Icon(
-                        imageVector = vectorResource(Res.drawable.ic_settings),
-                        contentDescription = stringResource(Res.string.settings_content_description),
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
+                if (showSettingsButton) {
+                    SettingsButton(onNavigateToSettings)
                 }
             }
         }
@@ -87,17 +81,24 @@ internal fun TopBar(
             if (textToSpeech != null) {
                 SpeechToggleButton(textToSpeech, isSpeechOutputEnabled, isSpeaking, actions)
             }
-            IconButton(
-                modifier = Modifier.handCursor(),
-                onClick = onNavigateToSettings,
-            ) {
-                Icon(
-                    imageVector = vectorResource(Res.drawable.ic_settings),
-                    contentDescription = stringResource(Res.string.settings_content_description),
-                    tint = MaterialTheme.colorScheme.onBackground,
-                )
+            if (showSettingsButton) {
+                SettingsButton(onNavigateToSettings)
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsButton(onNavigateToSettings: () -> Unit) {
+    IconButton(
+        modifier = Modifier.handCursor(),
+        onClick = onNavigateToSettings,
+    ) {
+        Icon(
+            imageVector = vectorResource(Res.drawable.ic_settings),
+            contentDescription = stringResource(Res.string.settings_content_description),
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
     }
 }
 

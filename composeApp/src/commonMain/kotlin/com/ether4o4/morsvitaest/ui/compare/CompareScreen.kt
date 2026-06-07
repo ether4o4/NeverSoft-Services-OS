@@ -88,7 +88,7 @@ private fun CompareContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (onBack != null) {
-                    FoundryIconChip(glyph = "←", onClick = onBack, size = 40.dp)
+                    FoundryIconChip(glyph = "←", onClick = onBack, size = 40.dp, contentDescription = "Back")
                     Spacer(Modifier.width(10.dp))
                 }
                 Text(
@@ -190,6 +190,7 @@ private fun CompareContent(
                         },
                         size = 44.dp,
                         tint = if (input.isNotBlank() && state.canSend) Foundry.labelPrimary else Foundry.labelMuted,
+                        contentDescription = "Send",
                     )
                 }
             }

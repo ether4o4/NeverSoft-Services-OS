@@ -194,6 +194,7 @@ private fun NewsFeedCard(
                 glyph = "↻",
                 onClick = onRefresh,
                 size = 34.dp,
+                contentDescription = "Refresh feed",
             )
         }
         PullToRefreshBox(
@@ -424,6 +425,7 @@ private fun IntegrationTile(
                 glyph = "⚙",
                 onClick = { onConfig(box) },
                 size = 34.dp,
+                contentDescription = "Configure ${box.title}",
             )
         }
     }

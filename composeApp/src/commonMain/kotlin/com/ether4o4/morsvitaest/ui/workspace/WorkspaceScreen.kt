@@ -110,6 +110,9 @@ fun WorkspaceScreen(
                     // Shell is its own tab now, so hide the in-chat sandbox toggle.
                     isSandboxAvailable = false,
                     navigationTabBar = null,
+                    // The tab strip already carries the settings gear — avoid a
+                    // second one stacked right under it in the chat top bar.
+                    showSettingsButton = false,
                 )
 
                 WorkspaceTab.MultiChat -> CompareScreen(
@@ -158,8 +161,8 @@ private fun WorkspaceTabStrip(
             }
             // Tap-to-help and Settings live together at the end of the strip so both
             // are reachable from every tab.
-            FoundryIconChip(glyph = "?", onClick = onOpenHelp, size = 40.dp)
-            FoundryIconChip(glyph = "⚙", onClick = onOpenSettings, size = 40.dp)
+            FoundryIconChip(glyph = "?", onClick = onOpenHelp, size = 40.dp, contentDescription = "Help")
+            FoundryIconChip(glyph = "⚙", onClick = onOpenSettings, size = 40.dp, contentDescription = "Settings")
         }
     }
 }
