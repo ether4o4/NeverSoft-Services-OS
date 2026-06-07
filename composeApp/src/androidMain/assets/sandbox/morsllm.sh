@@ -602,9 +602,9 @@ cmd_serve() {
 {"pid":$pid,"port":$port,"model":"$model","model_path":"$model_path","started":"$(date -u +%FT%TZ)"}
 EOF
 
-    log "serve: waiting for /health"
+    log "serve: waiting for /health (large models can take a few minutes to load)"
     local elapsed=0
-    while [ $elapsed -lt 60 ]; do
+    while [ $elapsed -lt 300 ]; do
         if ! kill -0 "$pid" 2>/dev/null; then
             log "serve: process died early; see $log_file"
             rm -f "$PID_FILE"
@@ -619,7 +619,7 @@ EOF
         sleep 1
         elapsed=$((elapsed + 1))
     done
-    emit "{\"ok\":false,\"error\":\"health_timeout\",\"pid\":$pid,\"hint\":\"tail $log_file\"}"
+    emit "{\"ok\":false,\"error\":\"health_timeout\",\"pid\":$pid,\"hint\":\"Model not ready after 5 min — it may be too large for this device's free RAM. Try a smaller model or quant. Log: $log_file\"}"
     return 1
 }
 
