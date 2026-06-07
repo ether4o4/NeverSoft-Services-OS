@@ -53,6 +53,7 @@ import com.ether4o4.morsvitaest.ui.compare.CompareScreen
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
 import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
 import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
+import com.ether4o4.morsvitaest.ui.foundry.FoundryHomeViewModel
 import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
@@ -230,11 +231,11 @@ private fun AppContent(
                     modifier = Modifier.background(MaterialTheme.colorScheme.background),
                 ) {
                     composable<Home> {
-                        // Foundry brushed-metal home (Page 1): newsfeed + integration
-                        // boxes. Each box's gear opens its config in Settings; the
-                        // Workspace tab leads to the chat / sandbox screen. The tab bar
-                        // is rendered on Home for every platform so phones — which hide
-                        // the in-chat tab bar — can still reach the Workspace.
+                        // Foundry brushed-metal home (Page 1): a live newsfeed (Heartbeat
+                        // updates, pull-to-refresh) + integration boxes whose gears open the
+                        // matching Settings tab. The Workspace tab leads to chat / sandbox.
+                        val homeViewModel = koinViewModel<FoundryHomeViewModel>()
+                        val homeState by homeViewModel.state.collectAsStateWithLifecycle()
                         FoundryHome(
                             onNavigate = { dest ->
                                 when (dest) {
@@ -259,6 +260,9 @@ private fun AppContent(
                                     else -> navController.navigate(Settings())
                                 }
                             },
+                            onRefreshFeed = homeViewModel::refresh,
+                            isRefreshing = homeState.isRefreshing,
+                            feedItems = homeState.feed,
                             navigationTabBar = navigationTabBar,
                         )
                     }

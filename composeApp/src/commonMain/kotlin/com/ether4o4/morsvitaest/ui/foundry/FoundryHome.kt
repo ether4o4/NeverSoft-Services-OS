@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.ether4o4.morsvitaest.ui.foundry
 
 import androidx.compose.foundation.background
@@ -18,7 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +62,7 @@ fun FoundryHome(
     onNavigate: (FoundryDestination) -> Unit,
     modifier: Modifier = Modifier,
     onRefreshFeed: () -> Unit = {},
+    isRefreshing: Boolean = false,
     feedItems: List<FoundryFeedItem> = previewFeedItems,
     navigationTabBar: (@Composable () -> Unit)? = null,
 ) {
@@ -92,6 +97,7 @@ fun FoundryHome(
         NewsFeedCard(
             items = feedItems,
             onRefresh = onRefreshFeed,
+            isRefreshing = isRefreshing,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
@@ -154,6 +160,7 @@ data class FoundryFeedItem(
 private fun NewsFeedCard(
     items: List<FoundryFeedItem>,
     onRefresh: () -> Unit,
+    isRefreshing: Boolean,
     modifier: Modifier = Modifier,
 ) {
     FoundryCard(
@@ -175,22 +182,48 @@ private fun NewsFeedCard(
                     .weight(1f)
                     .padding(horizontal = 4.dp, vertical = 6.dp),
             )
-            // Tap-to-refresh. Gesture pull-to-refresh lands when the feed is
-            // wired to live Heartbeat data.
+            // Tap-to-refresh (works everywhere); the list also supports pull-to-refresh.
             FoundryIconChip(
                 glyph = "↻",
                 onClick = onRefresh,
                 size = 34.dp,
             )
         }
-        LazyColumn(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(items) { item -> FeedRow(item) }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (items.isEmpty()) {
+                    item { EmptyFeedRow() }
+                } else {
+                    items(items) { item -> FeedRow(item) }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun EmptyFeedRow() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Foundry.tileShape)
+            .background(Color(0xFF1A1A1A), Foundry.tileShape)
+            .padding(12.dp),
+    ) {
+        Text(
+            text = "No updates yet — pull down to refresh, or turn on Heartbeat in Settings.",
+            color = Foundry.labelSecondary,
+            fontSize = 12.sp,
+        )
     }
 }
 
