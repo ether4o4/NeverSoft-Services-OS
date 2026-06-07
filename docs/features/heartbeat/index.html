@@ -372,6 +372,90 @@
   
   
     <li class="md-nav__item">
+      <a href="../home/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home & Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding & Help
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../kairos-infrastructure/" class="md-nav__link">
         
   
@@ -782,6 +866,17 @@
     <span class="md-ellipsis">
       
         Heartbeat Log
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#home-news-feed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Home News Feed
       
     </span>
   </a>
@@ -1260,6 +1355,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#home-news-feed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Home News Feed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#promote-learning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1321,7 +1427,7 @@
 
 
 <h1 id="heartbeat">Heartbeat</h1>
-<p><strong>Last verified:</strong> 2026-05-14</p>
+<p><strong>Last verified:</strong> 2026-06-07</p>
 <blockquote>
 <p>Heartbeat is user-controlled (on/off toggle, interval, active hours live in the settings UI). The AI cannot enable, disable, or reschedule it. To customise <em>what happens on each heartbeat</em>, the AI creates heartbeat-triggered scheduled tasks via <code>schedule_task</code> with <code>on_heartbeat: true</code> — these are <code>HEARTBEAT</code>-trigger tasks (see <a href="../tasks/">tasks.md</a>) and their prompts are appended to every heartbeat run under <code>## Heartbeat Additions</code>. Each addition is a first-class task the user can see, edit, and cancel.</p>
 </blockquote>
@@ -1388,6 +1494,11 @@
 <li>Entries show an OK/FAIL indicator and a formatted local timestamp</li>
 <li>Failed entries display the error message (single line, ellipsized) below the timestamp in the error color</li>
 </ul>
+<h2 id="home-news-feed">Home News Feed</h2>
+<p>The home screen's news feed is the user-facing surface for heartbeat output: each assistant message in
+the heartbeat conversation becomes a feed card, newest first. Pull-to-refresh (and a refresh button) on
+the feed run a heartbeat immediately — the same manual trigger as the settings refresh — then reload the
+feed. See <a href="../home/">home.md</a>.</p>
 <h2 id="promote-learning">Promote Learning</h2>
 <p>When a memory has been reinforced 5 or more times, it becomes a promotion candidate. The <code>promote_learning</code> tool:</p>
 <ol>
@@ -1462,6 +1573,10 @@
 <tr>
 <td><code>composeApp/src/commonMain/.../ui/settings/SettingsScreen.kt</code></td>
 <td>Heartbeat settings UI section</td>
+</tr>
+<tr>
+<td><code>composeApp/src/commonMain/.../ui/foundry/FoundryHomeViewModel.kt</code></td>
+<td>Turns heartbeat conversation updates into the home news feed; pull-to-refresh trigger</td>
 </tr>
 <tr>
 <td><code>composeApp/src/commonMain/.../Platform.kt</code></td>

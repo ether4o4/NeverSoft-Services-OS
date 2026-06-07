@@ -372,6 +372,90 @@
   
   
     <li class="md-nav__item">
+      <a href="../home/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home & Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding & Help
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../kairos-infrastructure/" class="md-nav__link">
         
   
@@ -514,6 +598,17 @@
     <span class="md-ellipsis">
       
         Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings UI
       
     </span>
   </a>
@@ -1083,6 +1178,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#settings-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#key-files" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1111,7 +1217,7 @@
 
 
 <h1 id="local-gguf-llamacpp-in-the-sandbox">Local GGUF (llama.cpp in the sandbox)</h1>
-<p><strong>Last verified:</strong> 2026-05-30</p>
+<p><strong>Last verified:</strong> 2026-06-07</p>
 <p>MorsVitaEst can run GGUF models from Hugging Face fully on-device, without a separate
 Ollama install and without the user typing anything into a terminal. It reuses two pieces
 the app already has: the <strong>Linux sandbox</strong> (Alpine + proot, see <a href="../sandbox/">sandbox.md</a>)
@@ -1167,10 +1273,29 @@ run with stderr suppressed so the manager parses clean JSON.</p>
   slow and memory-heavy. The performance heuristics in the LiteRT card do not apply here.</li>
 <li><strong>No automatic model selection in chat</strong> -- the served model is reached via its OpenAI-Compatible
   service instance; the user selects that service like any other.</li>
-<li><strong>No built-in Settings UI yet</strong> -- the runtime is wired and the <code>morsllm</code> script is auto-installed
-  into the sandbox when it reaches Ready, so the user can drive the full flow from the in-app
-  Terminal (<code>morsllm provision</code>, <code>morsllm pull &lt;repo&gt;</code>, <code>morsllm serve &lt;file&gt;</code>). A one-tap Settings
-  page for repo entry + quant pick + start/stop is the next layer on top of <code>GgufServerManager</code>.</li>
+<li><strong>Settings UI lives in the Sandbox tab</strong> -- a one-tap "Local Models (GGUF)" card drives the whole
+  flow without the terminal (see below). The in-app Terminal flow (<code>morsllm provision</code> / <code>pull</code> /
+  <code>serve</code>) still works for power users.</li>
+</ul>
+<h2 id="settings-ui">Settings UI</h2>
+<p>The <strong>Local Models (GGUF)</strong> card (Sandbox settings tab, Android only) is the one-tap front end:</p>
+<ul>
+<li><strong>Engine status</strong> -- shows whether the engine is built and, when serving, which model and loopback
+  URL are live.</li>
+<li><strong>Set up engine</strong> -- triggers the one-time <code>llama.cpp</code> build inside the sandbox, with a clear warning
+  that it is slow on a phone (10-30 min).</li>
+<li><strong>Quick install</strong> -- curated, known-working models so new users don't have to know what to type. Each
+  button just fills in the repo field; the user still taps Download:</li>
+<li><strong>Included 1B</strong> -- an uncensored 1B (Llama 3.2 1B abliterated), ~0.8 GB, for instant on-device chat.</li>
+<li><strong>Tool-caller 3B</strong> -- Hermes 3 (Llama 3.2 3B), ~2 GB, low-refusal with native function calling.</li>
+<li><strong>Uncensored 3B</strong> -- Qwen2.5 3B abliterated, ~2 GB.</li>
+<li><strong>Manual entry</strong> -- a Hugging Face repo id, repo URL, or direct <code>.gguf</code> URL (URLs are normalised to a
+  repo id), plus an optional quant override (defaults to <code>Q4_K_M</code>).</li>
+<li><strong>Downloaded models</strong> -- each shows its size with Run / Stop controls; only one model serves at a time.</li>
+<li><strong>Add as service</strong> -- registers the running loopback server as an OpenAI-Compatible service instance
+  and validates it, so the model shows up in the normal service/model pickers.</li>
+<li><strong>Errors</strong> -- a failure opens a dialog with the detail, a suggested fix, and the last 8 KB of the build
+  log, with one-tap Copy.</li>
 </ul>
 <h2 id="key-files">Key Files</h2>
 <table>
@@ -1188,6 +1313,10 @@ run with stderr suppressed so the manager parses clean JSON.</p>
 <tr>
 <td><code>composeApp/src/androidMain/kotlin/com/ether4o4/morsvitaest/sandbox/GgufServerManager.kt</code></td>
 <td>Typed orchestration over the script via <code>SandboxController</code> on the <code>SYSTEM</code> session; exposes <code>provision</code>, <code>listQuants</code>, <code>pull</code>, <code>listModels</code>, <code>serve</code>, <code>stop</code>, <code>status</code>, and <code>openAiBaseUrl</code>.</td>
+</tr>
+<tr>
+<td><code>composeApp/src/androidMain/kotlin/com/ether4o4/morsvitaest/ui/settings/GgufModelsCard.android.kt</code></td>
+<td>The one-tap Local Models (GGUF) settings card: engine setup, curated quick-install, download, run/stop, add-as-service, error dialog.</td>
 </tr>
 <tr>
 <td><code>composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/data/Service.kt</code></td>

@@ -321,7 +321,9 @@ string|snackbar_task_cancelled|VGFzayBjYW5jZWxsZWQ=
 string|snackbar_undo|VW5kbw==
 string|start_interactive_ui|U3RhcnQgSW50ZXJhY3RpdmUgVUk=
 string|tab_chat|Q2hhdA==
+string|tab_home|SG9tZQ==
 string|tab_settings|U2V0dGluZ3M=
+string|tab_workspace|V29ya3NwYWNl
 string|terminal_help_text|VGhlIEFJIHVzZXMgdGhpcyBlbnZpcm9ubWVudCB0byBydW4gY29tbWFuZHMuCllvdSBjYW4gYWxzbyBydW4gY29tbWFuZHMgbWFudWFsbHkgYmVsb3cu
 string|terminal_input_placeholder|ZW50ZXIgY29tbWFuZOKApg==
 string|terminal_run_content_description|UnVu
