@@ -304,8 +304,9 @@ class AppSettings(internal val settings: Settings) {
                 ThemeMode.System
             }
         }
-        // Migrate the legacy boolean OLED toggle: true → OledBlack, false → System.
-        return if (settings.getBoolean(KEY_OLED_MODE_ENABLED, false)) ThemeMode.OledBlack else ThemeMode.System
+        // No saved choice yet: default to Dark. Migrate the legacy boolean OLED
+        // toggle when it was on: true → OledBlack, otherwise → Dark.
+        return if (settings.getBoolean(KEY_OLED_MODE_ENABLED, false)) ThemeMode.OledBlack else ThemeMode.Dark
     }
 
     // Daemon mode

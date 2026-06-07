@@ -76,7 +76,7 @@ private fun CompareContent(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F0F0F))
+            .background(Foundry.background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
