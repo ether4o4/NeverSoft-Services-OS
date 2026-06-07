@@ -171,7 +171,7 @@ actual fun PlatformGgufModelsCard() {
             // with the current llama.cpp build. Removes the "what do I type"
             // friction for new users — one tap and the right repo id is filled in.
             Text(
-                text = "Quick install — tap to fill in a known-working model:",
+                text = "Quick install — included 1B for instant uncensored chat, or pull a 3B tool-caller (DLC):",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -181,17 +181,17 @@ actual fun PlatformGgufModelsCard() {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 OutlinedButton(
-                    onClick = { repoInput = "bartowski/Qwen2.5-0.5B-Instruct-GGUF" },
+                    onClick = { repoInput = "mradermacher/Llama-3.2-1B-Instruct-abliterated-GGUF" },
                     modifier = Modifier.weight(1f).handCursor(),
-                ) { Text("Tiny\n(0.5B • ~400MB)", style = MaterialTheme.typography.bodySmall) }
+                ) { Text("Included 1B\n(uncensored • ~0.8GB)", style = MaterialTheme.typography.bodySmall) }
                 OutlinedButton(
-                    onClick = { repoInput = "bartowski/Qwen2.5-3B-Instruct-GGUF" },
+                    onClick = { repoInput = "bartowski/Hermes-3-Llama-3.2-3B-GGUF" },
                     modifier = Modifier.weight(1f).handCursor(),
-                ) { Text("Recommended\n(3B • ~2GB)", style = MaterialTheme.typography.bodySmall) }
+                ) { Text("Tool-caller 3B\n(Hermes • ~2GB)", style = MaterialTheme.typography.bodySmall) }
                 OutlinedButton(
-                    onClick = { repoInput = "bartowski/Qwen2.5-7B-Instruct-GGUF" },
+                    onClick = { repoInput = "mradermacher/Qwen2.5-3B-Instruct-abliterated-GGUF" },
                     modifier = Modifier.weight(1f).handCursor(),
-                ) { Text("Big\n(7B • ~4.5GB)", style = MaterialTheme.typography.bodySmall) }
+                ) { Text("Uncensored 3B\n(Qwen • ~2GB)", style = MaterialTheme.typography.bodySmall) }
             }
             Spacer(Modifier.height(10.dp))
 
