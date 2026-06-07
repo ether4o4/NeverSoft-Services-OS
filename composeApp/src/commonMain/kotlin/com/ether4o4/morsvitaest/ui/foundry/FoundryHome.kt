@@ -59,6 +59,7 @@ fun FoundryHome(
     modifier: Modifier = Modifier,
     onRefreshFeed: () -> Unit = {},
     feedItems: List<FoundryFeedItem> = previewFeedItems,
+    navigationTabBar: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -68,6 +69,14 @@ fun FoundryHome(
             .navigationBarsPadding()
             .padding(Foundry.pagePadding),
     ) {
+        if (navigationTabBar != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = Foundry.gridGap),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                navigationTabBar()
+            }
+        }
         TitlePlate()
         Spacer(Modifier.height(Foundry.gridGap))
 

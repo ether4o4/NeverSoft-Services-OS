@@ -68,6 +68,16 @@ internal fun TopBar(
                 if (textToSpeech != null) {
                     SpeechToggleButton(textToSpeech, isSpeechOutputEnabled, isSpeaking, actions)
                 }
+                IconButton(
+                    modifier = Modifier.handCursor(),
+                    onClick = onNavigateToSettings,
+                ) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.ic_settings),
+                        contentDescription = stringResource(Res.string.settings_content_description),
+                        tint = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
             }
         }
     } else {

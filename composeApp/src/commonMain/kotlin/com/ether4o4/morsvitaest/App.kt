@@ -59,8 +59,8 @@ import com.ether4o4.morsvitaest.ui.withBlackBackground
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.tab_chat
-import morsvitaest.composeapp.generated.resources.tab_settings
+import morsvitaest.composeapp.generated.resources.tab_home
+import morsvitaest.composeapp.generated.resources.tab_workspace
 import nl.marc_apps.tts.TextToSpeechInstance
 import nl.marc_apps.tts.experimental.ExperimentalVoiceApi
 import org.jetbrains.compose.resources.stringResource
@@ -200,12 +200,12 @@ private fun AppContent(
                             shape = SegmentedButtonDefaults.itemShape(index = if (isRtl) count - 1 else 0, count = count),
                             modifier = Modifier.handCursor(),
                         ) {
-                            Text(stringResource(Res.string.tab_chat))
+                            Text(stringResource(Res.string.tab_home))
                         }
                         SegmentedButton(
                             selected = !isHome,
                             onClick = {
-                                navController.navigate(Settings) {
+                                navController.navigate(FoundryChat) {
                                     popUpTo(Home)
                                     launchSingleTop = true
                                 }
@@ -213,7 +213,7 @@ private fun AppContent(
                             shape = SegmentedButtonDefaults.itemShape(index = if (isRtl) 0 else count - 1, count = count),
                             modifier = Modifier.handCursor(),
                         ) {
-                            Text(stringResource(Res.string.tab_settings))
+                            Text(stringResource(Res.string.tab_workspace))
                         }
                     }
                 }
@@ -224,19 +224,23 @@ private fun AppContent(
                     modifier = Modifier.background(MaterialTheme.colorScheme.background),
                 ) {
                     composable<Home> {
-                        // Foundry home is gated off — files are still in the repo
-                        // (commonMain/.../ui/foundry/*) for the next iteration, but
-                        // ship as the existing ChatScreen until the layout is
-                        // polished (system-bar insets, responsive sizing for small
-                        // screens, the title plate PNG asset).
-                        ChatScreen(
-                            viewModel = chatViewModel,
-                            textToSpeech = textToSpeech,
-                            onNavigateToSettings = {
-                                navController.navigate(Settings)
+                        // Foundry brushed-metal home (Page 1): newsfeed + integration
+                        // boxes. Each box's gear opens its config in Settings; the
+                        // Workspace tab leads to the chat / sandbox screen. The tab bar
+                        // is rendered on Home for every platform so phones — which hide
+                        // the in-chat tab bar — can still reach the Workspace.
+                        FoundryHome(
+                            onNavigate = { dest ->
+                                when (dest) {
+                                    FoundryDestination.Chat,
+                                    FoundryDestination.Compare,
+                                    FoundryDestination.Shell,
+                                    -> navController.navigate(FoundryChat)
+
+                                    else -> navController.navigate(Settings)
+                                }
                             },
-                            isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
-                            navigationTabBar = if (showTabBar) navigationTabBar else null,
+                            navigationTabBar = navigationTabBar,
                         )
                     }
                     composable<FoundryChat> {
@@ -259,11 +263,9 @@ private fun AppContent(
                         )
                     }
                     composable<Settings> {
-                        if (showTabBar) {
-                            DisposableEffect(Unit) {
-                                onDispose {
-                                    chatViewModel.refreshSettings()
-                                }
+                        DisposableEffect(Unit) {
+                            onDispose {
+                                chatViewModel.refreshSettings()
                             }
                         }
                         SettingsScreen(
@@ -271,7 +273,7 @@ private fun AppContent(
                                 chatViewModel.refreshSettings()
                                 navController.navigateUp()
                             },
-                            navigationTabBar = if (showTabBar) navigationTabBar else null,
+                            navigationTabBar = null,
                         )
                     }
                 }
