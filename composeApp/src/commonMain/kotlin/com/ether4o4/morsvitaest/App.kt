@@ -47,9 +47,7 @@ import com.ether4o4.morsvitaest.tools.SmsSendPermissionController
 import com.ether4o4.morsvitaest.ui.DarkColorScheme
 import com.ether4o4.morsvitaest.ui.LightColorScheme
 import com.ether4o4.morsvitaest.ui.Theme
-import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
-import com.ether4o4.morsvitaest.ui.compare.CompareScreen
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
 import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
 import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
@@ -59,6 +57,8 @@ import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.settings.SettingsTab
 import com.ether4o4.morsvitaest.ui.withBlackBackground
+import com.ether4o4.morsvitaest.ui.workspace.WorkspaceScreen
+import com.ether4o4.morsvitaest.ui.workspace.WorkspaceTab
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import morsvitaest.composeapp.generated.resources.Res
@@ -80,19 +80,15 @@ object Home
 @SerialName("settings")
 data class Settings(val tab: String? = null)
 
-// Foundry home tile destinations. Chat reuses the existing ChatScreen;
-// the rest land on the placeholder screen until Phase 2 wires them up.
+// Foundry home tile destinations. The workspace hosts chat / multi-chat /
+// shell behind one tab strip; [tab] optionally deep-links to a specific mode.
 @Serializable
 @SerialName("foundry.chat")
-object FoundryChat
+data class FoundryChat(val tab: String? = null)
 
 @Serializable
 @SerialName("foundry.stub")
 data class FoundryStub(val title: String, val description: String)
-
-@Serializable
-@SerialName("compare")
-object Compare
 
 @Composable
 fun App(
@@ -212,7 +208,7 @@ private fun AppContent(
                         SegmentedButton(
                             selected = !isHome,
                             onClick = {
-                                navController.navigate(FoundryChat) {
+                                navController.navigate(FoundryChat()) {
                                     popUpTo(Home)
                                     launchSingleTop = true
                                 }
@@ -239,11 +235,14 @@ private fun AppContent(
                         FoundryHome(
                             onNavigate = { dest ->
                                 when (dest) {
-                                    FoundryDestination.Chat,
-                                    FoundryDestination.Shell,
-                                    -> navController.navigate(FoundryChat)
+                                    FoundryDestination.Chat ->
+                                        navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
 
-                                    FoundryDestination.Compare -> navController.navigate(Compare)
+                                    FoundryDestination.Shell ->
+                                        navController.navigate(FoundryChat(WorkspaceTab.Shell.name))
+
+                                    FoundryDestination.Compare ->
+                                        navController.navigate(FoundryChat(WorkspaceTab.MultiChat.name))
 
                                     FoundryDestination.Mcp ->
                                         navController.navigate(Settings(SettingsTab.Tools.name))
@@ -266,15 +265,19 @@ private fun AppContent(
                             navigationTabBar = navigationTabBar,
                         )
                     }
-                    composable<FoundryChat> {
-                        ChatScreen(
-                            viewModel = chatViewModel,
+                    composable<FoundryChat> { entry ->
+                        val initialTab = entry.toRoute<FoundryChat>().tab
+                            ?.let { runCatching { WorkspaceTab.valueOf(it) }.getOrNull() }
+                            ?: WorkspaceTab.Chat
+                        WorkspaceScreen(
+                            chatViewModel = chatViewModel,
                             textToSpeech = textToSpeech,
                             onNavigateToSettings = {
                                 navController.navigate(Settings())
                             },
                             isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
                             navigationTabBar = if (showTabBar) navigationTabBar else null,
+                            initialTab = initialTab,
                         )
                     }
                     composable<FoundryStub> { entry ->
@@ -283,11 +286,6 @@ private fun AppContent(
                             title = stub.title,
                             description = stub.description,
                             onBack = { navController.navigateUp() },
-                        )
-                    }
-                    composable<Compare> {
-                        CompareScreen(
-                            onNavigateBack = { navController.navigateUp() },
                         )
                     }
                     composable<Settings> { entry ->

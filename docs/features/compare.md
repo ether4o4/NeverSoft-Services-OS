@@ -3,13 +3,16 @@
 **Last verified:** 2026-06-07
 
 Compare runs two models side by side on the same question, and can optionally let them talk to
-each other. It is reached from the "Compare your favorite LLMs" action on the home screen.
+each other. It is the **Multi chat** tab of the workspace, and is also reached from the
+"Compare your favorite LLMs" action on the home screen (which opens the workspace on that tab).
 
 ## Layout
 
 Two panes sit side by side. Each pane has its own model picker — drawn from the configured service
 instances — at the top, and its own scrolling list of replies below. A shared input at the bottom
-sends one prompt to both panes. A **Merge** toggle switches between the two modes.
+sends one prompt to both panes. A **Merge** toggle switches between the two modes. When shown as the
+workspace's Multi chat tab, the screen drops its own back control because the tab strip is the
+navigation.
 
 ## Modes
 

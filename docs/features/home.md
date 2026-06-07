@@ -10,7 +10,7 @@ screens, while phones rely on the workspace's own controls and the system back g
 ## Home (Page 1)
 
 - **Title plate** — the wordmark.
-- **Compare action** — a prominent button that opens the Compare screen (see [compare.md](compare.md)).
+- **Compare action** — a prominent button that opens the workspace on its Multi chat tab (see [compare.md](compare.md)).
 - **News feed** — a live feed at the top, sourced from the Heartbeat engine: each heartbeat update is
   a card, newest first. Pull down (or tap the refresh icon) to run a heartbeat immediately and reload.
   When there are no updates yet, a hint points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
@@ -18,17 +18,24 @@ screens, while phones rely on the workspace's own controls and the system back g
   own gear that opens the matching settings section directly (the Services box opens the Services tab,
   the MCP box opens the Tools tab, and so on) rather than a generic settings screen.
 
-## Workspace
+## Workspace (Page 2)
 
-The Workspace tab is the chat and sandbox screen (see [chat.md](chat.md) and [sandbox.md](sandbox.md)).
-Settings is reached from the workspace's settings icon and from the home's per-box gears; it is a
-pushed screen with a back button rather than a top-level tab.
+The Workspace is one box with a tab strip across the top — **Chat**, **Multi chat**, and **Shell** —
+plus a settings gear that is always present. Chat is the normal assistant (see [chat.md](chat.md));
+Multi chat is the two-model Compare (see [compare.md](compare.md)); Shell is the Alpine sandbox
+terminal (see [sandbox.md](sandbox.md)). The Shell tab only appears where the sandbox runtime exists
+(Android); other platforms show just Chat and Multi chat.
+
+Settings is reached from the workspace's settings gear (on every tab) and from the home's per-box
+gears; it is a pushed screen with a back button rather than a top-level tab. The settings gear is one
+of the spots the first-run tour points out.
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/App.kt` | Navigation graph, the Home/Workspace tab bar, and route wiring |
+| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/workspace/WorkspaceScreen.kt` | The unified workspace: Chat / Multi chat / Shell tab strip + settings gear |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHome.kt` | Home layout: title plate, compare action, news feed, integration boxes |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHomeViewModel.kt` | Builds the news feed from heartbeat updates; pull-to-refresh trigger |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryComponents.kt` | Brushed-metal pills, cards, and tiles |

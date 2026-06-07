@@ -50,7 +50,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun CompareScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateBack: (() -> Unit)?,
     viewModel: CompareViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -66,7 +66,7 @@ fun CompareScreen(
 @Composable
 private fun CompareContent(
     state: CompareUiState,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onSelectPane: (ComparePane, String) -> Unit,
     onToggleMerge: (Boolean) -> Unit,
     onSend: (String) -> Unit,
@@ -87,8 +87,10 @@ private fun CompareContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                FoundryIconChip(glyph = "←", onClick = onBack, size = 40.dp)
-                Spacer(Modifier.width(10.dp))
+                if (onBack != null) {
+                    FoundryIconChip(glyph = "←", onClick = onBack, size = 40.dp)
+                    Spacer(Modifier.width(10.dp))
+                }
                 Text(
                     text = "COMPARE LLMS",
                     color = Foundry.wordmark,
