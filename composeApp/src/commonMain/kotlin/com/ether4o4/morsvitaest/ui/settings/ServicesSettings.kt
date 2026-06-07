@@ -361,8 +361,11 @@ private fun ConfiguredServiceCardContent(
                         Icon(
                             imageVector = vectorResource(Res.drawable.ic_arrow_drop_up),
                             contentDescription = "Move up",
-                            tint = if (canMoveUp) MaterialTheme.colorScheme.onSurfaceVariant
-                            else MaterialTheme.colorScheme.outlineVariant,
+                            tint = if (canMoveUp) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.outlineVariant
+                            },
                         )
                     }
                     IconButton(
@@ -373,8 +376,11 @@ private fun ConfiguredServiceCardContent(
                         Icon(
                             imageVector = vectorResource(Res.drawable.ic_arrow_drop_down),
                             contentDescription = "Move down",
-                            tint = if (canMoveDown) MaterialTheme.colorScheme.onSurfaceVariant
-                            else MaterialTheme.colorScheme.outlineVariant,
+                            tint = if (canMoveDown) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.outlineVariant
+                            },
                         )
                     }
                 }

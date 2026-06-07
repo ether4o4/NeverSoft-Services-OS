@@ -232,10 +232,14 @@ actual fun PlatformGgufModelsCard() {
                             raw.startsWith("https://huggingface.co/") || raw.startsWith("http://huggingface.co/") -> {
                                 val path = raw.substringAfter("huggingface.co/").trimEnd('/')
                                 // Direct .gguf download URL: keep as-is, the script handles it.
-                                if (path.contains("/resolve/") && path.endsWith(".gguf", ignoreCase = true)) raw
-                                // Otherwise reduce to owner/repo (drop any /tree/main/... or /blob/... suffix)
-                                else path.split("/").take(2).joinToString("/")
+                                if (path.contains("/resolve/") && path.endsWith(".gguf", ignoreCase = true)) {
+                                    raw
+                                } // Otherwise reduce to owner/repo (drop any /tree/main/... or /blob/... suffix)
+                                else {
+                                    path.split("/").take(2).joinToString("/")
+                                }
                             }
+
                             else -> raw
                         }
                         val r = manager.pull(normalized, quantInput.trim().ifBlank { null })
@@ -388,6 +392,7 @@ private fun ProvisionErrorDialog(
                             Text("loading…", style = MaterialTheme.typography.bodySmall)
                         }
                     }
+
                     !logTail.isNullOrBlank() -> {
                         Text("Log (last 8KB)", style = MaterialTheme.typography.titleSmall)
                         Text(

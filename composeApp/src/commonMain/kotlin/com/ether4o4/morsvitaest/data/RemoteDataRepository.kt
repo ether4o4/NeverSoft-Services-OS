@@ -208,11 +208,10 @@ private fun assembleByBudget(
     return firstSlice + kept
 }
 
-private fun tokenize(text: String): Set<String> =
-    text.lowercase()
-        .splitToSequence(' ', '\n', '\t', ',', '.', '!', '?', ';', ':', '(', ')', '[', ']', '{', '}', '"', '\'', '/', '\\', '-')
-        .filter { it.length > 2 }
-        .toSet()
+private fun tokenize(text: String): Set<String> = text.lowercase()
+    .splitToSequence(' ', '\n', '\t', ',', '.', '!', '?', ';', ':', '(', ')', '[', ']', '{', '}', '"', '\'', '/', '\\', '-')
+    .filter { it.length > 2 }
+    .toSet()
 
 private fun jaccardSimilarity(a: Set<String>, b: Set<String>): Double {
     if (a.isEmpty() && b.isEmpty()) return 0.0
@@ -409,8 +408,7 @@ class RemoteDataRepository(
             )
         }
 
-    override fun isInstanceEnabled(instanceId: String): Boolean =
-        appSettings.getInstanceEnabled(instanceId)
+    override fun isInstanceEnabled(instanceId: String): Boolean = appSettings.getInstanceEnabled(instanceId)
 
     override fun setInstanceEnabled(instanceId: String, enabled: Boolean) {
         appSettings.setInstanceEnabled(instanceId, enabled)
