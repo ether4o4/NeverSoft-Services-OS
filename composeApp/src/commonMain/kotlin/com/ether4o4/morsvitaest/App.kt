@@ -49,6 +49,7 @@ import com.ether4o4.morsvitaest.ui.LightColorScheme
 import com.ether4o4.morsvitaest.ui.Theme
 import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
+import com.ether4o4.morsvitaest.ui.compare.CompareScreen
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
 import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
 import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
@@ -86,6 +87,10 @@ object FoundryChat
 @Serializable
 @SerialName("foundry.stub")
 data class FoundryStub(val title: String, val description: String)
+
+@Serializable
+@SerialName("compare")
+object Compare
 
 @Composable
 fun App(
@@ -233,9 +238,10 @@ private fun AppContent(
                             onNavigate = { dest ->
                                 when (dest) {
                                     FoundryDestination.Chat,
-                                    FoundryDestination.Compare,
                                     FoundryDestination.Shell,
                                     -> navController.navigate(FoundryChat)
+
+                                    FoundryDestination.Compare -> navController.navigate(Compare)
 
                                     else -> navController.navigate(Settings)
                                 }
@@ -260,6 +266,11 @@ private fun AppContent(
                             title = stub.title,
                             description = stub.description,
                             onBack = { navController.navigateUp() },
+                        )
+                    }
+                    composable<Compare> {
+                        CompareScreen(
+                            onNavigateBack = { navController.navigateUp() },
                         )
                     }
                     composable<Settings> {

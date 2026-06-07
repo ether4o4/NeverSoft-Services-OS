@@ -80,6 +80,14 @@ fun FoundryHome(
         TitlePlate()
         Spacer(Modifier.height(Foundry.gridGap))
 
+        FoundryPill(
+            label = "⚖  COMPARE YOUR FAVORITE LLMS",
+            onClick = { onNavigate(FoundryDestination.Compare) },
+            intent = FoundryIntent.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(Foundry.gridGap))
+
         // News feed sits at the top and takes the remaining vertical space.
         NewsFeedCard(
             items = feedItems,
