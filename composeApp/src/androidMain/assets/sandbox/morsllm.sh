@@ -575,11 +575,26 @@ cmd_serve() {
     log "serve: launching llama-server on 127.0.0.1:$port"
     local log_file="$LOGS_DIR/server.log"
     : > "$log_file"
+    # Phone CPUs are big.LITTLE: handing llama.cpp every core (including the slow
+    # efficiency cluster) makes it SLOWER, not faster, because the fast cores
+    # stall each layer waiting on the slow ones. Drop ~2 cores on >4-core chips,
+    # floor 2. Also cap context at 4096 so the KV cache stays small on a phone.
+    local ncpu threads
+    ncpu=$(nproc 2>/dev/null || echo 4)
+    if [ "$ncpu" -gt 4 ]; then
+        threads=$((ncpu - 2))
+    else
+        threads="$ncpu"
+    fi
+    [ "$threads" -lt 2 ] && threads=2
+    log "serve: using $threads of $ncpu cores, ctx 4096"
     nohup "$LLAMA_SERVER" \
         --host 127.0.0.1 \
         --port "$port" \
         -m "$model_path" \
         --n-gpu-layers 0 \
+        --threads "$threads" \
+        --ctx-size 4096 \
         >"$log_file" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_FILE"
