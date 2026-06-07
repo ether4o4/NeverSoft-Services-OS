@@ -374,6 +374,7 @@ UI_H_EOF
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_SERVER=ON \
         -DGGML_OPENMP=OFF \
+        -DGGML_NATIVE=ON \
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_AR=/usr/bin/ar \
         -DCMAKE_RANLIB=/usr/bin/ranlib \
