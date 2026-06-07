@@ -92,13 +92,13 @@ jobs:
                 } > tools/server/ui.h
               fi
 
-              # Target armv8.2-a + dotprod so llama.cpp's int8 dot-product matmul
-              # kernels are enabled. Without this the QEMU cross-build produces a
-              # generic ARM binary that skips dotprod and crawls on quantized
-              # models (Q4/Q8). dotprod is present on ~every Android phone since
-              # ~2018; we deliberately do NOT add i8mm/sve so this single shared
-              # binary can't SIGILL on older devices. (The in-sandbox fallback
-              # build uses GGML_NATIVE=ON instead — it compiles on the target phone.)
+              # Target armv8.2-a + dotprod so the int8 dot-product matmul kernels in
+              # llama.cpp are enabled. Without this, the QEMU cross-build makes a
+              # generic ARMv8 binary that skips dotprod and crawls on quantized
+              # models (Q4/Q8). dotprod is present on essentially every Android phone
+              # since ~2018; we deliberately omit i8mm/sve so this one shared binary
+              # cannot hit an illegal instruction on older devices. (The in-sandbox
+              # fallback build uses GGML_NATIVE=ON, since it compiles on the phone.)
               cmake -B build \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DLLAMA_BUILD_TESTS=OFF \
