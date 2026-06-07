@@ -1,6 +1,6 @@
 # Local GGUF (llama.cpp in the sandbox)
 
-**Last verified:** 2026-05-30
+**Last verified:** 2026-06-07
 
 MorsVitaEst can run GGUF models from Hugging Face fully on-device, without a separate
 Ollama install and without the user typing anything into a terminal. It reuses two pieces
@@ -61,10 +61,30 @@ run with stderr suppressed so the manager parses clean JSON.
   slow and memory-heavy. The performance heuristics in the LiteRT card do not apply here.
 - **No automatic model selection in chat** -- the served model is reached via its OpenAI-Compatible
   service instance; the user selects that service like any other.
-- **No built-in Settings UI yet** -- the runtime is wired and the `morsllm` script is auto-installed
-  into the sandbox when it reaches Ready, so the user can drive the full flow from the in-app
-  Terminal (`morsllm provision`, `morsllm pull <repo>`, `morsllm serve <file>`). A one-tap Settings
-  page for repo entry + quant pick + start/stop is the next layer on top of `GgufServerManager`.
+- **Settings UI lives in the Sandbox tab** -- a one-tap "Local Models (GGUF)" card drives the whole
+  flow without the terminal (see below). The in-app Terminal flow (`morsllm provision` / `pull` /
+  `serve`) still works for power users.
+
+## Settings UI
+
+The **Local Models (GGUF)** card (Sandbox settings tab, Android only) is the one-tap front end:
+
+- **Engine status** -- shows whether the engine is built and, when serving, which model and loopback
+  URL are live.
+- **Set up engine** -- triggers the one-time `llama.cpp` build inside the sandbox, with a clear warning
+  that it is slow on a phone (10-30 min).
+- **Quick install** -- curated, known-working models so new users don't have to know what to type. Each
+  button just fills in the repo field; the user still taps Download:
+  - **Included 1B** -- an uncensored 1B (Llama 3.2 1B abliterated), ~0.8 GB, for instant on-device chat.
+  - **Tool-caller 3B** -- Hermes 3 (Llama 3.2 3B), ~2 GB, low-refusal with native function calling.
+  - **Uncensored 3B** -- Qwen2.5 3B abliterated, ~2 GB.
+- **Manual entry** -- a Hugging Face repo id, repo URL, or direct `.gguf` URL (URLs are normalised to a
+  repo id), plus an optional quant override (defaults to `Q4_K_M`).
+- **Downloaded models** -- each shows its size with Run / Stop controls; only one model serves at a time.
+- **Add as service** -- registers the running loopback server as an OpenAI-Compatible service instance
+  and validates it, so the model shows up in the normal service/model pickers.
+- **Errors** -- a failure opens a dialog with the detail, a suggested fix, and the last 8 KB of the build
+  log, with one-tap Copy.
 
 ## Key Files
 
@@ -72,5 +92,6 @@ run with stderr suppressed so the manager parses clean JSON.
 | --- | --- |
 | `composeApp/src/androidMain/assets/sandbox/morsllm.sh` | The runtime: provision, HF resolve (repo id + URL), resumable download with GGUF validation, serve/stop/status. JSON on stdout, progress on stderr. |
 | `composeApp/src/androidMain/kotlin/com/ether4o4/morsvitaest/sandbox/GgufServerManager.kt` | Typed orchestration over the script via `SandboxController` on the `SYSTEM` session; exposes `provision`, `listQuants`, `pull`, `listModels`, `serve`, `stop`, `status`, and `openAiBaseUrl`. |
+| `composeApp/src/androidMain/kotlin/com/ether4o4/morsvitaest/ui/settings/GgufModelsCard.android.kt` | The one-tap Local Models (GGUF) settings card: engine setup, curated quick-install, download, run/stop, add-as-service, error dialog. |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/data/Service.kt` | `Service.OpenAICompatible` -- the service the served model is consumed through. |
 | `composeApp/src/androidMain/kotlin/com/ether4o4/morsvitaest/sandbox/LinuxSandboxManager.kt` | Owns the rootfs the runtime builds into and the shell sessions it runs on. |

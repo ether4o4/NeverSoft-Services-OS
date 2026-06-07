@@ -1,6 +1,6 @@
 # Chat & Conversations
 
-**Last verified:** 2026-05-14
+**Last verified:** 2026-06-07
 
 MorsVitaEst's chat system manages the message history, conversation persistence, file attachments, and speech output. Conversations are service-independent — switching providers does not affect which conversation is loaded or restored. Multiple conversations are persisted and browsable via a history sheet.
 
@@ -108,7 +108,7 @@ Multiple files can be attached to a single prompt. Each file is added one at a t
 
 ## UI Elements
 
-- **Top bar**: New Chat, Chat History, a Sandbox toggle (Android only, shown between History and TTS when the sandbox feature is available on the device), TTS toggle, Settings (on mobile; on non-mobile, Settings is in the navigation tab bar)
+- **Top bar**: New Chat, Chat History, a Sandbox toggle (Android only, shown between History and TTS when the sandbox feature is available on the device), TTS toggle, and a Settings icon. The app opens to the Home screen; chat is the **Workspace** tab, and a Home/Workspace tab bar sits in the center of the top bar on larger screens — see [home.md](home.md)
 - **Scroll to bottom**: a small floating action button (down arrow) appears when the user has scrolled up past the latest messages; tapping it animates back to the bottom
 - **Messages**: user (right-aligned, with optional image preview), assistant (Markdown-rendered + action buttons), tool executing (spinner), loading indicator, error with retry. When the fallback chain answered with an alternate service rather than the user's selected one, a small "Answered by …" label is shown under the assistant message naming the service that produced the response
 - **Input**: text field, send/stop button, attachment button, file chip
