@@ -12,11 +12,14 @@ screens, while phones rely on the workspace's own controls and the system back g
 - **Title plate** — the wordmark.
 - **Compare action** — a prominent button that opens the workspace on its Multi chat tab (see [compare.md](compare.md)).
 - **News feed** — a live feed at the top, sourced from the Heartbeat engine: each heartbeat update is
-  a card, newest first. Pull down (or tap the refresh icon) to run a heartbeat immediately and reload.
-  When there are no updates yet, a hint points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
-- **Integration boxes** — Services, MCP, Hugging Face, Ollama, and an LLM chooser. Each box carries its
-  own gear that opens the matching settings section directly (the Services box opens the Services tab,
-  the MCP box opens the Tools tab, and so on) rather than a generic settings screen.
+  a card, newest first. Each row shows a thumbnail: if the update's text carries an image (a markdown
+  image or a bare image link), it loads as the thumbnail; otherwise the row falls back to the source's
+  initial. Pull down (or tap the refresh icon) to run a heartbeat immediately and reload. When there
+  are no updates yet, a hint points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
+- **Integration boxes** — Services, MCP, Hugging Face, Ollama, and an LLM chooser. Tapping a box's body
+  jumps to the matching settings section. Tapping its gear opens a small "glass" config sheet first —
+  a plain-language blurb plus a tiny numbered recipe and a single button into the full settings — so
+  the gear never dead-ends straight onto a dense settings screen.
 
 ## Workspace (Page 2)
 

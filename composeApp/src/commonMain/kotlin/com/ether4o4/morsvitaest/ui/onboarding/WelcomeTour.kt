@@ -78,6 +78,7 @@ private val tourSteps = listOf(
 @Composable
 fun WelcomeTour(
     onFinish: () -> Unit,
+    onAskAssistant: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var index by remember { mutableStateOf(0) }
@@ -179,6 +180,21 @@ fun WelcomeTour(
                     modifier = Modifier.weight(1f),
                 )
             }
+
+            // Bridge into the conversational helper at any point — finishes the tour
+            // and opens the assistant so the AI can take it from here.
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "Rather just ask? Chat with the assistant →",
+                color = Color(0xFFE5484D),
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .handCursor()
+                    .clickable(onClick = onAskAssistant)
+                    .padding(vertical = 4.dp),
+            )
         }
     }
 }

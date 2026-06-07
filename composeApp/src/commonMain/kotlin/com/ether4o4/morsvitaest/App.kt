@@ -361,6 +361,11 @@ private fun AppContent(
                                 appSettings.setWelcomeSeen()
                                 showTour = false
                             },
+                            onAskAssistant = {
+                                appSettings.setWelcomeSeen()
+                                showTour = false
+                                showHelp = true
+                            },
                         )
                     }
                 }

@@ -18,9 +18,10 @@ covers, in four quick cards:
 4. You can add your own models in Services and connect tool servers via MCP, and the home boxes'
    gears jump straight to each.
 
-The user can step Back/Next, or Skip at any time. Once finished or skipped it does not appear
-again on later launches. The help panel can replay it on demand, which does not change whether it
-auto-shows.
+The user can step Back/Next, or Skip at any time. Every step also offers "Rather just ask? Chat with
+the assistant" — which closes the tour and opens the help assistant, handing the rest of onboarding
+to the conversational helper. Once finished or skipped the tour does not appear again on later
+launches. The help panel can replay it on demand, which does not change whether it auto-shows.
 
 ## Help assistant (tap-to-help bubble)
 

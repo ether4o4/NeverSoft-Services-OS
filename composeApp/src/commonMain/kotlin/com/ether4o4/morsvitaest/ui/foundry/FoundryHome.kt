@@ -22,9 +22,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.title_plate
 import org.jetbrains.compose.resources.painterResource
@@ -70,6 +77,9 @@ fun FoundryHome(
     feedItems: List<FoundryFeedItem> = previewFeedItems,
     navigationTabBar: (@Composable () -> Unit)? = null,
 ) {
+    // Which integration box's glass config sheet is open (null = none).
+    var sheetBox by remember { mutableStateOf<IntegrationBox?>(null) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -109,8 +119,16 @@ fun FoundryHome(
 
         Spacer(Modifier.height(Foundry.gridGap))
 
-        // Integration boxes — each opens its own config via the ⚙.
-        IntegrationBoxes(onNavigate = onNavigate)
+        // Integration boxes — body taps deep-link; each ⚙ opens a glass config sheet.
+        IntegrationBoxes(onNavigate = onNavigate, onConfig = { sheetBox = it })
+    }
+
+    sheetBox?.let { box ->
+        IntegrationBoxSheet(
+            box = box,
+            onOpen = onNavigate,
+            onDismiss = { sheetBox = null },
+        )
     }
 }
 
@@ -225,7 +243,9 @@ private fun FeedRow(item: FoundryFeedItem) {
             .background(Color(0xFF1A1A1A), Foundry.tileShape)
             .padding(10.dp),
     ) {
-        // Thumbnail frame — placeholder fill until live images are wired.
+        // Thumbnail frame. The source initial sits behind as the fallback; a real
+        // image (when the feed item carries one) loads on top and covers it. If the
+        // image is missing or fails to load, the initial shows through.
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -239,6 +259,16 @@ private fun FeedRow(item: FoundryFeedItem) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
             )
+            if (item.thumbnailUrl != null) {
+                AsyncImage(
+                    model = item.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(8.dp)),
+                )
+            }
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
@@ -279,18 +309,65 @@ private data class IntegrationBox(
     val subtitle: String,
     val open: FoundryDestination,
     val config: FoundryDestination,
+    val blurb: String,
+    val tips: List<String>,
+    val actionLabel: String,
 )
 
 private val integrationBoxes = listOf(
-    IntegrationBox("SERVICES", "API keys", FoundryDestination.Services, FoundryDestination.Services),
-    IntegrationBox("MCP", "Tool servers", FoundryDestination.Mcp, FoundryDestination.Mcp),
-    IntegrationBox("HUGGING FACE", "Models · papers", FoundryDestination.HuggingFace, FoundryDestination.HuggingFace),
-    IntegrationBox("OLLAMA", "Local runtime", FoundryDestination.Ollama, FoundryDestination.Ollama),
-    IntegrationBox("LLM CHOOSER", "Pick your models", FoundryDestination.LlmChooser, FoundryDestination.LlmChooser),
+    IntegrationBox(
+        title = "SERVICES",
+        subtitle = "API keys",
+        open = FoundryDestination.Services,
+        config = FoundryDestination.Services,
+        blurb = "Bring your own AI accounts. You're already running on the Free AI — add a provider " +
+            "here only if you want your own (often faster or smarter).",
+        tips = listOf("Pick a provider", "Paste its API key", "It's ready everywhere"),
+        actionLabel = "OPEN SERVICES",
+    ),
+    IntegrationBox(
+        title = "MCP",
+        subtitle = "Tool servers",
+        open = FoundryDestination.Mcp,
+        config = FoundryDestination.Mcp,
+        blurb = "Plug-ins that give your AI new abilities — web search, your files, a calendar, and more.",
+        tips = listOf("Add a server URL", "Pick a popular one", "Its tools show up for the AI"),
+        actionLabel = "OPEN MCP",
+    ),
+    IntegrationBox(
+        title = "HUGGING FACE",
+        subtitle = "Models · papers",
+        open = FoundryDestination.HuggingFace,
+        config = FoundryDestination.HuggingFace,
+        blurb = "Pull on-device models from the Hugging Face hub to run locally, no account needed.",
+        tips = listOf("Browse on-device models", "Download one", "Run it fully offline"),
+        actionLabel = "BROWSE MODELS",
+    ),
+    IntegrationBox(
+        title = "OLLAMA",
+        subtitle = "Local runtime",
+        open = FoundryDestination.Ollama,
+        config = FoundryDestination.Ollama,
+        blurb = "Already run Ollama on your machine or network? Point MorsVitaEst at it as a service.",
+        tips = listOf("Add Ollama as a service", "Set its base URL", "Pick a pulled model"),
+        actionLabel = "CONNECT OLLAMA",
+    ),
+    IntegrationBox(
+        title = "LLM CHOOSER",
+        subtitle = "Pick your models",
+        open = FoundryDestination.LlmChooser,
+        config = FoundryDestination.LlmChooser,
+        blurb = "See everything you've connected in one place and choose which models you actually use.",
+        tips = listOf("Review your services", "Enable the ones you want", "Reorder your fallback chain"),
+        actionLabel = "MANAGE MODELS",
+    ),
 )
 
 @Composable
-private fun IntegrationBoxes(onNavigate: (FoundryDestination) -> Unit) {
+private fun IntegrationBoxes(
+    onNavigate: (FoundryDestination) -> Unit,
+    onConfig: (IntegrationBox) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Foundry.gridGap)) {
         // Two-per-row grid; the final odd box spans the full width.
         integrationBoxes.chunked(2).forEach { rowBoxes ->
@@ -302,6 +379,7 @@ private fun IntegrationBoxes(onNavigate: (FoundryDestination) -> Unit) {
                     IntegrationTile(
                         box = box,
                         onNavigate = onNavigate,
+                        onConfig = onConfig,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -315,6 +393,7 @@ private fun IntegrationBoxes(onNavigate: (FoundryDestination) -> Unit) {
 private fun IntegrationTile(
     box: IntegrationBox,
     onNavigate: (FoundryDestination) -> Unit,
+    onConfig: (IntegrationBox) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     FoundryCard(
@@ -340,11 +419,85 @@ private fun IntegrationTile(
                     fontSize = 11.sp,
                 )
             }
-            // Per-box ⚙ — opens this box's own config.
+            // Per-box ⚙ — opens this box's own glass config sheet.
             FoundryIconChip(
                 glyph = "⚙",
-                onClick = { onNavigate(box.config) },
+                onClick = { onConfig(box) },
                 size = 34.dp,
+            )
+        }
+    }
+}
+
+/**
+ * Per-box config sheet — the "fancy glass" panel a box's ⚙ opens. It explains the
+ * box in plain language with a tiny numbered recipe, then drops the user into the
+ * matching settings only when they choose to. Keeps the gear from dead-ending
+ * straight onto a dense settings screen.
+ */
+@Composable
+private fun IntegrationBoxSheet(
+    box: IntegrationBox,
+    onOpen: (FoundryDestination) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Color(0xFF161616),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            Text(
+                text = box.title,
+                color = Foundry.labelPrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                letterSpacing = 1.sp,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = box.blurb,
+                color = Foundry.labelSecondary,
+                fontSize = 13.sp,
+            )
+            Spacer(Modifier.height(14.dp))
+            box.tips.forEachIndexed { index, tip ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(Foundry.pillShape)
+                            .background(brush = Foundry.brushedRadial, shape = Foundry.pillShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "${index + 1}",
+                            color = Foundry.labelPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(text = tip, color = Foundry.labelPrimary, fontSize = 13.sp)
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            FoundryPill(
+                label = box.actionLabel,
+                onClick = {
+                    onDismiss()
+                    onOpen(box.open)
+                },
+                intent = FoundryIntent.Primary,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

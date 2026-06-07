@@ -68,13 +68,38 @@ class FoundryHomeViewModel(
     }
 
     private fun Conversation.Message.toFeedItem(): FoundryFeedItem {
-        val lines = content.trim().lineSequence().filter { it.isNotBlank() }.toList()
+        val thumbnailUrl = extractThumbnailUrl(content)
+        // Strip image/link markup so the title and summary read as plain text.
+        val cleaned = content.stripMarkdownMedia().trim()
+        val lines = cleaned.lineSequence().filter { it.isNotBlank() }.toList()
         val title = lines.firstOrNull()
             ?.trimStart('#', '*', '-', ' ')
             ?.take(120)
             ?.ifBlank { "Heartbeat update" }
             ?: "Heartbeat update"
-        val summary = lines.drop(1).joinToString(" ").ifBlank { content.trim() }.take(240)
-        return FoundryFeedItem(title = title, source = "Heartbeat", summary = summary)
+        val summary = lines.drop(1).joinToString(" ").ifBlank { cleaned }.take(240)
+        return FoundryFeedItem(title = title, source = "Heartbeat", summary = summary, thumbnailUrl = thumbnailUrl)
+    }
+
+    private companion object {
+        // ![alt](https://host/pic.png) — grab the URL inside a markdown image.
+        private val MARKDOWN_IMAGE = Regex("""!\[[^\]]*]\((https?://[^)\s]+)\)""")
+
+        // A bare image link, e.g. https://host/a/b.jpg?x=1 — common in RSS/heartbeat text.
+        private val IMAGE_URL = Regex(
+            """https?://[^\s)"']+\.(?:png|jpe?g|webp|gif|avif|svg|bmp)(?:\?[^\s)"']*)?""",
+            RegexOption.IGNORE_CASE,
+        )
+
+        // Markdown image (drop entirely) and markdown link (keep the visible label).
+        private val STRIP_IMAGE = Regex("""!\[[^\]]*]\([^)]*\)""")
+        private val LINK_LABEL = Regex("""\[([^\]]+)]\([^)]*\)""")
+
+        fun extractThumbnailUrl(content: String): String? {
+            MARKDOWN_IMAGE.find(content)?.groupValues?.getOrNull(1)?.let { return it }
+            return IMAGE_URL.find(content)?.value
+        }
+
+        fun String.stripMarkdownMedia(): String = replace(STRIP_IMAGE, "").replace(LINK_LABEL, "$1")
     }
 }
