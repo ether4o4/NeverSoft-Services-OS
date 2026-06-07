@@ -167,9 +167,75 @@ internal fun FreeSettings(
     }
 }
 
+/**
+ * Friendly, over-simplified intro to the Services section. Reassures the user that
+ * the app already works (built-in Free AI) and reduces "add your own provider" to a
+ * three-step recipe, with a nudge toward the help assistant for anyone unsure.
+ */
+@Composable
+private fun ServicesGuideCard() {
+    SettingsCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Your AIs",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "You're already set up — the built-in Free AI works with nothing added. " +
+                "Add a provider here only if you want to use your own account (often faster or smarter).",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(12.dp))
+        GuideStep("1", "Tap “Add service” below.")
+        GuideStep("2", "Pick a provider — OpenAI, Gemini, Groq, and more.")
+        GuideStep("3", "Paste its API key. That's it — it's ready everywhere.")
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "Not sure which to pick, or where to find a key? Tap the “?” help bubble and the " +
+                "assistant will walk you through it.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
+private fun GuideStep(number: String, text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .background(MaterialTheme.colorScheme.primary, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = number,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+}
+
 @Composable
 internal fun ServicesContent(uiState: SettingsUiState, actions: SettingsActions) {
     var showAddServiceSheet by remember { mutableStateOf(false) }
+
+    // Plain-language intro so the section isn't intimidating: the app already
+    // works with the built-in Free AI, and adding your own is an optional 1-2-3.
+    ServicesGuideCard()
+    Spacer(Modifier.height(12.dp))
 
     // Configured services list
     val entries = uiState.configuredServices

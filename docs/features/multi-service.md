@@ -1,8 +1,13 @@
 # Multi-Service
 
-**Last verified:** 2026-05-30
+**Last verified:** 2026-06-07
 
 MorsVitaEst supports 26 LLM providers (plus a built-in Free tier). Each provider uses one of three API formats: **OpenAI-compatible** (most services), **Gemini native**, or **Anthropic native** -- plus **LiteRT on-device** for local inference. Users can configure multiple service instances, reorder them, and MorsVitaEst automatically falls back through the chain on failure.
+
+The Services settings open with a plain-language guide card: it reassures the user that the app already
+works on the built-in Free tier, reduces "add your own provider" to a three-step recipe (add service →
+pick a provider → paste the key), and points anyone unsure at the help assistant. See
+[onboarding.md](onboarding.md).
 
 ## Concepts
 

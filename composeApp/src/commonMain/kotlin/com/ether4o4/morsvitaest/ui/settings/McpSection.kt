@@ -100,6 +100,32 @@ internal fun McpServersSection(
 
         Spacer(Modifier.height(12.dp))
 
+        // Plain-language explainer so "MCP" isn't a wall of jargon.
+        SettingsCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "In plain words",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "An MCP server is a plug-in that gives your AI new abilities — things like web " +
+                    "search, your files, or a calendar. Add one below (or pick a popular one) and its " +
+                    "tools show up for the AI automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Just paste the server's URL. Stuck? Tap the “?” help bubble and the assistant " +
+                    "will connect one with you.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
         for (server in mcpServers) {
             McpServerCard(
                 server = server,
