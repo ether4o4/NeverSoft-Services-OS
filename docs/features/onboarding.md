@@ -24,9 +24,9 @@ auto-shows.
 
 ## Help assistant (tap-to-help bubble)
 
-A round “?” bubble floats in the corner of every screen except the Workspace, which carries its own
-“?” chip in its tab strip (so the bubble never covers the chat input). Tapping either opens the
-**Help & setup** panel, which has:
+A round “?” bubble floats in the corner of the home hub; the Workspace carries its own “?” chip in
+its tab strip (so the bubble never covers the chat input), and the Settings screens lead with their
+own inline guide cards. Tapping the bubble or the chip opens the **Help & setup** panel, which has:
 
 - **A one-line-each guide** to Chat, Multi chat, Shell, Services, and MCP.
 - **Quick action buttons** that actually take you where you need to go: *Add an AI* opens the

@@ -207,9 +207,6 @@ private fun AppContent(
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = currentBackStackEntry?.destination?.route
                     val isHome = currentRoute == "home"
-                    // The workspace hosts its own "?" help chip in the tab strip, so the
-                    // floating bubble is suppressed there to avoid covering the chat input.
-                    val isWorkspace = currentRoute?.startsWith("foundry.chat") == true
 
                     val navigationTabBar: @Composable () -> Unit = {
                         val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -331,9 +328,11 @@ private fun AppContent(
                         }
                     }
 
-                    // Always-available help bubble (floats over every screen except the
-                    // workspace, which carries its own "?" chip in the tab strip).
-                    if (!isWorkspace) {
+                    // Help bubble on the hub. The workspace carries its own "?" chip in
+                    // the tab strip, and Settings has inline guide cards, so the floating
+                    // bubble lives on Home — where it lands over the empty corner of the
+                    // box grid rather than covering a control.
+                    if (isHome) {
                         HelpBubble(
                             onClick = { showHelp = true },
                             modifier = Modifier
