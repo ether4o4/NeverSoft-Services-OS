@@ -147,6 +147,10 @@ object Foundry {
 
     /** Color the brand wordmark uses (the same off-white as the title plate). */
     val wordmark: Color = Color(0xFFE8E2D5)
+
+    /** Dark-red page backdrop, shared with the dark color scheme so the home,
+     *  Compare, and the chat/settings workspace all sit on the same red. */
+    val background: Color = Color(0xFF260A0A)
 }
 
 /** Convenience: which intent brush corresponds to a given semantic role. */

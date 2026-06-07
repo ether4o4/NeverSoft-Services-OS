@@ -1,6 +1,6 @@
 # Heartbeat
 
-**Last verified:** 2026-05-14
+**Last verified:** 2026-06-07
 
 > Heartbeat is user-controlled (on/off toggle, interval, active hours live in the settings UI). The AI cannot enable, disable, or reschedule it. To customise *what happens on each heartbeat*, the AI creates heartbeat-triggered scheduled tasks via `schedule_task` with `on_heartbeat: true` — these are `HEARTBEAT`-trigger tasks (see [tasks.md](tasks.md)) and their prompts are appended to every heartbeat run under `## Heartbeat Additions`. Each addition is a first-class task the user can see, edit, and cancel.
 
@@ -79,6 +79,13 @@ For the full contract of every prompt variation in MorsVitaEst (chat remote/loca
 - Entries show an OK/FAIL indicator and a formatted local timestamp
 - Failed entries display the error message (single line, ellipsized) below the timestamp in the error color
 
+## Home News Feed
+
+The home screen's news feed is the user-facing surface for heartbeat output: each assistant message in
+the heartbeat conversation becomes a feed card, newest first. Pull-to-refresh (and a refresh button) on
+the feed run a heartbeat immediately — the same manual trigger as the settings refresh — then reload the
+feed. See [home.md](home.md).
+
 ## Promote Learning
 
 When a memory has been reinforced 5 or more times, it becomes a promotion candidate. The `promote_learning` tool:
@@ -123,6 +130,7 @@ Standing additions to heartbeat behaviour are created with `schedule_task(on_hea
 | `composeApp/src/commonMain/.../data/RemoteDataRepository.kt` | Heartbeat conversation creation, unread flag management |
 | `composeApp/src/commonMain/.../ui/chat/composables/HeartbeatBanner.kt` | Dismissable notification banner UI |
 | `composeApp/src/commonMain/.../ui/settings/SettingsScreen.kt` | Heartbeat settings UI section |
+| `composeApp/src/commonMain/.../ui/foundry/FoundryHomeViewModel.kt` | Turns heartbeat conversation updates into the home news feed; pull-to-refresh trigger |
 | `composeApp/src/commonMain/.../Platform.kt` | `expect fun sendHeartbeatNotification` — push notification for background heartbeat reports |
 | `composeApp/src/androidMain/.../HeartbeatNotifier.android.kt` | Android actual + `EXTRA_OPEN_HEARTBEAT` deep-link constant |
 | `androidApp/src/main/kotlin/.../MainActivity.kt` | Reads `EXTRA_OPEN_HEARTBEAT` in `onCreate`/`onNewIntent` and calls `DataRepository.requestOpenHeartbeat` |

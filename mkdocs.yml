@@ -36,6 +36,9 @@ nav:
   - Getting Started: getting-started.md
   - Features:
     - Chat & Conversations: features/chat.md
+    - Home & Navigation: features/home.md
+    - Onboarding & Help: features/onboarding.md
+    - Compare: features/compare.md
     - Kairos Infrastructure: features/kairos-infrastructure.md
     - Multi-Service: features/multi-service.md
     - Local GGUF: features/gguf-local.md

@@ -208,11 +208,10 @@ private fun assembleByBudget(
     return firstSlice + kept
 }
 
-private fun tokenize(text: String): Set<String> =
-    text.lowercase()
-        .splitToSequence(' ', '\n', '\t', ',', '.', '!', '?', ';', ':', '(', ')', '[', ']', '{', '}', '"', '\'', '/', '\\', '-')
-        .filter { it.length > 2 }
-        .toSet()
+private fun tokenize(text: String): Set<String> = text.lowercase()
+    .splitToSequence(' ', '\n', '\t', ',', '.', '!', '?', ';', ':', '(', ')', '[', ']', '{', '}', '"', '\'', '/', '\\', '-')
+    .filter { it.length > 2 }
+    .toSet()
 
 private fun jaccardSimilarity(a: Set<String>, b: Set<String>): Double {
     if (a.isEmpty() && b.isEmpty()) return 0.0
@@ -409,8 +408,7 @@ class RemoteDataRepository(
             )
         }
 
-    override fun isInstanceEnabled(instanceId: String): Boolean =
-        appSettings.getInstanceEnabled(instanceId)
+    override fun isInstanceEnabled(instanceId: String): Boolean = appSettings.getInstanceEnabled(instanceId)
 
     override fun setInstanceEnabled(instanceId: String, enabled: Boolean) {
         appSettings.setInstanceEnabled(instanceId, enabled)
@@ -2195,6 +2193,19 @@ class RemoteDataRepository(
 
     override fun resetBudgetUsageToday() {
         budgetManager?.resetUsageToday()
+    }
+
+    override suspend fun askBuiltInAssistant(systemPrompt: String, userMessage: String): String {
+        // Talk to the bundled Free tier directly. The normal ask paths route through
+        // getConfiguredServiceInstances(), which deliberately omits Free, so the help
+        // assistant needs its own door to stay available before anything is configured.
+        // instanceCredentials() already special-cases Free to the active free-mode model.
+        val service = Service.Free
+        val creds = instanceCredentials("free", service)
+        val messages = listOf(History(role = History.Role.USER, content = userMessage))
+        val openAIMessages = buildOpenAIMessages(service, messages, systemPrompt)
+        val response = requests.openAICompatibleChat(service, creds, openAIMessages).getOrThrow()
+        return response.choices.firstOrNull()?.message?.effectiveContent ?: ""
     }
 
     override suspend fun askSilently(question: String): String {

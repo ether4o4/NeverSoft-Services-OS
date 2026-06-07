@@ -1,8 +1,12 @@
 # MCP Servers
 
-**Last verified:** 2026-05-14
+**Last verified:** 2026-06-07
 
 MorsVitaEst supports external tool servers via the [Model Context Protocol](https://modelcontextprotocol.io/) (MCP). Users can connect to remote MCP servers using Streamable HTTP transport and use their tools alongside native tools.
+
+The MCP settings lead with a plain-language explainer card — an MCP server is described as a plug-in that
+gives the AI new abilities, with a nudge to the help assistant for anyone who wants it connected for
+them. See [onboarding.md](onboarding.md).
 
 ## Concepts
 

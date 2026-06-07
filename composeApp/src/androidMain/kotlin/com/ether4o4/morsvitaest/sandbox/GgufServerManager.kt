@@ -209,11 +209,10 @@ class GgufServerManager(
 
     /** Read the tail of a log file from inside the sandbox; capped so we don't
      * push huge text into a Compose dialog. Returns empty string if missing. */
-    suspend fun readLogTail(path: String, maxBytes: Int = 8000): String =
-        sandbox.executeCommand(
-            command = "tail -c $maxBytes ${shellQuote(path)} 2>/dev/null",
-            sessionId = SandboxSessions.SYSTEM,
-        )
+    suspend fun readLogTail(path: String, maxBytes: Int = 8000): String = sandbox.executeCommand(
+        command = "tail -c $maxBytes ${shellQuote(path)} 2>/dev/null",
+        sessionId = SandboxSessions.SYSTEM,
+    )
 
     private inline fun <reified T> decodeOr(raw: String, fallback: T): T = runCatching {
         if (raw.isBlank()) fallback else json.decodeFromString<T>(raw)

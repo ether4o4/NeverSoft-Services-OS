@@ -193,6 +193,13 @@ interface DataRepository {
     // Silent ask (no tools, no chat history update)
     suspend fun askSilently(question: String): String
     suspend fun askSilentlyWithInstance(instanceId: String, prompt: String, timeoutMs: Long = 0L): String
+
+    /**
+     * Ask the built-in free tier directly, regardless of what the user has configured.
+     * Backs the always-available help assistant so it works the instant the app is
+     * installed (the normal ask paths exclude the Free service). Single-turn, no tools.
+     */
+    suspend fun askBuiltInAssistant(systemPrompt: String, userMessage: String): String
     suspend fun addAssistantMessage(content: String)
 
     // Heartbeat notification

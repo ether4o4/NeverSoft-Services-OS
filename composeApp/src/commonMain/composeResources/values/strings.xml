@@ -270,6 +270,8 @@
     <string name="settings_mcp_popular_servers">Popular Servers</string>
     <string name="tab_chat">Chat</string>
     <string name="tab_settings">Settings</string>
+    <string name="tab_home">Home</string>
+    <string name="tab_workspace">Workspace</string>
     <string name="fallback_answered_by">Answered by %1$s (fallback)</string>
     <string name="fallback_service_failed">%1$s: %2$s</string>
     <string name="fallback_trying_next">Trying %1$s…</string>

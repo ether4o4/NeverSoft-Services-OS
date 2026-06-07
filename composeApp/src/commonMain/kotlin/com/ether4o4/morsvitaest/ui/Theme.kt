@@ -61,7 +61,7 @@ val DarkColorScheme = darkColorScheme(
     tertiaryContainer = Color(0xFF842300),
     onTertiaryContainer = Color(0xFFFFDBD0),
     surface = Color(0xFF1E1E1E),
-    background = Color(0xFF121212),
+    background = Color(0xFF260A0A), // dark-red backdrop; matches Foundry.background so home + workspace align
     onBackground = Color(0xFFFFFFFF),
     onSurface = Color(0xFFFFFFFF),
 )

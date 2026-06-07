@@ -28,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.ether4o4.morsvitaest.mcp.AWESOME_MCP_SERVERS_URL
 import com.ether4o4.morsvitaest.mcp.PopularMcpServer
@@ -97,6 +97,32 @@ internal fun McpServersSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        Spacer(Modifier.height(12.dp))
+
+        // Plain-language explainer so "MCP" isn't a wall of jargon.
+        SettingsCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "In plain words",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "An MCP server is a plug-in that gives your AI new abilities — things like web " +
+                    "search, your files, or a calendar. Add one below (or pick a popular one) and its " +
+                    "tools show up for the AI automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Just paste the server's URL. Stuck? Tap the “?” help bubble and the assistant " +
+                    "will connect one with you.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
 
         Spacer(Modifier.height(12.dp))
 

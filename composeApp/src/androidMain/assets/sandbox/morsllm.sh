@@ -374,6 +374,7 @@ UI_H_EOF
         -DLLAMA_BUILD_EXAMPLES=OFF \
         -DLLAMA_BUILD_SERVER=ON \
         -DGGML_OPENMP=OFF \
+        -DGGML_NATIVE=ON \
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_AR=/usr/bin/ar \
         -DCMAKE_RANLIB=/usr/bin/ranlib \
@@ -575,11 +576,26 @@ cmd_serve() {
     log "serve: launching llama-server on 127.0.0.1:$port"
     local log_file="$LOGS_DIR/server.log"
     : > "$log_file"
+    # Phone CPUs are big.LITTLE: handing llama.cpp every core (including the slow
+    # efficiency cluster) makes it SLOWER, not faster, because the fast cores
+    # stall each layer waiting on the slow ones. Drop ~2 cores on >4-core chips,
+    # floor 2. Also cap context at 4096 so the KV cache stays small on a phone.
+    local ncpu threads
+    ncpu=$(nproc 2>/dev/null || echo 4)
+    if [ "$ncpu" -gt 4 ]; then
+        threads=$((ncpu - 2))
+    else
+        threads="$ncpu"
+    fi
+    [ "$threads" -lt 2 ] && threads=2
+    log "serve: using $threads of $ncpu cores, ctx 4096"
     nohup "$LLAMA_SERVER" \
         --host 127.0.0.1 \
         --port "$port" \
         -m "$model_path" \
         --n-gpu-layers 0 \
+        --threads "$threads" \
+        --ctx-size 4096 \
         >"$log_file" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_FILE"
@@ -587,9 +603,9 @@ cmd_serve() {
 {"pid":$pid,"port":$port,"model":"$model","model_path":"$model_path","started":"$(date -u +%FT%TZ)"}
 EOF
 
-    log "serve: waiting for /health"
+    log "serve: waiting for /health (large models can take a few minutes to load)"
     local elapsed=0
-    while [ $elapsed -lt 60 ]; do
+    while [ $elapsed -lt 300 ]; do
         if ! kill -0 "$pid" 2>/dev/null; then
             log "serve: process died early; see $log_file"
             rm -f "$PID_FILE"
@@ -604,7 +620,7 @@ EOF
         sleep 1
         elapsed=$((elapsed + 1))
     done
-    emit "{\"ok\":false,\"error\":\"health_timeout\",\"pid\":$pid,\"hint\":\"tail $log_file\"}"
+    emit "{\"ok\":false,\"error\":\"health_timeout\",\"pid\":$pid,\"hint\":\"Model not ready after 5 min — it may be too large for this device's free RAM. Try a smaller model or quant. Log: $log_file\"}"
     return 1
 }
 
