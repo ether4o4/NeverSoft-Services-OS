@@ -37,6 +37,7 @@ nav:
   - Features:
     - Chat & Conversations: features/chat.md
     - Home & Navigation: features/home.md
+    - Onboarding & Help: features/onboarding.md
     - Compare: features/compare.md
     - Kairos Infrastructure: features/kairos-infrastructure.md
     - Multi-Service: features/multi-service.md

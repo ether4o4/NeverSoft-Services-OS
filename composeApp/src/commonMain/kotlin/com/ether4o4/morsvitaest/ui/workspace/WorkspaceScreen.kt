@@ -63,6 +63,7 @@ fun WorkspaceScreen(
     chatViewModel: ChatViewModel,
     textToSpeech: TextToSpeechInstance?,
     onNavigateToSettings: () -> Unit,
+    onOpenHelp: () -> Unit,
     isSandboxAvailable: Boolean,
     navigationTabBar: (@Composable () -> Unit)? = null,
     initialTab: WorkspaceTab = WorkspaceTab.Chat,
@@ -92,6 +93,7 @@ fun WorkspaceScreen(
             tabs = tabs,
             onSelect = { selectedName = it.name },
             onOpenSettings = onNavigateToSettings,
+            onOpenHelp = onOpenHelp,
             navigationTabBar = navigationTabBar,
             modifier = Modifier
                 .fillMaxWidth()
@@ -127,6 +129,7 @@ private fun WorkspaceTabStrip(
     tabs: List<WorkspaceTab>,
     onSelect: (WorkspaceTab) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenHelp: () -> Unit,
     navigationTabBar: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -153,6 +156,9 @@ private fun WorkspaceTabStrip(
                     modifier = Modifier.weight(1f),
                 )
             }
+            // Tap-to-help and Settings live together at the end of the strip so both
+            // are reachable from every tab.
+            FoundryIconChip(glyph = "?", onClick = onOpenHelp, size = 40.dp)
             FoundryIconChip(glyph = "⚙", onClick = onOpenSettings, size = 40.dp)
         }
     }

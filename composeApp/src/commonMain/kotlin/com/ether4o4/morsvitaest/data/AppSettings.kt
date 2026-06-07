@@ -181,6 +181,14 @@ class AppSettings(internal val settings: Settings) {
         return newCount
     }
 
+    // First-run welcome tour. Shown once until completed/skipped; the help
+    // bubble can replay it on demand (which doesn't reset this flag).
+    fun hasSeenWelcome(): Boolean = settings.getBoolean(KEY_WELCOME_SEEN, false)
+
+    fun setWelcomeSeen(seen: Boolean = true) {
+        settings.putBoolean(KEY_WELCOME_SEEN, seen)
+    }
+
     // Tool enable/disable settings
     fun isToolEnabled(toolId: String, defaultEnabled: Boolean = true): Boolean = settings.getBoolean("$KEY_TOOL_PREFIX$toolId", defaultEnabled)
 
@@ -537,6 +545,7 @@ class AppSettings(internal val settings: Settings) {
     companion object {
         const val KEY_CURRENT_SERVICE_ID = "current_service_id"
         const val KEY_APP_OPENS = "app_opens"
+        const val KEY_WELCOME_SEEN = "welcome_seen"
 
         const val KEY_CONVERSATIONS = "conversations_json"
         const val KEY_CURRENT_CONVERSATION_ID = "current_conversation_id"

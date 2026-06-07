@@ -4,6 +4,10 @@ package com.ether4o4.morsvitaest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -16,13 +20,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -54,6 +62,9 @@ import com.ether4o4.morsvitaest.ui.foundry.FoundryHome
 import com.ether4o4.morsvitaest.ui.foundry.FoundryHomeViewModel
 import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
+import com.ether4o4.morsvitaest.ui.help.HelpAssistantSheet
+import com.ether4o4.morsvitaest.ui.help.HelpBubble
+import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.settings.SettingsTab
 import com.ether4o4.morsvitaest.ui.withBlackBackground
@@ -140,6 +151,13 @@ private fun AppContent(
         }
     }
 
+    // First-run welcome tour + the always-available help bubble/sheet.
+    var showTour by remember { mutableStateOf(false) }
+    var showHelp by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!appSettings.hasSeenWelcome()) showTour = true
+    }
+
     // Set up permission handlers
     val calendarPermissionController = koinInject<CalendarPermissionController>()
     SetupCalendarPermissionHandler(calendarPermissionController)
@@ -183,126 +201,167 @@ private fun AppContent(
     CompositionLocalProvider(LocalDensity provides scaledDensity) {
         Theme(colorScheme = effectiveColorScheme) {
             FullScreenImageHost {
-                val chatViewModel: ChatViewModel = koinViewModel()
-                val showTabBar = currentPlatform !is Platform.Mobile
-                val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                val isHome = currentBackStackEntry?.destination?.route == "home"
+                Box(Modifier.fillMaxSize()) {
+                    val chatViewModel: ChatViewModel = koinViewModel()
+                    val showTabBar = currentPlatform !is Platform.Mobile
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = currentBackStackEntry?.destination?.route
+                    val isHome = currentRoute == "home"
+                    // The workspace hosts its own "?" help chip in the tab strip, so the
+                    // floating bubble is suppressed there to avoid covering the chat input.
+                    val isWorkspace = currentRoute?.startsWith("foundry.chat") == true
 
-                val navigationTabBar: @Composable () -> Unit = {
-                    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-                    val count = 2
-                    SingleChoiceSegmentedButtonRow {
-                        SegmentedButton(
-                            selected = isHome,
-                            onClick = {
-                                navController.navigate(Home) {
-                                    popUpTo(Home) { inclusive = true }
-                                    launchSingleTop = true
-                                }
-                            },
-                            shape = SegmentedButtonDefaults.itemShape(index = if (isRtl) count - 1 else 0, count = count),
-                            modifier = Modifier.handCursor(),
-                        ) {
-                            Text(stringResource(Res.string.tab_home))
-                        }
-                        SegmentedButton(
-                            selected = !isHome,
-                            onClick = {
-                                navController.navigate(FoundryChat()) {
-                                    popUpTo(Home)
-                                    launchSingleTop = true
-                                }
-                            },
-                            shape = SegmentedButtonDefaults.itemShape(index = if (isRtl) 0 else count - 1, count = count),
-                            modifier = Modifier.handCursor(),
-                        ) {
-                            Text(stringResource(Res.string.tab_workspace))
-                        }
-                    }
-                }
-
-                NavHost(
-                    navController,
-                    startDestination = Home,
-                    modifier = Modifier.background(MaterialTheme.colorScheme.background),
-                ) {
-                    composable<Home> {
-                        // Foundry brushed-metal home (Page 1): a live newsfeed (Heartbeat
-                        // updates, pull-to-refresh) + integration boxes whose gears open the
-                        // matching Settings tab. The Workspace tab leads to chat / sandbox.
-                        val homeViewModel = koinViewModel<FoundryHomeViewModel>()
-                        val homeState by homeViewModel.state.collectAsStateWithLifecycle()
-                        FoundryHome(
-                            onNavigate = { dest ->
-                                when (dest) {
-                                    FoundryDestination.Chat ->
-                                        navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
-
-                                    FoundryDestination.Shell ->
-                                        navController.navigate(FoundryChat(WorkspaceTab.Shell.name))
-
-                                    FoundryDestination.Compare ->
-                                        navController.navigate(FoundryChat(WorkspaceTab.MultiChat.name))
-
-                                    FoundryDestination.Mcp ->
-                                        navController.navigate(Settings(SettingsTab.Tools.name))
-
-                                    FoundryDestination.Projects ->
-                                        navController.navigate(Settings(SettingsTab.Projects.name))
-
-                                    FoundryDestination.Services,
-                                    FoundryDestination.Ollama,
-                                    FoundryDestination.HuggingFace,
-                                    FoundryDestination.LlmChooser,
-                                    -> navController.navigate(Settings(SettingsTab.Services.name))
-
-                                    else -> navController.navigate(Settings())
-                                }
-                            },
-                            onRefreshFeed = homeViewModel::refresh,
-                            isRefreshing = homeState.isRefreshing,
-                            feedItems = homeState.feed,
-                            navigationTabBar = navigationTabBar,
-                        )
-                    }
-                    composable<FoundryChat> { entry ->
-                        val initialTab = entry.toRoute<FoundryChat>().tab
-                            ?.let { runCatching { WorkspaceTab.valueOf(it) }.getOrNull() }
-                            ?: WorkspaceTab.Chat
-                        WorkspaceScreen(
-                            chatViewModel = chatViewModel,
-                            textToSpeech = textToSpeech,
-                            onNavigateToSettings = {
-                                navController.navigate(Settings())
-                            },
-                            isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
-                            navigationTabBar = if (showTabBar) navigationTabBar else null,
-                            initialTab = initialTab,
-                        )
-                    }
-                    composable<FoundryStub> { entry ->
-                        val stub: FoundryStub = entry.toRoute()
-                        FoundryPlaceholderScreen(
-                            title = stub.title,
-                            description = stub.description,
-                            onBack = { navController.navigateUp() },
-                        )
-                    }
-                    composable<Settings> { entry ->
-                        val initialTab = entry.toRoute<Settings>().tab
-                            ?.let { runCatching { SettingsTab.valueOf(it) }.getOrNull() }
-                        DisposableEffect(Unit) {
-                            onDispose {
-                                chatViewModel.refreshSettings()
+                    val navigationTabBar: @Composable () -> Unit = {
+                        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+                        val count = 2
+                        SingleChoiceSegmentedButtonRow {
+                            SegmentedButton(
+                                selected = isHome,
+                                onClick = {
+                                    navController.navigate(Home) {
+                                        popUpTo(Home) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = if (isRtl) count - 1 else 0, count = count),
+                                modifier = Modifier.handCursor(),
+                            ) {
+                                Text(stringResource(Res.string.tab_home))
+                            }
+                            SegmentedButton(
+                                selected = !isHome,
+                                onClick = {
+                                    navController.navigate(FoundryChat()) {
+                                        popUpTo(Home)
+                                        launchSingleTop = true
+                                    }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = if (isRtl) 0 else count - 1, count = count),
+                                modifier = Modifier.handCursor(),
+                            ) {
+                                Text(stringResource(Res.string.tab_workspace))
                             }
                         }
-                        SettingsScreen(
-                            initialTab = initialTab,
-                            onNavigateBack = {
-                                chatViewModel.refreshSettings()
-                                navController.navigateUp()
+                    }
+
+                    NavHost(
+                        navController,
+                        startDestination = Home,
+                        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                    ) {
+                        composable<Home> {
+                            // Foundry brushed-metal home (Page 1): a live newsfeed (Heartbeat
+                            // updates, pull-to-refresh) + integration boxes whose gears open the
+                            // matching Settings tab. The Workspace tab leads to chat / sandbox.
+                            val homeViewModel = koinViewModel<FoundryHomeViewModel>()
+                            val homeState by homeViewModel.state.collectAsStateWithLifecycle()
+                            FoundryHome(
+                                onNavigate = { dest ->
+                                    when (dest) {
+                                        FoundryDestination.Chat ->
+                                            navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+
+                                        FoundryDestination.Shell ->
+                                            navController.navigate(FoundryChat(WorkspaceTab.Shell.name))
+
+                                        FoundryDestination.Compare ->
+                                            navController.navigate(FoundryChat(WorkspaceTab.MultiChat.name))
+
+                                        FoundryDestination.Mcp ->
+                                            navController.navigate(Settings(SettingsTab.Tools.name))
+
+                                        FoundryDestination.Projects ->
+                                            navController.navigate(Settings(SettingsTab.Projects.name))
+
+                                        FoundryDestination.Services,
+                                        FoundryDestination.Ollama,
+                                        FoundryDestination.HuggingFace,
+                                        FoundryDestination.LlmChooser,
+                                        -> navController.navigate(Settings(SettingsTab.Services.name))
+
+                                        else -> navController.navigate(Settings())
+                                    }
+                                },
+                                onRefreshFeed = homeViewModel::refresh,
+                                isRefreshing = homeState.isRefreshing,
+                                feedItems = homeState.feed,
+                                navigationTabBar = navigationTabBar,
+                            )
+                        }
+                        composable<FoundryChat> { entry ->
+                            val initialTab = entry.toRoute<FoundryChat>().tab
+                                ?.let { runCatching { WorkspaceTab.valueOf(it) }.getOrNull() }
+                                ?: WorkspaceTab.Chat
+                            WorkspaceScreen(
+                                chatViewModel = chatViewModel,
+                                textToSpeech = textToSpeech,
+                                onNavigateToSettings = {
+                                    navController.navigate(Settings())
+                                },
+                                onOpenHelp = { showHelp = true },
+                                isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
+                                navigationTabBar = if (showTabBar) navigationTabBar else null,
+                                initialTab = initialTab,
+                            )
+                        }
+                        composable<FoundryStub> { entry ->
+                            val stub: FoundryStub = entry.toRoute()
+                            FoundryPlaceholderScreen(
+                                title = stub.title,
+                                description = stub.description,
+                                onBack = { navController.navigateUp() },
+                            )
+                        }
+                        composable<Settings> { entry ->
+                            val initialTab = entry.toRoute<Settings>().tab
+                                ?.let { runCatching { SettingsTab.valueOf(it) }.getOrNull() }
+                            DisposableEffect(Unit) {
+                                onDispose {
+                                    chatViewModel.refreshSettings()
+                                }
+                            }
+                            SettingsScreen(
+                                initialTab = initialTab,
+                                onNavigateBack = {
+                                    chatViewModel.refreshSettings()
+                                    navController.navigateUp()
+                                },
+                                navigationTabBar = null,
+                            )
+                        }
+                    }
+
+                    // Always-available help bubble (floats over every screen except the
+                    // workspace, which carries its own "?" chip in the tab strip).
+                    if (!isWorkspace) {
+                        HelpBubble(
+                            onClick = { showHelp = true },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .navigationBarsPadding()
+                                .padding(16.dp),
+                        )
+                    }
+
+                    if (showHelp) {
+                        HelpAssistantSheet(
+                            onDismiss = { showHelp = false },
+                            onOpenServices = {
+                                navController.navigate(Settings(SettingsTab.Services.name))
                             },
-                            navigationTabBar = null,
+                            onOpenMcp = {
+                                navController.navigate(Settings(SettingsTab.Tools.name))
+                            },
+                            onReplayTour = { showTour = true },
+                        )
+                    }
+
+                    if (showTour) {
+                        WelcomeTour(
+                            onFinish = {
+                                appSettings.setWelcomeSeen()
+                                showTour = false
+                            },
                         )
                     }
                 }

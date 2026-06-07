@@ -34,6 +34,7 @@ import com.ether4o4.morsvitaest.tools.SmsSendPermissionController
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.ui.compare.CompareViewModel
 import com.ether4o4.morsvitaest.ui.foundry.FoundryHomeViewModel
+import com.ether4o4.morsvitaest.ui.help.HelpAssistantViewModel
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxFileBrowserViewModel
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxPackagesViewModel
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxSessionViewModel
@@ -160,4 +161,5 @@ val appModule = module {
     viewModel { ChatViewModel(get<DataRepository>(), get<TaskScheduler>()) }
     viewModel { CompareViewModel(get<DataRepository>()) }
     viewModel { FoundryHomeViewModel(get<DataRepository>(), get<TaskScheduler>()) }
+    viewModel { HelpAssistantViewModel(get<DataRepository>()) }
 }
