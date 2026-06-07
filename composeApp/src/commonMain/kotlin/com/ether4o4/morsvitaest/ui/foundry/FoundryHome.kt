@@ -2,6 +2,7 @@
 
 package com.ether4o4.morsvitaest.ui.foundry
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,11 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.title_plate
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * FoundryHome — the brushed-metal landing screen (Page 1).
@@ -116,31 +120,16 @@ fun FoundryHome(
 
 @Composable
 private fun TitlePlate() {
-    FoundryCard(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
-        shape = Foundry.cardShapeLarge,
-    ) {
-        Text(
-            text = "MORSVITAEST",
-            color = Foundry.wordmark,
-            fontWeight = FontWeight.Bold,
-            fontSize = 28.sp,
-            letterSpacing = 2.sp,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = "N E V E R S O F T   S E R V I C E S",
-            color = Foundry.labelSecondary,
-            fontWeight = FontWeight.Medium,
-            fontSize = 10.sp,
-            letterSpacing = 3.sp,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-    }
+    // The brand logo already contains the wordmark + "Neversoft Services" + the
+    // metal frame, with its black background knocked out so it sits on the red.
+    Image(
+        painter = painterResource(Res.drawable.title_plate),
+        contentDescription = "MorsVitaEst — Neversoft Services",
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(128.dp),
+    )
 }
 
 // ────────────────────────────────────────────────────────────────────
