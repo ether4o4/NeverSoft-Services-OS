@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.ether4o4.morsvitaest.ui.compare
 
 import androidx.compose.foundation.background
@@ -20,23 +18,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,12 +31,21 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ether4o4.morsvitaest.BackIcon
-import com.ether4o4.morsvitaest.ui.handCursor
+import com.ether4o4.morsvitaest.ui.foundry.Foundry
+import com.ether4o4.morsvitaest.ui.foundry.FoundryCard
+import com.ether4o4.morsvitaest.ui.foundry.FoundryIconChip
+import com.ether4o4.morsvitaest.ui.foundry.FoundryIntent
+import com.ether4o4.morsvitaest.ui.foundry.FoundryPill
+import com.ether4o4.morsvitaest.ui.foundry.FoundrySteelPill
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -65,7 +60,6 @@ fun CompareScreen(
         onSelectPane = viewModel::selectPane,
         onToggleMerge = viewModel::setMerge,
         onSend = viewModel::send,
-        onClear = viewModel::clear,
     )
 }
 
@@ -76,115 +70,125 @@ private fun CompareContent(
     onSelectPane: (ComparePane, String) -> Unit,
     onToggleMerge: (Boolean) -> Unit,
     onSend: (String) -> Unit,
-    onClear: () -> Unit,
 ) {
     var input by rememberSaveable { mutableStateOf("") }
 
     Box(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFF0F0F0F))
             .statusBarsPadding()
             .navigationBarsPadding()
-            .imePadding(),
+            .imePadding()
+            .padding(Foundry.pagePadding),
     ) {
         Column(Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onBack, modifier = Modifier.handCursor()) {
-                    Icon(BackIcon, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
-                }
+                FoundryIconChip(glyph = "←", onClick = onBack, size = 40.dp)
+                Spacer(Modifier.width(10.dp))
                 Text(
-                    text = "Compare LLMs",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    text = "COMPARE LLMS",
+                    color = Foundry.wordmark,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    letterSpacing = 1.5.sp,
                     modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = "Merge",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                FoundryPill(
+                    label = if (state.merge) "MERGE ON" else "MERGE OFF",
+                    onClick = { onToggleMerge(!state.merge) },
+                    intent = if (state.merge) FoundryIntent.Primary else FoundryIntent.Neutral,
+                    minHeight = 40.dp,
                 )
-                Spacer(Modifier.width(6.dp))
-                Switch(checked = state.merge, onCheckedChange = onToggleMerge, modifier = Modifier.handCursor())
-                Spacer(Modifier.width(8.dp))
             }
 
+            Spacer(Modifier.height(6.dp))
             Text(
                 text = if (state.merge) {
-                    "Merge on — the two models reply to each other, 2 turns each."
+                    "The two models reply to each other — 2 turns each, then it waits for you."
                 } else {
                     "Both models answer the same prompt, side by side."
                 },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                color = Foundry.labelSecondary,
+                fontSize = 11.sp,
             )
-
-            HorizontalDivider()
+            Spacer(Modifier.height(Foundry.gridGap))
 
             if (state.entries.isEmpty()) {
-                Box(
+                FoundryCard(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
+                    shape = Foundry.cardShapeLarge,
                 ) {
-                    Text(
-                        text = "Add services in Settings to compare your favorite LLMs.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(24.dp),
-                    )
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "Add services in Settings to compare your favorite LLMs.",
+                            color = Foundry.labelSecondary,
+                            fontSize = 13.sp,
+                        )
+                    }
                 }
             } else {
-                Row(Modifier.weight(1f).fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Foundry.gridGap),
+                ) {
                     PaneColumn(ComparePane.A, state, onSelectPane, Modifier.weight(1f))
-                    VerticalDivider()
                     PaneColumn(ComparePane.B, state, onSelectPane, Modifier.weight(1f))
                 }
             }
 
             state.error?.let { error ->
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    color = Color(0xFFE57373),
+                    fontSize = 12.sp,
                 )
             }
 
+            Spacer(Modifier.height(Foundry.gridGap))
             Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text(if (state.merge) "Start a debate…" else "Ask both…") },
-                    enabled = !state.isLoading && state.entries.isNotEmpty(),
-                    maxLines = 4,
-                )
-                Spacer(Modifier.width(8.dp))
-                if (state.isLoading) {
-                    CircularProgressIndicator(Modifier.size(28.dp))
-                } else {
-                    val enabled = input.isNotBlank() && state.canSend
-                    IconButton(
-                        onClick = {
-                            onSend(input)
-                            input = ""
+                FoundrySteelPill(modifier = Modifier.weight(1f)) {
+                    BasicTextField(
+                        value = input,
+                        onValueChange = { input = it },
+                        textStyle = TextStyle(color = Foundry.labelPrimary, fontSize = 14.sp),
+                        cursorBrush = SolidColor(Foundry.labelPrimary),
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { inner ->
+                            if (input.isEmpty()) {
+                                Text(
+                                    text = if (state.merge) "Start a debate…" else "Ask both…",
+                                    color = Foundry.labelMuted,
+                                    fontSize = 14.sp,
+                                )
+                            }
+                            inner()
                         },
-                        enabled = enabled,
-                        modifier = Modifier.handCursor(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
-                            tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    )
+                }
+                if (state.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                } else {
+                    FoundryIconChip(
+                        glyph = "➤",
+                        onClick = {
+                            if (input.isNotBlank() && state.canSend) {
+                                onSend(input)
+                                input = ""
+                            }
+                        },
+                        size = 44.dp,
+                        tint = if (input.isNotBlank() && state.canSend) Foundry.labelPrimary else Foundry.labelMuted,
+                    )
                 }
             }
         }
@@ -201,31 +205,23 @@ private fun PaneColumn(
     val selectedId = if (pane == ComparePane.A) state.paneAInstanceId else state.paneBInstanceId
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier.fillMaxHeight().padding(8.dp)) {
+    FoundryCard(modifier = modifier.fillMaxHeight(), shape = Foundry.cardShapeLarge) {
         Box(Modifier.fillMaxWidth()) {
-            Surface(
+            FoundrySteelPill(
                 onClick = { expanded = true },
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.fillMaxWidth().handCursor(),
+                modifier = Modifier.fillMaxWidth(),
+                minHeight = 40.dp,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = state.labelFor(selectedId),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Foundry.labelPrimary,
+                        fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Text(text = "▼", color = Foundry.labelSecondary, fontSize = 12.sp)
                 }
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -249,22 +245,23 @@ private fun PaneColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(messages) { message ->
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    modifier = Modifier.fillMaxWidth(),
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(Foundry.tileShape)
+                        .background(Color(0xFF1A1A1A), Foundry.tileShape)
+                        .padding(10.dp),
                 ) {
                     Text(
                         text = message.text,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(10.dp),
+                        color = Foundry.labelPrimary,
+                        fontSize = 12.sp,
                     )
                 }
             }
             if (state.isLoading && messages.isEmpty()) {
                 item {
-                    CircularProgressIndicator(Modifier.size(20.dp).padding(2.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
             }
         }
