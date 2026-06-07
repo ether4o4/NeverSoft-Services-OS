@@ -2195,6 +2195,19 @@ class RemoteDataRepository(
         budgetManager?.resetUsageToday()
     }
 
+    override suspend fun askBuiltInAssistant(systemPrompt: String, userMessage: String): String {
+        // Talk to the bundled Free tier directly. The normal ask paths route through
+        // getConfiguredServiceInstances(), which deliberately omits Free, so the help
+        // assistant needs its own door to stay available before anything is configured.
+        // instanceCredentials() already special-cases Free to the active free-mode model.
+        val service = Service.Free
+        val creds = instanceCredentials("free", service)
+        val messages = listOf(History(role = History.Role.USER, content = userMessage))
+        val openAIMessages = buildOpenAIMessages(service, messages, systemPrompt)
+        val response = requests.openAICompatibleChat(service, creds, openAIMessages).getOrThrow()
+        return response.choices.firstOrNull()?.message?.effectiveContent ?: ""
+    }
+
     override suspend fun askSilently(question: String): String {
         val service = currentService()
         val firstInstance = getConfiguredServiceInstances()

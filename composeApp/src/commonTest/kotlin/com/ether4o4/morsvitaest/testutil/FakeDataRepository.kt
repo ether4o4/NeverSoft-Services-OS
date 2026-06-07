@@ -496,6 +496,7 @@ class FakeDataRepository : DataRepository {
 
     override suspend fun askSilently(question: String): String = ""
     override suspend fun askSilentlyWithInstance(instanceId: String, prompt: String, timeoutMs: Long): String = ""
+    override suspend fun askBuiltInAssistant(systemPrompt: String, userMessage: String): String = ""
     override suspend fun addAssistantMessage(content: String) {}
 
     override val hasUnreadHeartbeat: MutableStateFlow<Boolean> = MutableStateFlow(false)

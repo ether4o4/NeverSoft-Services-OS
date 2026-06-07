@@ -55,13 +55,7 @@ class HelpAssistantViewModel(
                 )
             }
             try {
-                val instanceId = repository.getFreeMode().instanceId
-                val prompt = buildString {
-                    append(SYSTEM_PREAMBLE)
-                    append("\n\nUser question: ")
-                    append(trimmed)
-                }
-                val answer = repository.askSilentlyWithInstance(instanceId, prompt)
+                val answer = repository.askBuiltInAssistant(SYSTEM_PREAMBLE, trimmed)
                 _state.update {
                     it.copy(
                         messages = (it.messages + Message(fromUser = false, text = answer.ifBlank { FALLBACK })).toImmutableList(),
