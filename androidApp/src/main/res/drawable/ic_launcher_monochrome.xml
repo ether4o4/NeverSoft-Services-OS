@@ -1,17 +1,15 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="90"
-    android:viewportHeight="90">
-  <group android:scaleX="0.59"
-      android:scaleY="0.59"
-      android:translateX="18.45"
-      android:translateY="18.45">
-    <path
-        android:pathData="M35,45m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"
-        android:fillColor="#FFFFFF"/>
-    <path
-        android:pathData="M55,45m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"
-        android:fillColor="#FFFFFF"/>
-  </group>
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- Eye outline (almond ring via even-odd: outer almond minus inner almond). -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:fillType="evenOdd"
+      android:pathData="M22,54 C38,38 70,38 86,54 C70,70 38,70 22,54 Z M31,54 C42,45 66,45 77,54 C66,63 42,63 31,54 Z"/>
+  <!-- Iris + pupil. -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M54,54 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0"/>
 </vector>

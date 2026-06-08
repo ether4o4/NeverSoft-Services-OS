@@ -3,9 +3,13 @@ package com.ether4o4.morsvitaest.sandbox
 import android.content.Context
 import com.ether4o4.morsvitaest.SandboxController
 import com.ether4o4.morsvitaest.SandboxSessions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -33,6 +37,71 @@ class GgufServerManager(
     private var scriptInstalled = false
 
     val openAiBaseUrl: String = "http://127.0.0.1:8080/v1"
+
+    /**
+     * State of the current long-running engine/model operation. Owned by the
+     * manager (an app-scoped singleton) rather than the screen, so a build or
+     * download keeps running — and stays observable — after the user navigates
+     * away and comes back. [Running] carries a label for the busy UI; [Done] and
+     * [Failed] are terminal until the UI acknowledges them.
+     */
+    sealed interface EngineOp {
+        data object Idle : EngineOp
+        data class Running(val label: String) : EngineOp
+        data class Done(val message: String) : EngineOp
+        data class Failed(val result: GenericResult) : EngineOp
+    }
+
+    private val _op = MutableStateFlow<EngineOp>(EngineOp.Idle)
+    val op: StateFlow<EngineOp> = _op.asStateFlow()
+
+    /**
+     * Launch a long op on the manager's own scope. No-op if one is already in
+     * flight (prevents a second build/download from a double tap or a re-entered
+     * screen). The op runs to completion regardless of UI lifecycle.
+     */
+    private fun launchOp(label: String, block: suspend () -> EngineOp) {
+        if (_op.value is EngineOp.Running) return
+        _op.value = EngineOp.Running(label)
+        scope.launch {
+            _op.value = try {
+                block()
+            } catch (e: CancellationException) {
+                _op.value = EngineOp.Idle
+                throw e
+            } catch (e: Exception) {
+                EngineOp.Failed(GenericResult(ok = false, error = e.message ?: "operation_failed"))
+            }
+        }
+    }
+
+    fun startProvision() = launchOp("Building engine… one-time, may take 10–30 min") {
+        val r = provision()
+        if (r.ok) EngineOp.Done("Engine ready") else EngineOp.Failed(r)
+    }
+
+    fun startPull(repoOrUrl: String, quant: String? = null) = launchOp("Downloading model…") {
+        val r = pull(repoOrUrl, quant)
+        if (r.ok) EngineOp.Done("Downloaded ${r.file ?: "model"}") else EngineOp.Failed(r)
+    }
+
+    fun startServe(modelFilename: String) = launchOp("Starting $modelFilename…") {
+        val r = serve(modelFilename)
+        if (r.ok) EngineOp.Done("Running. Tap \"Add as service\" below.") else EngineOp.Failed(r)
+    }
+
+    fun startStop() = launchOp("Stopping…") {
+        val r = stop()
+        if (r.ok) EngineOp.Done("Stopped") else EngineOp.Failed(r)
+    }
+
+    /** Clear a terminal [EngineOp.Done]/[EngineOp.Failed] back to idle once the UI
+     *  has shown it, so it doesn't re-appear on the next visit to the screen. */
+    fun acknowledgeOp() {
+        if (_op.value is EngineOp.Done || _op.value is EngineOp.Failed) {
+            _op.value = EngineOp.Idle
+        }
+    }
 
     private val json = Json {
         ignoreUnknownKeys = true

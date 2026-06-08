@@ -2,7 +2,6 @@
 
 package com.ether4o4.morsvitaest.ui.foundry
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,13 +36,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.title_plate
-import org.jetbrains.compose.resources.painterResource
 
 /**
  * FoundryHome — the brushed-metal landing screen (Page 1).
@@ -138,15 +135,19 @@ fun FoundryHome(
 
 @Composable
 private fun TitlePlate() {
-    // The brand logo already contains the wordmark + "Neversoft Services" + the
-    // metal frame, with its black background knocked out so it sits on the red.
-    Image(
-        painter = painterResource(Res.drawable.title_plate),
-        contentDescription = "MorsVitaEst — Neversoft Services",
-        contentScale = ContentScale.Fit,
+    // A slim wordmark instead of the tall logo plate — frees up vertical room for
+    // the feed and the boxes below. The eye from the old logo lives on as the app
+    // icon now.
+    Text(
+        text = "MORS VITA EST",
+        color = Foundry.wordmark,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        letterSpacing = 5.sp,
+        textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .height(128.dp),
+            .padding(vertical = 6.dp),
     )
 }
 
