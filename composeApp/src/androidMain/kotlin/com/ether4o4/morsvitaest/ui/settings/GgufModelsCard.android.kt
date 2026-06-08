@@ -56,14 +56,18 @@ actual fun PlatformGgufModelsCard() {
     val sandboxStatus by sandboxController.status.collectAsState()
     val scope = rememberCoroutineScope()
 
+    // The engine build / model download now lives in the app-scoped manager, so it
+    // keeps running when you leave this screen. The card just observes its state.
+    val op by manager.op.collectAsState()
+    val busy = op is GgufServerManager.EngineOp.Running
+    val busyLabel = (op as? GgufServerManager.EngineOp.Running)?.label.orEmpty()
+    val errorResult = (op as? GgufServerManager.EngineOp.Failed)?.result
+
     var status by remember { mutableStateOf<GgufServerManager.Status?>(null) }
     var models by remember { mutableStateOf<List<GgufServerManager.ModelFile>>(emptyList()) }
     var repoInput by remember { mutableStateOf("") }
     var quantInput by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
-    var busyLabel by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
-    var errorResult by remember { mutableStateOf<GgufServerManager.GenericResult?>(null) }
 
     suspend fun refresh() {
         // Defensive: don't overwrite `status` or `models` with empty/failed
@@ -88,22 +92,22 @@ actual fun PlatformGgufModelsCard() {
         if (sandboxStatus.ready) refresh()
     }
 
-    // Fire-and-forget a long sandbox op while showing a single busy state.
-    // The block sets `message` (toast-style) or `errorResult` (dialog) directly.
-    fun runOp(label: String, block: suspend () -> Unit) {
-        if (busy) return
-        busy = true
-        busyLabel = label
-        message = null
-        errorResult = null
-        scope.launch {
-            try {
-                block()
+    // Observe the manager op: clear stale toasts when a new op starts, and on
+    // success surface the message, re-read status/models, then acknowledge so it
+    // doesn't replay on the next visit. Failures stay until the dialog is dismissed.
+    LaunchedEffect(op) {
+        when (val current = op) {
+            is GgufServerManager.EngineOp.Running -> message = null
+
+            is GgufServerManager.EngineOp.Done -> {
+                message = current.message
                 refresh()
-            } finally {
-                busy = false
-                busyLabel = ""
+                manager.acknowledgeOp()
             }
+
+            is GgufServerManager.EngineOp.Failed -> refresh()
+
+            else -> {}
         }
     }
 
@@ -158,12 +162,7 @@ actual fun PlatformGgufModelsCard() {
             )
             Spacer(Modifier.height(8.dp))
             Button(
-                onClick = {
-                    runOp("Building engine… one-time, may take 10–30 min") {
-                        val r = manager.provision()
-                        if (r.ok) message = "Engine ready" else errorResult = r
-                    }
-                },
+                onClick = { manager.startProvision() },
                 modifier = Modifier.handCursor(),
             ) { Text("Set up engine") }
         } else {
@@ -223,28 +222,25 @@ actual fun PlatformGgufModelsCard() {
             Button(
                 enabled = repoInput.isNotBlank(),
                 onClick = {
-                    runOp("Downloading model…") {
-                        // Normalize: strip a full HuggingFace URL down to a repo id
-                        // so users can paste either "owner/repo", "https://huggingface.co/owner/repo",
-                        // or the file URL and it just works.
-                        val raw = repoInput.trim()
-                        val normalized = when {
-                            raw.startsWith("https://huggingface.co/") || raw.startsWith("http://huggingface.co/") -> {
-                                val path = raw.substringAfter("huggingface.co/").trimEnd('/')
-                                // Direct .gguf download URL: keep as-is, the script handles it.
-                                if (path.contains("/resolve/") && path.endsWith(".gguf", ignoreCase = true)) {
-                                    raw
-                                } // Otherwise reduce to owner/repo (drop any /tree/main/... or /blob/... suffix)
-                                else {
-                                    path.split("/").take(2).joinToString("/")
-                                }
+                    // Normalize: strip a full HuggingFace URL down to a repo id
+                    // so users can paste either "owner/repo", "https://huggingface.co/owner/repo",
+                    // or the file URL and it just works.
+                    val raw = repoInput.trim()
+                    val normalized = when {
+                        raw.startsWith("https://huggingface.co/") || raw.startsWith("http://huggingface.co/") -> {
+                            val path = raw.substringAfter("huggingface.co/").trimEnd('/')
+                            // Direct .gguf download URL: keep as-is, the script handles it.
+                            if (path.contains("/resolve/") && path.endsWith(".gguf", ignoreCase = true)) {
+                                raw
+                            } // Otherwise reduce to owner/repo (drop any /tree/main/... or /blob/... suffix)
+                            else {
+                                path.split("/").take(2).joinToString("/")
                             }
-
-                            else -> raw
                         }
-                        val r = manager.pull(normalized, quantInput.trim().ifBlank { null })
-                        if (r.ok) message = "Downloaded ${r.file ?: "model"}" else errorResult = r
+
+                        else -> raw
                     }
+                    manager.startPull(normalized, quantInput.trim().ifBlank { null })
                 },
                 modifier = Modifier.handCursor(),
             ) { Text("Download") }
@@ -281,22 +277,12 @@ actual fun PlatformGgufModelsCard() {
                         Spacer(Modifier.width(8.dp))
                         if (isRunning) {
                             OutlinedButton(
-                                onClick = {
-                                    runOp("Stopping…") {
-                                        val r = manager.stop()
-                                        if (r.ok) message = "Stopped" else errorResult = r
-                                    }
-                                },
+                                onClick = { manager.startStop() },
                                 modifier = Modifier.handCursor(),
                             ) { Text("Stop") }
                         } else {
                             Button(
-                                onClick = {
-                                    runOp("Starting ${m.name}…") {
-                                        val r = manager.serve(m.name)
-                                        if (r.ok) message = "Running. Tap \"Add as service\" below." else errorResult = r
-                                    }
-                                },
+                                onClick = { manager.startServe(m.name) },
                                 modifier = Modifier.handCursor(),
                             ) { Text("Run") }
                         }
@@ -340,7 +326,7 @@ actual fun PlatformGgufModelsCard() {
         ProvisionErrorDialog(
             result = err,
             manager = manager,
-            onDismiss = { errorResult = null },
+            onDismiss = { manager.acknowledgeOp() },
         )
     }
 }
