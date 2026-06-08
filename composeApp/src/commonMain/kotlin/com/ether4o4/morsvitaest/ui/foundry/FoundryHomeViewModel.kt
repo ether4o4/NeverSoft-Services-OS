@@ -68,9 +68,9 @@ class FoundryHomeViewModel(
     }
 
     private fun Conversation.Message.toFeedItem(): FoundryFeedItem {
-        val thumbnailUrl = extractThumbnailUrl(content)
+        val thumbnailUrl = extractFeedThumbnailUrl(content)
         // Strip image/link markup so the title and summary read as plain text.
-        val cleaned = content.stripMarkdownMedia().trim()
+        val cleaned = stripFeedMarkdownMedia(content).trim()
         val lines = cleaned.lineSequence().filter { it.isNotBlank() }.toList()
         val title = lines.firstOrNull()
             ?.trimStart('#', '*', '-', ' ')
@@ -80,26 +80,31 @@ class FoundryHomeViewModel(
         val summary = lines.drop(1).joinToString(" ").ifBlank { cleaned }.take(240)
         return FoundryFeedItem(title = title, source = "Heartbeat", summary = summary, thumbnailUrl = thumbnailUrl)
     }
-
-    private companion object {
-        // ![alt](https://host/pic.png) — grab the URL inside a markdown image.
-        private val MARKDOWN_IMAGE = Regex("""!\[[^\]]*]\((https?://[^)\s]+)\)""")
-
-        // A bare image link, e.g. https://host/a/b.jpg?x=1 — common in RSS/heartbeat text.
-        private val IMAGE_URL = Regex(
-            """https?://[^\s)"']+\.(?:png|jpe?g|webp|gif|avif|svg|bmp)(?:\?[^\s)"']*)?""",
-            RegexOption.IGNORE_CASE,
-        )
-
-        // Markdown image (drop entirely) and markdown link (keep the visible label).
-        private val STRIP_IMAGE = Regex("""!\[[^\]]*]\([^)]*\)""")
-        private val LINK_LABEL = Regex("""\[([^\]]+)]\([^)]*\)""")
-
-        fun extractThumbnailUrl(content: String): String? {
-            MARKDOWN_IMAGE.find(content)?.groupValues?.getOrNull(1)?.let { return it }
-            return IMAGE_URL.find(content)?.value
-        }
-
-        fun String.stripMarkdownMedia(): String = replace(STRIP_IMAGE, "").replace(LINK_LABEL, "$1")
-    }
 }
+
+// ![alt](https://host/pic.png) — grab the URL inside a markdown image.
+private val MARKDOWN_IMAGE = Regex("""!\[[^\]]*]\((https?://[^)\s]+)\)""")
+
+// A bare image link, e.g. https://host/a/b.jpg?x=1 — common in RSS/heartbeat text.
+private val IMAGE_URL = Regex(
+    """https?://[^\s)"']+\.(?:png|jpe?g|webp|gif|avif|svg|bmp)(?:\?[^\s)"']*)?""",
+    RegexOption.IGNORE_CASE,
+)
+
+// Markdown image (drop entirely) and markdown link (keep the visible label).
+private val STRIP_IMAGE = Regex("""!\[[^\]]*]\([^)]*\)""")
+private val LINK_LABEL = Regex("""\[([^\]]+)]\([^)]*\)""")
+
+/**
+ * First usable thumbnail URL in a feed entry: a markdown image's URL if present,
+ * otherwise the first bare link that ends in a known image extension. Returns null
+ * when the text carries no image, so the row falls back to its source initial.
+ */
+internal fun extractFeedThumbnailUrl(content: String): String? {
+    MARKDOWN_IMAGE.find(content)?.groupValues?.getOrNull(1)?.let { return it }
+    return IMAGE_URL.find(content)?.value
+}
+
+/** Drop markdown images and unwrap markdown links to their label, so feed titles
+ *  and summaries read as plain prose instead of raw markup. */
+internal fun stripFeedMarkdownMedia(content: String): String = content.replace(STRIP_IMAGE, "").replace(LINK_LABEL, "$1")

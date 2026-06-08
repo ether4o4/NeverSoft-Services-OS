@@ -64,11 +64,12 @@ class HelpAssistantViewModel(
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (_: Exception) {
+                // Keep the surface friendly — raw network/HTTP messages aren't useful here.
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Couldn't reach the assistant. Check your connection and try again.",
+                        error = "Couldn't reach the assistant just now. Check your connection and try again.",
                     )
                 }
             }

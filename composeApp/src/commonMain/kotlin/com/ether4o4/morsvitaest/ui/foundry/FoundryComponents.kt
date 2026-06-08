@@ -27,6 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -222,7 +226,8 @@ fun FoundryTextFieldPill(
 /**
  * Small metallic icon button (the "Switch" trio's star / plus / equals buttons
  * in the mockup). Pass a single character/glyph as [glyph] — the brushed
- * surface does the work.
+ * surface does the work. Provide [contentDescription] so screen readers announce
+ * the action rather than the raw glyph.
  */
 @Composable
 fun FoundryIconChip(
@@ -231,6 +236,7 @@ fun FoundryIconChip(
     modifier: Modifier = Modifier,
     size: Dp = 44.dp,
     tint: Color = Foundry.labelPrimary,
+    contentDescription: String? = null,
 ) {
     Box(
         modifier = modifier
@@ -242,6 +248,16 @@ fun FoundryIconChip(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(color = Color.White),
                 onClick = onClick,
+            )
+            .then(
+                if (contentDescription != null) {
+                    Modifier.semantics {
+                        this.contentDescription = contentDescription
+                        this.role = Role.Button
+                    }
+                } else {
+                    Modifier
+                },
             ),
         contentAlignment = Alignment.Center,
     ) {

@@ -136,6 +136,7 @@ fun ChatScreen(
     onNavigateToSettings: () -> Unit,
     isSandboxAvailable: Boolean = false,
     navigationTabBar: (@Composable () -> Unit)? = null,
+    showSettingsButton: Boolean = true,
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
 
@@ -145,6 +146,7 @@ fun ChatScreen(
         onNavigateToSettings = onNavigateToSettings,
         isSandboxAvailable = isSandboxAvailable,
         navigationTabBar = navigationTabBar,
+        showSettingsButton = showSettingsButton,
     )
 }
 
@@ -155,6 +157,7 @@ fun ChatScreenContent(
     onNavigateToSettings: () -> Unit = {},
     isSandboxAvailable: Boolean = false,
     navigationTabBar: (@Composable () -> Unit)? = null,
+    showSettingsButton: Boolean = true,
     initialSandboxOpen: Boolean = false,
     previewSandboxState: SandboxUiState? = null,
     previewSandboxLines: ImmutableList<TerminalLine> = persistentListOf(),
@@ -168,6 +171,7 @@ fun ChatScreenContent(
             onNavigateToSettings = onNavigateToSettings,
             isSandboxAvailable = isSandboxAvailable,
             navigationTabBar = navigationTabBar,
+            showSettingsButton = showSettingsButton,
             initialSandboxOpen = initialSandboxOpen,
             previewSandboxState = previewSandboxState,
             previewSandboxLines = previewSandboxLines,
@@ -458,6 +462,7 @@ private fun ChatModeScreen(
     onNavigateToSettings: () -> Unit,
     isSandboxAvailable: Boolean,
     navigationTabBar: (@Composable () -> Unit)?,
+    showSettingsButton: Boolean = true,
     initialSandboxOpen: Boolean = false,
     previewSandboxState: SandboxUiState? = null,
     previewSandboxLines: ImmutableList<TerminalLine> = persistentListOf(),
@@ -522,6 +527,7 @@ private fun ChatModeScreen(
                     showHistorySheet = true
                 },
                 navigationTabBar = navigationTabBar,
+                showSettingsButton = showSettingsButton,
             )
 
             HeartbeatBanner(
