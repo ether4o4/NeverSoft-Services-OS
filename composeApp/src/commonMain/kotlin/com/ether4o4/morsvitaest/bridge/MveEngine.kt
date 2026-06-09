@@ -43,13 +43,11 @@ class MveEngine internal constructor(
 
     fun apiKey(instanceId: String): String = data.getInstanceApiKey(instanceId)
 
-    fun setApiKey(instanceId: String, apiKey: String) =
-        data.updateInstanceApiKey(instanceId, apiKey)
+    fun setApiKey(instanceId: String, apiKey: String) = data.updateInstanceApiKey(instanceId, apiKey)
 
     fun isServiceEnabled(instanceId: String): Boolean = data.isInstanceEnabled(instanceId)
 
-    fun setServiceEnabled(instanceId: String, enabled: Boolean) =
-        data.setInstanceEnabled(instanceId, enabled)
+    fun setServiceEnabled(instanceId: String, enabled: Boolean) = data.setInstanceEnabled(instanceId, enabled)
 
     // ---- Core toggles --------------------------------------------------------
 
@@ -72,8 +70,7 @@ class MveEngine internal constructor(
 
     suspend fun readFile(path: String): String? = sandbox.readTextFile(path)
 
-    suspend fun writeFile(path: String, content: String): Boolean =
-        sandbox.writeTextFile(path, content)
+    suspend fun writeFile(path: String, content: String): Boolean = sandbox.writeTextFile(path, content)
 
     // ---- Use-case helpers ----------------------------------------------------
 
