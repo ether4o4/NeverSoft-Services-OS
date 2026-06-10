@@ -178,6 +178,21 @@ class LinuxSandboxManager(
             throw IllegalStateException("apk update failed on all Alpine mirrors")
         }
 
+        // Pull bash up front so the persistent shell uses it from the very
+        // first command. The base minirootfs ships only busybox sh; the shell
+        // falls back to that if bash is missing, so this is best-effort and
+        // never blocks the sandbox from going Ready. The full tool set (git,
+        // python3, ssh, …) remains the separate, opt-in installPackages() step.
+        val bashInstall = runCatching {
+            executor.execute("apk add --no-cache bash", timeoutSeconds = 60)
+        }.getOrNull()
+        if (bashInstall?.get("success") != true) {
+            android.util.Log.w(
+                "LinuxSandbox",
+                "bash preinstall failed; shell will use busybox sh until packages are installed",
+            )
+        }
+
         _state.value = SandboxState.Ready
     }
 
