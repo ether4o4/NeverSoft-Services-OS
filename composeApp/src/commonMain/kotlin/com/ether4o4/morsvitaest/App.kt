@@ -274,6 +274,9 @@ private fun AppContent(
                         composable<Launcher> {
                             // NeverSoft OS desktop. Each dock tile opens a real
                             // Mors Vita Est engine screen on the local-GGUF / sandbox stack.
+                            // The left page is the live Foundry news feed.
+                            val homeViewModel = koinViewModel<FoundryHomeViewModel>()
+                            val homeState by homeViewModel.state.collectAsStateWithLifecycle()
                             LauncherScreen(
                                 onOpenChat = {
                                     navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
@@ -291,6 +294,39 @@ private fun AppContent(
                                 },
                                 onOpenStub = { title, desc ->
                                     navController.navigate(FoundryStub(title, desc))
+                                },
+                                newsPage = {
+                                    FoundryHome(
+                                        onNavigate = { dest ->
+                                            when (dest) {
+                                                FoundryDestination.Chat ->
+                                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+
+                                                FoundryDestination.Shell ->
+                                                    navController.navigate(FoundryChat(WorkspaceTab.Shell.name))
+
+                                                FoundryDestination.Compare ->
+                                                    navController.navigate(FoundryChat(WorkspaceTab.MultiChat.name))
+
+                                                FoundryDestination.Mcp ->
+                                                    navController.navigate(Settings(SettingsTab.Tools.name))
+
+                                                FoundryDestination.Projects ->
+                                                    navController.navigate(Settings(SettingsTab.Projects.name))
+
+                                                FoundryDestination.Services,
+                                                FoundryDestination.Ollama,
+                                                FoundryDestination.HuggingFace,
+                                                FoundryDestination.LlmChooser,
+                                                -> navController.navigate(Settings(SettingsTab.Services.name))
+
+                                                else -> navController.navigate(Settings())
+                                            }
+                                        },
+                                        onRefreshFeed = homeViewModel::refresh,
+                                        isRefreshing = homeState.isRefreshing,
+                                        feedItems = homeState.feed,
+                                    )
                                 },
                             )
                         }

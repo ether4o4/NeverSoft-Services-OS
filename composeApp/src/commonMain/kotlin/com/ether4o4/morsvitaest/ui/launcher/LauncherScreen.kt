@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,9 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.FolderOpen
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +62,11 @@ import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlinx.coroutines.delay
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * NeverSoft launcher — a macOS-style shell (top menu bar + far-left desktop
@@ -90,6 +97,7 @@ fun LauncherScreen(
     onOpenModels: () -> Unit,
     onOpenLauncherSettings: () -> Unit,
     onOpenStub: (String, String) -> Unit,
+    newsPage: @Composable () -> Unit,
 ) {
     val settings = koinInject<AppSettings>()
     val wallpaperColors = remember {
@@ -113,7 +121,7 @@ fun LauncherScreen(
         DesktopShortcut("Internet", Res.drawable.ic_desk_internet) {
             runCatching { uriHandler.openUri("https://www.google.com") }
         },
-        DesktopShortcut("Computer", Res.drawable.ic_desk_computer, onOpenFiles),
+        DesktopShortcut("Computer", Res.drawable.ic_desk_computer, onOpenShell),
         DesktopShortcut("Documents", Res.drawable.ic_desk_documents, onOpenFiles),
         DesktopShortcut("Files", Res.drawable.ic_desk_folder, onOpenFiles),
         DesktopShortcut("Apps", Res.drawable.ic_desk_apps) { showLaunchpad = true },
@@ -137,41 +145,24 @@ fun LauncherScreen(
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
             MacMenuBar()
 
+            val pagerState = rememberPagerState(initialPage = 1) { 3 }
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                // Far-left classic desktop icons
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = 10.dp, start = 6.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    shortcuts.forEach { DesktopIcon(it.image, it.label, showLabels, it.onOpen) }
+                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                    when (page) {
+                        0 -> newsPage()
+                        1 -> DesktopPage(shortcuts, showLabels, onOpenChat)
+                        else -> EmptyDesktopPage()
+                    }
                 }
-
-                // Mascot centerpiece — the NeverSoft assistant greeting you.
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(
-                        painter = painterResource(Res.drawable.ns_mascot),
-                        contentDescription = "NeverSoft assistant",
-                        modifier = Modifier.size(220.dp).clickable { onOpenChat() },
-                    )
-                    Text(
-                        "NeverSoft OS",
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "Mors Vita Est",
-                        color = Color(0xFFE5484D).copy(alpha = 0.85f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
+                PageDots(
+                    count = 3,
+                    current = pagerState.currentPage,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
+                )
+                DesktopClock(
+                    onClick = { onOpenStub("Notifications", "No new notifications.") },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 4.dp),
+                )
             }
 
             // Dock
@@ -199,6 +190,99 @@ fun LauncherScreen(
         if (showLaunchpad) {
             Launchpad(dockApps) { showLaunchpad = false }
         }
+    }
+}
+
+/** Center "home" page: the far-left classic icons + the mascot centerpiece. */
+@Composable
+private fun DesktopPage(
+    shortcuts: List<DesktopShortcut>,
+    showLabels: Boolean,
+    onOpenChat: () -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // Windows-style icon flow: fill a column to the screen height, then
+        // wrap into the next column so nothing hides behind the dock.
+        val cellHeight = 96.dp
+        val perColumn = maxOf(3, (maxHeight / cellHeight).toInt())
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 10.dp, start = 6.dp),
+        ) {
+            shortcuts.chunked(perColumn).forEach { columnIcons ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    columnIcons.forEach { DesktopIcon(it.image, it.label, showLabels, it.onOpen) }
+                }
+            }
+        }
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Image(
+                painter = painterResource(Res.drawable.ns_mascot),
+                contentDescription = "NeverSoft assistant",
+                modifier = Modifier.size(220.dp).clickable { onOpenChat() },
+            )
+            Text("NeverSoft OS", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Mors Vita Est",
+                color = Color(0xFFE5484D).copy(alpha = 0.85f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
+
+/** Right page — reserved for widgets. */
+@Composable
+private fun EmptyDesktopPage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Widgets coming soon", color = Color.White.copy(alpha = 0.30f), fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun PageDots(count: Int, current: Int, modifier: Modifier) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(count) { i ->
+            Box(
+                modifier = Modifier
+                    .size(if (i == current) 8.dp else 6.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = if (i == current) 0.9f else 0.4f)),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalTime::class)
+@Composable
+private fun DesktopClock(onClick: () -> Unit, modifier: Modifier) {
+    var now by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Clock.System.now()
+            delay(15_000)
+        }
+    }
+    val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
+    val hour = local.hour
+    val h12 = if (hour % 12 == 0) 12 else hour % 12
+    val ampm = if (hour < 12) "AM" else "PM"
+    val time = "$h12:${local.minute.toString().padStart(2, '0')} $ampm"
+    val date = "${local.month.ordinal + 1}/${local.day}/${local.year}"
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        horizontalAlignment = Alignment.End,
+    ) {
+        Text(time, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(date, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
     }
 }
 
