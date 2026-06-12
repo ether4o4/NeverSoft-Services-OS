@@ -1,5 +1,6 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,19 +35,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.ns_mascot
+import morsvitaest.composeapp.generated.resources.ns_mascot_face
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * NeverSoft launcher — a macOS-style shell (top menu bar + bottom Dock +
- * Launchpad) that boots the app. Each tile opens a real Mors Vita Est engine
- * screen, so the desktop runs on the actual local-GGUF / sandbox / settings
- * stack rather than a mock.
+ * Launchpad) that boots the app on a sleek dark desktop. Each tile opens a real
+ * Mors Vita Est engine screen, so the shell runs on the actual local-GGUF /
+ * sandbox / settings stack rather than a mock. The Assistant tile is the
+ * NeverSoft mascot; the rest use vector icons so they render crisply at every
+ * density.
  */
 private data class LauncherApp(
     val label: String,
-    val glyph: String,
+    val icon: ImageVector?,
+    val image: DrawableResource?,
     val color: Color,
     val onOpen: () -> Unit,
 )
@@ -55,25 +74,51 @@ fun LauncherScreen(
     var showLaunchpad by remember { mutableStateOf(false) }
 
     val apps = listOf(
-        LauncherApp("Assistant", "💬", Color(0xFF1EC64A), onOpenChat),
-        LauncherApp("Terminal", "🖥", Color(0xFF222428), onOpenShell),
-        LauncherApp("Files", "🗂", Color(0xFF1C7FE0), onOpenFiles),
-        LauncherApp("Sandbox", "📦", Color(0xFFE2557A), onOpenSandbox),
-        LauncherApp("Models", "🤖", Color(0xFF8A6CFF), onOpenModels),
-        LauncherApp("Settings", "⚙", Color(0xFF6B7077), onOpenSettings),
+        LauncherApp("Assistant", null, Res.drawable.ns_mascot_face, Color(0xFF050507), onOpenChat),
+        LauncherApp("Terminal", Icons.Filled.Terminal, null, Color(0xFF2B2D31), onOpenShell),
+        LauncherApp("Files", Icons.Filled.FolderOpen, null, Color(0xFF1C7FE0), onOpenFiles),
+        LauncherApp("Sandbox", Icons.Filled.Inventory2, null, Color(0xFFE2557A), onOpenSandbox),
+        LauncherApp("Models", Icons.Filled.SmartToy, null, Color(0xFF8A6CFF), onOpenModels),
+        LauncherApp("Settings", Icons.Filled.Settings, null, Color(0xFF6B7077), onOpenSettings),
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.linearGradient(
-                    listOf(Color(0xFF2C5AA0), Color(0xFF1A3A5C), Color(0xFF0D2137)),
+                Brush.verticalGradient(
+                    listOf(Color(0xFF0C0F14), Color(0xFF060709), Color(0xFF000000)),
                 ),
             ),
     ) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
             MacMenuBar()
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Mascot centerpiece — the NeverSoft assistant greeting you.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.ns_mascot),
+                    contentDescription = "NeverSoft assistant",
+                    modifier = Modifier.size(260.dp),
+                )
+                Text(
+                    "NeverSoft OS",
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "Mors Vita Est",
+                    color = Color(0xFFE5484D).copy(alpha = 0.85f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -87,12 +132,14 @@ fun LauncherScreen(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White.copy(alpha = 0.16f))
+                        .background(Color.White.copy(alpha = 0.10f))
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    apps.forEach { DockIcon(it.glyph, it.color, it.onOpen) }
-                    DockIcon("🚀", Color(0xFF5A5F68)) { showLaunchpad = true }
+                    apps.forEach { DockIcon(it.icon, it.image, it.label, it.color, it.onOpen) }
+                    DockIcon(Icons.Filled.Apps, null, "Launchpad", Color(0xFF5A5F68)) {
+                        showLaunchpad = true
+                    }
                 }
             }
         }
@@ -161,6 +208,12 @@ private fun MacMenuBar() {
             .padding(horizontal = 12.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Image(
+            painter = painterResource(Res.drawable.ns_mascot_face),
+            contentDescription = null,
+            modifier = Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)),
+        )
+        Spacer(Modifier.width(7.dp))
         Text("NeverSoft", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.width(16.dp))
         Text("File", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
@@ -174,17 +227,39 @@ private fun MacMenuBar() {
 }
 
 @Composable
-private fun DockIcon(glyph: String, color: Color, onClick: () -> Unit) {
+private fun DockIcon(
+    icon: ImageVector?,
+    image: DrawableResource?,
+    label: String,
+    color: Color,
+    onClick: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .padding(horizontal = 3.dp)
             .size(46.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(color)
+            .background(
+                Brush.verticalGradient(listOf(color.copy(alpha = 0.92f), color)),
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
-        Text(glyph, fontSize = 24.sp, color = Color.White)
+        if (image != null) {
+            Image(
+                painter = painterResource(image),
+                contentDescription = label,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color.White,
+                modifier = Modifier.size(26.dp),
+            )
+        }
     }
 }
 
@@ -193,7 +268,7 @@ private fun Launchpad(apps: List<LauncherApp>, onClose: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.82f))
+            .background(Color.Black.copy(alpha = 0.86f))
             .clickable { onClose() },
     ) {
         Column(
@@ -215,14 +290,32 @@ private fun Launchpad(apps: List<LauncherApp>, onClose: () -> Unit) {
                                 modifier = Modifier
                                     .size(64.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(app.color)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(app.color.copy(alpha = 0.92f), app.color),
+                                        ),
+                                    )
                                     .clickable {
                                         onClose()
                                         app.onOpen()
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text(app.glyph, fontSize = 30.sp, color = Color.White)
+                                if (app.image != null) {
+                                    Image(
+                                        painter = painterResource(app.image),
+                                        contentDescription = app.label,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else if (app.icon != null) {
+                                    Icon(
+                                        imageVector = app.icon,
+                                        contentDescription = app.label,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(34.dp),
+                                    )
+                                }
                             }
                             Spacer(Modifier.height(6.dp))
                             Text(app.label, color = Color.White, fontSize = 12.sp)
