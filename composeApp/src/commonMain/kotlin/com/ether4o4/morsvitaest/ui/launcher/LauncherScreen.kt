@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.FolderOpen
@@ -37,28 +39,45 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ether4o4.morsvitaest.data.AppSettings
 import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.ic_desk_apps
+import morsvitaest.composeapp.generated.resources.ic_desk_computer
+import morsvitaest.composeapp.generated.resources.ic_desk_documents
+import morsvitaest.composeapp.generated.resources.ic_desk_folder
+import morsvitaest.composeapp.generated.resources.ic_desk_internet
+import morsvitaest.composeapp.generated.resources.ic_desk_search
+import morsvitaest.composeapp.generated.resources.ic_desk_security
+import morsvitaest.composeapp.generated.resources.ic_desk_settings
+import morsvitaest.composeapp.generated.resources.ic_desk_trash
 import morsvitaest.composeapp.generated.resources.ns_mascot
 import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 
 /**
- * NeverSoft launcher — a macOS-style shell (top menu bar + bottom Dock +
- * Launchpad) that boots the app on a sleek dark desktop. Each tile opens a real
- * Mors Vita Est engine screen, so the shell runs on the actual local-GGUF /
- * sandbox / settings stack rather than a mock. The Assistant tile is the
- * NeverSoft mascot; the rest use vector icons so they render crisply at every
- * density.
+ * NeverSoft launcher — a macOS-style shell (top menu bar + far-left desktop
+ * icons + bottom Dock + Launchpad) on a sleek dark desktop. Each tile opens a
+ * real Mors Vita Est engine screen, so the shell runs on the actual
+ * local-GGUF / sandbox / settings stack rather than a mock.
  */
 private data class LauncherApp(
     val label: String,
     val icon: ImageVector?,
     val image: DrawableResource?,
     val color: Color,
+    val onOpen: () -> Unit,
+)
+
+private data class DesktopShortcut(
+    val label: String,
+    val image: DrawableResource,
     val onOpen: () -> Unit,
 )
 
@@ -69,58 +88,91 @@ fun LauncherScreen(
     onOpenFiles: () -> Unit,
     onOpenSandbox: () -> Unit,
     onOpenModels: () -> Unit,
-    onOpenSettings: () -> Unit,
+    onOpenLauncherSettings: () -> Unit,
+    onOpenStub: (String, String) -> Unit,
 ) {
+    val settings = koinInject<AppSettings>()
+    val wallpaperColors = remember {
+        launcherWallpapers.firstOrNull { it.first == settings.getLauncherWallpaper() }
+            ?.second ?: launcherWallpapers.first().second
+    }
+    val showLabels = remember { settings.isLauncherLabelsShown() }
+    val uriHandler = LocalUriHandler.current
     var showLaunchpad by remember { mutableStateOf(false) }
 
-    val apps = listOf(
+    val dockApps = listOf(
         LauncherApp("Assistant", null, Res.drawable.ns_mascot_face, Color(0xFF050507), onOpenChat),
         LauncherApp("Terminal", Icons.Filled.Terminal, null, Color(0xFF2B2D31), onOpenShell),
         LauncherApp("Files", Icons.Filled.FolderOpen, null, Color(0xFF1C7FE0), onOpenFiles),
         LauncherApp("Sandbox", Icons.Filled.Inventory2, null, Color(0xFFE2557A), onOpenSandbox),
         LauncherApp("Models", Icons.Filled.SmartToy, null, Color(0xFF8A6CFF), onOpenModels),
-        LauncherApp("Settings", Icons.Filled.Settings, null, Color(0xFF6B7077), onOpenSettings),
+        LauncherApp("Settings", Icons.Filled.Settings, null, Color(0xFF6B7077), onOpenLauncherSettings),
+    )
+
+    val shortcuts = listOf(
+        DesktopShortcut("Internet", Res.drawable.ic_desk_internet) {
+            runCatching { uriHandler.openUri("https://www.google.com") }
+        },
+        DesktopShortcut("Computer", Res.drawable.ic_desk_computer, onOpenFiles),
+        DesktopShortcut("Documents", Res.drawable.ic_desk_documents, onOpenFiles),
+        DesktopShortcut("Files", Res.drawable.ic_desk_folder, onOpenFiles),
+        DesktopShortcut("Apps", Res.drawable.ic_desk_apps) { showLaunchpad = true },
+        DesktopShortcut("Security", Res.drawable.ic_desk_security) {
+            onOpenStub("Security", "NeverSoft Security — coming soon.")
+        },
+        DesktopShortcut("Search", Res.drawable.ic_desk_search) {
+            onOpenStub("Spotlight", "Search — coming soon.")
+        },
+        DesktopShortcut("Settings", Res.drawable.ic_desk_settings, onOpenLauncherSettings),
+        DesktopShortcut("Recycle Bin", Res.drawable.ic_desk_trash) {
+            onOpenStub("Recycle Bin", "The Recycle Bin is empty.")
+        },
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF0C0F14), Color(0xFF060709), Color(0xFF000000)),
-                ),
-            ),
+            .background(Brush.verticalGradient(wallpaperColors)),
     ) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
             MacMenuBar()
 
-            Spacer(modifier = Modifier.weight(1f))
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                // Far-left classic desktop icons
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 10.dp, start = 6.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    shortcuts.forEach { DesktopIcon(it.image, it.label, showLabels, it.onOpen) }
+                }
 
-            // Mascot centerpiece — the NeverSoft assistant greeting you.
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Image(
-                    painter = painterResource(Res.drawable.ns_mascot),
-                    contentDescription = "NeverSoft assistant",
-                    modifier = Modifier.size(260.dp),
-                )
-                Text(
-                    "NeverSoft OS",
-                    color = Color.White,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    "Mors Vita Est",
-                    color = Color(0xFFE5484D).copy(alpha = 0.85f),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                )
+                // Mascot centerpiece — the NeverSoft assistant greeting you.
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Image(
+                        painter = painterResource(Res.drawable.ns_mascot),
+                        contentDescription = "NeverSoft assistant",
+                        modifier = Modifier.size(220.dp).clickable { onOpenChat() },
+                    )
+                    Text(
+                        "NeverSoft OS",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        "Mors Vita Est",
+                        color = Color(0xFFE5484D).copy(alpha = 0.85f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
 
             // Dock
             Row(
@@ -136,7 +188,7 @@ fun LauncherScreen(
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    apps.forEach { DockIcon(it.icon, it.image, it.label, it.color, it.onOpen) }
+                    dockApps.forEach { DockIcon(it.icon, it.image, it.label, it.color, it.onOpen) }
                     DockIcon(Icons.Filled.Apps, null, "Launchpad", Color(0xFF5A5F68)) {
                         showLaunchpad = true
                     }
@@ -145,7 +197,41 @@ fun LauncherScreen(
         }
 
         if (showLaunchpad) {
-            Launchpad(apps) { showLaunchpad = false }
+            Launchpad(dockApps) { showLaunchpad = false }
+        }
+    }
+}
+
+@Composable
+private fun DesktopIcon(
+    image: DrawableResource,
+    label: String,
+    showLabel: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .padding(vertical = 6.dp)
+            .width(76.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Image(
+            painter = painterResource(image),
+            contentDescription = label,
+            modifier = Modifier.size(48.dp),
+        )
+        if (showLabel) {
+            Spacer(Modifier.height(3.dp))
+            Text(
+                label,
+                color = Color.White,
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -239,9 +325,7 @@ private fun DockIcon(
             .padding(horizontal = 3.dp)
             .size(46.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(
-                Brush.verticalGradient(listOf(color.copy(alpha = 0.92f), color)),
-            )
+            .background(Brush.verticalGradient(listOf(color.copy(alpha = 0.92f), color)))
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {

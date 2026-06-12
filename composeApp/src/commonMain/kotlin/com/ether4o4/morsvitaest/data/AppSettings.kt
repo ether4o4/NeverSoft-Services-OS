@@ -331,6 +331,19 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_SANDBOX_ENABLED, enabled)
     }
 
+    // Launcher (NeverSoft OS shell)
+    fun getLauncherWallpaper(): String = settings.getString(KEY_LAUNCHER_WALLPAPER, "dark")
+
+    fun setLauncherWallpaper(value: String) {
+        settings.putString(KEY_LAUNCHER_WALLPAPER, value)
+    }
+
+    fun isLauncherLabelsShown(): Boolean = settings.getBoolean(KEY_LAUNCHER_LABELS, true)
+
+    fun setLauncherLabelsShown(shown: Boolean) {
+        settings.putBoolean(KEY_LAUNCHER_LABELS, shown)
+    }
+
     fun getScheduledTasksJson(): String = settings.getString(KEY_SCHEDULED_TASKS, "[]")
 
     fun setScheduledTasksJson(json: String) {
@@ -611,6 +624,9 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_MODEL_CONTEXT_PREFIX = "model_context_"
 
         const val KEY_SANDBOX_ENABLED = "sandbox_enabled"
+
+        const val KEY_LAUNCHER_WALLPAPER = "launcher_wallpaper"
+        const val KEY_LAUNCHER_LABELS = "launcher_labels"
 
         // Basic memory guidance shared by every chat variant. The advanced `## Structured
         // Learning` block lives in `ChatSystemPromptBuilder.DEFAULT_STRUCTURED_LEARNING_SECTION`

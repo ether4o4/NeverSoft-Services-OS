@@ -66,6 +66,7 @@ import com.ether4o4.morsvitaest.ui.help.HelpAssistantSheet
 import com.ether4o4.morsvitaest.ui.help.HelpBubble
 import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
 import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
+import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsScreen
 import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxFilesContent
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxPackagesContent
@@ -100,6 +101,12 @@ object Files
 @Serializable
 @SerialName("packages")
 object Packages
+
+// Launcher Settings — the NeverSoft OS shell's own settings (wallpaper, desktop
+// icons). Distinct from the MVE engine's AI settings, which live under Settings.
+@Serializable
+@SerialName("launcher.settings")
+object LauncherSettings
 
 @Serializable
 @SerialName("home")
@@ -279,7 +286,20 @@ private fun AppContent(
                                 onOpenModels = {
                                     navController.navigate(Settings(SettingsTab.Services.name))
                                 },
-                                onOpenSettings = { navController.navigate(Settings()) },
+                                onOpenLauncherSettings = {
+                                    navController.navigate(LauncherSettings)
+                                },
+                                onOpenStub = { title, desc ->
+                                    navController.navigate(FoundryStub(title, desc))
+                                },
+                            )
+                        }
+                        composable<LauncherSettings> {
+                            LauncherSettingsScreen(
+                                onClose = { navController.navigateUp() },
+                                onOpenAiSettings = {
+                                    navController.navigate(Settings(SettingsTab.Services.name))
+                                },
                             )
                         }
                         composable<Files> {
