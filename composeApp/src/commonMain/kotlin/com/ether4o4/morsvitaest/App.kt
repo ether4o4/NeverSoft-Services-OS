@@ -64,7 +64,11 @@ import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.help.HelpAssistantSheet
 import com.ether4o4.morsvitaest.ui.help.HelpBubble
+import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
+import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
 import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
+import com.ether4o4.morsvitaest.ui.sandbox.SandboxFilesContent
+import com.ether4o4.morsvitaest.ui.sandbox.SandboxPackagesContent
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.settings.SettingsTab
 import com.ether4o4.morsvitaest.ui.withBlackBackground
@@ -82,6 +86,20 @@ import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.dsl.koinConfiguration
+
+// NeverSoft OS desktop — the macOS-style shell (menu bar + Dock + Launchpad)
+// that boots the app. Its tiles open the real engine routes below.
+@Serializable
+@SerialName("launcher")
+object Launcher
+
+@Serializable
+@SerialName("files")
+object Files
+
+@Serializable
+@SerialName("packages")
+object Packages
 
 @Serializable
 @SerialName("home")
@@ -243,9 +261,43 @@ private fun AppContent(
 
                     NavHost(
                         navController,
-                        startDestination = Home,
+                        startDestination = Launcher,
                         modifier = Modifier.background(MaterialTheme.colorScheme.background),
                     ) {
+                        composable<Launcher> {
+                            // NeverSoft OS desktop. Each dock tile opens a real
+                            // Mors Vita Est engine screen on the local-GGUF / sandbox stack.
+                            LauncherScreen(
+                                onOpenChat = {
+                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+                                },
+                                onOpenShell = {
+                                    navController.navigate(FoundryChat(WorkspaceTab.Shell.name))
+                                },
+                                onOpenFiles = { navController.navigate(Files) },
+                                onOpenSandbox = { navController.navigate(Packages) },
+                                onOpenModels = {
+                                    navController.navigate(Settings(SettingsTab.Services.name))
+                                },
+                                onOpenSettings = { navController.navigate(Settings()) },
+                            )
+                        }
+                        composable<Files> {
+                            LauncherAppShell(
+                                title = "Files",
+                                onClose = { navController.navigateUp() },
+                            ) {
+                                SandboxFilesContent()
+                            }
+                        }
+                        composable<Packages> {
+                            LauncherAppShell(
+                                title = "Sandbox",
+                                onClose = { navController.navigateUp() },
+                            ) {
+                                SandboxPackagesContent()
+                            }
+                        }
                         composable<Home> {
                             // Foundry brushed-metal home (Page 1): a live newsfeed (Heartbeat
                             // updates, pull-to-refresh) + integration boxes whose gears open the
