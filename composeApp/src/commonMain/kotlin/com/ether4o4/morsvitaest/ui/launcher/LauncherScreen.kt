@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.FolderOpen
@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.data.AppSettings
+import kotlinx.coroutines.delay
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_desk_apps
 import morsvitaest.composeapp.generated.resources.ic_desk_computer
@@ -64,9 +67,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-import kotlinx.coroutines.delay
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 /**
  * NeverSoft launcher — a macOS-style shell (top menu bar + far-left desktop
