@@ -12,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -21,15 +22,23 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,11 +59,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ether4o4.morsvitaest.TerminalLine
+import com.ether4o4.morsvitaest.ui.sandbox.SandboxSessionViewModel
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
 import com.ether4o4.morsvitaest.ui.settings.SandboxUiState
 import com.ether4o4.morsvitaest.ui.settings.SandboxViewModel
@@ -69,11 +81,11 @@ private val HudCyan = Color(0xFF22E0FF)
 private val MatrixGlyphs = "0123456789ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾊﾋﾌﾍﾎABCDEF#$%&".toList()
 
 /**
- * The Shell as a glass command center: a translucent main console (the *real*
- * Alpine sandbox terminal) framed in glowing cyan, flanked by side rails
- * streaming Matrix rain — the look stitched together from the user's
- * holo-tablet / sci-fi console references. Opened from the Computer desktop
- * icon and the Terminal dock tile.
+ * The Shell as a cyberdeck pop-up window (modeled on the COMB deck reference):
+ * a floating console over the dimmed desktop — top screen shows the output,
+ * the lower "keyboard deck" is where the user types, and Matrix rain streams
+ * down both side rails. The real Alpine sandbox runs underneath. Opened from
+ * the Computer desktop icon and the Terminal dock tile.
  */
 @Composable
 fun HudShellScreen(onClose: () -> Unit) {
@@ -86,16 +98,18 @@ fun HudShellScreen(onClose: () -> Unit) {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xFF04090F), Color(0xFF020508), Color(0xFF000000)),
+                    listOf(Color(0xFF0A0D12), Color(0xFF05070A), Color(0xFF000000)),
                 ),
             )
+            .clickable { onClose() }
             .systemBarsPadding()
-            .padding(8.dp),
+            .imePadding(),
+        contentAlignment = Alignment.Center,
     ) {
-        // Faint techno grid behind everything.
+        // Faint techno grid on the desktop behind the window.
         Canvas(modifier = Modifier.fillMaxSize()) {
             val step = 28.dp.toPx()
-            val line = HudCyan.copy(alpha = 0.05f)
+            val line = HudCyan.copy(alpha = 0.04f)
             var x = 0f
             while (x < size.width) {
                 drawLine(line, Offset(x, 0f), Offset(x, size.height), 1f)
@@ -108,146 +122,285 @@ fun HudShellScreen(onClose: () -> Unit) {
             }
         }
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            // HUD header bar
-            Row(
+        // ——— The cyberdeck window ———
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.84f)
+                .clickable(enabled = false) {},
+        ) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, HudCyan.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
-                    .background(HudCyan.copy(alpha = 0.07f))
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, HudCyan.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                    .background(Color(0xFF101317)),
             ) {
-                Text("◢", color = HudCyan, fontSize = 13.sp)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "NEVERSOFT // COMMAND",
-                    color = HudCyan,
-                    fontSize = 13.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.weight(1f))
-                Box(
+                // Title strip
+                Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
-                        .clickable { showCheats = true }
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                        .fillMaxWidth()
+                        .background(HudCyan.copy(alpha = 0.08f))
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Text("◢", color = HudCyan, fontSize = 13.sp)
+                    Spacer(Modifier.width(8.dp))
                     Text(
-                        "CMDS",
+                        "NEVERSOFT // COMMAND",
                         color = HudCyan,
-                        fontSize = 11.sp,
+                        fontSize = 13.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
                     )
+                    Spacer(Modifier.weight(1f))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                            .clickable { showCheats = true }
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            "CMDS",
+                            color = HudCyan,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(RoundedCornerShape(50))
+                            .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(50))
+                            .clickable { onClose() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("✕", color = HudCyan, fontSize = 12.sp)
+                    }
                 }
-                Spacer(Modifier.width(12.dp))
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(RoundedCornerShape(50))
-                        .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(50))
-                        .clickable { onClose() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("✕", color = HudCyan, fontSize = 12.sp)
+
+                // Body: matrix rail | screen + deck | matrix rail
+                Row(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                    MatrixRail(
+                        modifier = Modifier
+                            .width(28.dp)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, HudCyan.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                            .background(Color(0xCC020608)),
+                        seed = 1,
+                    )
+                    Spacer(Modifier.width(6.dp))
+
+                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        if (state.sandboxReady) {
+                            DeckTerminal(modifier = Modifier.fillMaxSize())
+                        } else {
+                            // Sandbox not installed yet — show the engine's
+                            // install card inside the screen bezel.
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .border(1.dp, HudCyan.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                    .background(Color(0xF2050B11))
+                                    .padding(8.dp),
+                            ) {
+                                SandboxTabsContent(
+                                    sandboxState = state,
+                                    onSetupSandbox = { vm.onSetupSandbox() },
+                                    onCancelSandbox = { vm.onCancelSandbox() },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.width(6.dp))
+                    MatrixRail(
+                        modifier = Modifier
+                            .width(28.dp)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, HudCyan.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                            .background(Color(0xCC020608)),
+                        seed = 7,
+                    )
                 }
             }
 
-            Spacer(Modifier.size(8.dp))
+            // The NS guy hangs out on the deck — runs across the top, leans on
+            // the glass, and glitch-teleports while the shell is open.
+            ActiveMascot(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp)
+                    .align(Alignment.TopStart)
+                    .padding(top = 34.dp, start = 40.dp, end = 40.dp),
+            )
 
-            // Command-center body: matrix rail | glass console | matrix rail
-            Row(modifier = Modifier.fillMaxSize()) {
-                MatrixRail(
-                    modifier = Modifier
-                        .width(34.dp)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, HudCyan.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                        .background(Color(0xCC020608)),
-                    seed = 1,
-                )
-                Spacer(Modifier.width(6.dp))
-
-                // Main usable screen — translucent "clear glass" console hosting
-                // the live terminal.
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(1.5.dp, HudCyan.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xB80A141E),
-                                    Color(0xC2060D14),
-                                    Color(0xCC04090F),
-                                ),
-                            ),
-                        ),
-                ) {
-                    // Glass glare sweep across the top of the pane.
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        drawLine(
-                            Color.White.copy(alpha = 0.10f),
-                            Offset(size.width * 0.08f, 0f),
-                            Offset(size.width * 0.55f, size.height * 0.30f),
-                            strokeWidth = 60f,
-                        )
-                    }
-                    SandboxTabsContent(
-                        sandboxState = state,
-                        onSetupSandbox = { vm.onSetupSandbox() },
-                        onCancelSandbox = { vm.onCancelSandbox() },
-                        modifier = Modifier.fillMaxSize().padding(6.dp),
-                    )
-                }
-
-                Spacer(Modifier.width(6.dp))
-                MatrixRail(
-                    modifier = Modifier
-                        .width(34.dp)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, HudCyan.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                        .background(Color(0xCC020608)),
-                    seed = 7,
-                )
+            // Corner brackets on the window frame.
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val len = 20.dp.toPx()
+                val inset = 2.dp.toPx()
+                val w = 2.5f
+                val c = HudCyan
+                drawLine(c, Offset(inset, inset), Offset(inset + len, inset), w)
+                drawLine(c, Offset(inset, inset), Offset(inset, inset + len), w)
+                drawLine(c, Offset(size.width - inset, inset), Offset(size.width - inset - len, inset), w)
+                drawLine(c, Offset(size.width - inset, inset), Offset(size.width - inset, inset + len), w)
+                drawLine(c, Offset(inset, size.height - inset), Offset(inset + len, size.height - inset), w)
+                drawLine(c, Offset(inset, size.height - inset), Offset(inset, size.height - inset - len), w)
+                drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset - len, size.height - inset), w)
+                drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - len), w)
             }
         }
 
         if (showCheats) {
             CheatSheetOverlay(onClose = { showCheats = false })
         }
+    }
+}
 
-        // The NS guy hangs out on the glass — runs across the top, leans on the
-        // code wall, and glitch-teleports while the shell is open.
-        ActiveMascot(
+/**
+ * The split cyberdeck terminal: top screen = output only, bottom deck = the
+ * input line. Both speak to the same live sandbox session.
+ */
+@Composable
+private fun DeckTerminal(modifier: Modifier = Modifier) {
+    val session = koinViewModel<SandboxSessionViewModel>()
+    val inputText by session.inputText.collectAsStateWithLifecycle()
+    val isRunning by session.isRunning.collectAsStateWithLifecycle()
+    val pulse by session.scrollToEndPulse.collectAsStateWithLifecycle()
+    val lines = session.outputLines
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(lines.size, pulse) {
+        if (lines.isNotEmpty()) listState.animateScrollToItem(lines.size - 1)
+    }
+
+    Column(modifier = modifier) {
+        // ——— Top screen: output ———
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(76.dp)
-                .align(Alignment.TopStart)
-                .padding(top = 46.dp, start = 44.dp, end = 44.dp),
-        )
+                .weight(1f)
+                .clip(RoundedCornerShape(10.dp))
+                .border(1.dp, HudCyan.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                .background(Color(0xF2030A10)),
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
+            ) {
+                if (lines.isEmpty()) {
+                    item {
+                        Text(
+                            ">>> SYSTEM READY — type below, output lands here",
+                            color = HudCyan.copy(alpha = 0.55f),
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+                }
+                items(lines) { line ->
+                    val (prefix, color) = when (line) {
+                        is TerminalLine.Command -> "C:\\> " to Color(0xFFE8FBFF)
+                        is TerminalLine.Error -> "" to Color(0xFFFF6B6B)
+                        else -> "" to Color(0xFF9FE8D8)
+                    }
+                    Text(
+                        prefix + line.text,
+                        color = color,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 16.sp,
+                    )
+                }
+            }
+        }
 
-        // Sci-fi corner brackets on the outer frame.
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val len = 22.dp.toPx()
-            val inset = 2.dp.toPx()
-            val w = 2.5f
-            val c = HudCyan
-            drawLine(c, Offset(inset, inset), Offset(inset + len, inset), w)
-            drawLine(c, Offset(inset, inset), Offset(inset, inset + len), w)
-            drawLine(c, Offset(size.width - inset, inset), Offset(size.width - inset - len, inset), w)
-            drawLine(c, Offset(size.width - inset, inset), Offset(size.width - inset, inset + len), w)
-            drawLine(c, Offset(inset, size.height - inset), Offset(inset + len, size.height - inset), w)
-            drawLine(c, Offset(inset, size.height - inset), Offset(inset, size.height - inset - len), w)
-            drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset - len, size.height - inset), w)
-            drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - len), w)
+        // ——— Hinge ———
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(70.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(HudCyan.copy(alpha = 0.35f)),
+            )
+        }
+
+        // ——— Bottom deck: where the user types ———
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .border(1.dp, HudCyan.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                .background(Color(0xFF0A0F14))
+                .padding(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "C:\\>",
+                    color = HudCyan,
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                )
+                TextField(
+                    value = inputText,
+                    onValueChange = session::setInputText,
+                    modifier = Modifier.weight(1f),
+                    textStyle = TextStyle(
+                        color = Color(0xFFE8FBFF),
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Monospace,
+                    ),
+                    placeholder = {
+                        Text(
+                            "enter command…",
+                            color = HudCyan.copy(alpha = 0.35f),
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { session.submit() }),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = HudCyan,
+                    ),
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, HudCyan.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                        .background(if (isRunning) Color(0xFF3A1518) else HudCyan.copy(alpha = 0.10f))
+                        .clickable { if (isRunning) session.cancelRunning() else session.submit() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        if (isRunning) "STOP" else "RUN",
+                        color = if (isRunning) Color(0xFFFF6B6B) else HudCyan,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
         }
     }
 }
