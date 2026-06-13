@@ -58,7 +58,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.getInstalledApps
 import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openUrl
 import kotlinx.coroutines.delay
@@ -125,6 +127,10 @@ fun LauncherScreen(
     val orbImage = remember { settings.getLauncherOrbImage() }
     val uriHandler = LocalUriHandler.current
     var showDrawer by remember { mutableStateOf(false) }
+
+    // Installed device apps for the drawer (loaded off the main thread).
+    var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
+    LaunchedEffect(Unit) { installedApps = getInstalledApps() }
 
     // The launcher's app catalog: every app the drawer can offer.
     val catalog = remember(onOpenChat, onOpenShell, onOpenFiles, onOpenSandbox, onOpenModels, onOpenLauncherSettings) {
@@ -271,10 +277,12 @@ fun LauncherScreen(
         if (showDrawer) {
             StartDrawer(
                 apps = catalog,
+                installedApps = installedApps,
                 startPins = startPins,
                 dockPins = dockPins,
                 onToggleStartPin = ::toggleStartPin,
                 onToggleDockPin = ::toggleDockPin,
+                onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
             )
         }

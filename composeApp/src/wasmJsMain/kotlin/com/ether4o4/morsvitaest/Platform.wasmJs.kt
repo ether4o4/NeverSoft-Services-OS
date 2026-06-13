@@ -85,6 +85,8 @@ actual fun getAvailableTools(): List<Tool> = buildList {
     addAll(WebKoinHelper.mcpServerManager.getEnabledMcpTools())
 }
 
+actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
+
 actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = null
 
 actual fun launchApp(appId: String): Boolean = false

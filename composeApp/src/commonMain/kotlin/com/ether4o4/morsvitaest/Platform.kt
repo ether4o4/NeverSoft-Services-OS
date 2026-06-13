@@ -86,6 +86,16 @@ expect fun launchApp(appId: String): Boolean
  */
 expect fun saveLauncherImage(name: String, bytes: ByteArray): String?
 
+/** A launchable app installed on the device. */
+data class InstalledApp(
+    val label: String,
+    val packageName: String,
+    val icon: ImageBitmap?,
+)
+
+/** Every launchable app installed on the device, sorted by label. */
+expect suspend fun getInstalledApps(): List<InstalledApp>
+
 @androidx.compose.runtime.Composable
 expect fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit)
 

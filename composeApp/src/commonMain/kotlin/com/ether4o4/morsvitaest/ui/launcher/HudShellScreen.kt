@@ -73,8 +73,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.TerminalLine
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.getInstalledApps
+import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openUrl
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxSessionViewModel
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
@@ -118,6 +121,8 @@ fun HudShellScreen(
     val appSettings = koinInject<AppSettings>()
     var showCheats by remember { mutableStateOf(false) }
     var showDrawer by remember { mutableStateOf(false) }
+    var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
+    LaunchedEffect(Unit) { installedApps = getInstalledApps() }
 
     // The same app catalog the NeverSoft OS desktop uses, so the shell's Start
     // button opens an identical drawer.
@@ -355,10 +360,12 @@ fun HudShellScreen(
         if (showDrawer) {
             StartDrawer(
                 apps = catalog,
+                installedApps = installedApps,
                 startPins = startPins,
                 dockPins = dockPins,
                 onToggleStartPin = ::toggleStartPin,
                 onToggleDockPin = ::toggleDockPin,
+                onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
             )
         }

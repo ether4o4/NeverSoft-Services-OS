@@ -170,6 +170,8 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
+
 actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = try {
     val dir = java.io.File(getAppFilesDirectory(), "launcher")
     dir.mkdirs()

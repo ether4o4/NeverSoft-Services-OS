@@ -153,6 +153,8 @@ actual fun getAvailableTools(): List<Tool> = buildList {
 }
 
 @Suppress("CAST_NEVER_SUCCEEDS")
+actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
+
 actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = null
 
 actual fun launchApp(appId: String): Boolean = false
