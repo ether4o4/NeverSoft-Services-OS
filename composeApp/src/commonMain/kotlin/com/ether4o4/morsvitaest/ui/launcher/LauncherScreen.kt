@@ -103,8 +103,10 @@ private data class DesktopShortcut(
     val onConfigure: () -> Unit = {},
 )
 
-// Default pin sets. Dock and Start menu pins are fully independent.
-private val defaultDockPins = listOf("assistant", "terminal", "files", "sandbox", "models", "settings")
+// Default pin sets. Dock and Start menu pins are fully independent. The
+// assistant lives in the notifications panel (and menu bar) rather than the
+// dock by default — pin him back anytime from the drawer.
+private val defaultDockPins = listOf("terminal", "files", "sandbox", "models", "settings")
 private val defaultStartPins = listOf("assistant", "terminal", "files", "settings")
 
 // Stable ids for the desktop icons' persisted launch links.
@@ -122,6 +124,7 @@ fun LauncherScreen(
     onOpenSandbox: () -> Unit,
     onOpenModels: () -> Unit,
     onOpenLauncherSettings: () -> Unit,
+    onOpenNotifications: () -> Unit,
     onOpenStub: (String, String) -> Unit,
     newsPage: @Composable () -> Unit,
 ) {
@@ -243,7 +246,7 @@ fun LauncherScreen(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
                 )
                 DesktopClock(
-                    onClick = { onOpenStub("Notifications", "No new notifications.") },
+                    onClick = onOpenNotifications,
                     modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 4.dp),
                 )
             }

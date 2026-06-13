@@ -68,6 +68,7 @@ import com.ether4o4.morsvitaest.ui.launcher.HudShellScreen
 import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
 import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
 import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsScreen
+import com.ether4o4.morsvitaest.ui.launcher.NotificationsPanel
 import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxFilesContent
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxPackagesContent
@@ -115,6 +116,11 @@ object LauncherSettings
 @Serializable
 @SerialName("hud.shell")
 object Shell
+
+// Clock / notifications / widgets panel; the assistant sits in its top corner.
+@Serializable
+@SerialName("notifications")
+object Notifications
 
 @Serializable
 @SerialName("home")
@@ -299,6 +305,9 @@ private fun AppContent(
                                 onOpenLauncherSettings = {
                                     navController.navigate(LauncherSettings)
                                 },
+                                onOpenNotifications = {
+                                    navController.navigate(Notifications)
+                                },
                                 onOpenStub = { title, desc ->
                                     navController.navigate(FoundryStub(title, desc))
                                 },
@@ -347,6 +356,14 @@ private fun AppContent(
                         }
                         composable<Shell> {
                             HudShellScreen(onClose = { navController.navigateUp() })
+                        }
+                        composable<Notifications> {
+                            NotificationsPanel(
+                                onClose = { navController.navigateUp() },
+                                onOpenAssistant = {
+                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+                                },
+                            )
                         }
                         composable<Files> { entry ->
                             val filesPath = entry.toRoute<Files>().path
