@@ -1,25 +1,24 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,25 +27,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.ns_mascot_alive
-import org.jetbrains.compose.resources.painterResource
+import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.weatherNow
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlinx.coroutines.delay
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import org.koin.compose.koinInject
 
 /**
- * The clock / notifications / widgets panel, opened from the desktop clock.
- * The MVE assistant lives at the top corner of this panel — tap him to chat.
+ * The Widgets popup, opened from the desktop clock — a glass window of live
+ * widgets (clock, weather, calendar, sticky note). No quick toggles.
  */
 @OptIn(ExperimentalTime::class)
 @Composable
@@ -54,6 +57,7 @@ fun NotificationsPanel(
     onClose: () -> Unit,
     onOpenAssistant: () -> Unit,
 ) {
+    val settings = koinInject<AppSettings>()
     var now by remember { mutableStateOf(Clock.System.now()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -65,72 +69,181 @@ fun NotificationsPanel(
     val hour = local.hour
     val h12 = if (hour % 12 == 0) 12 else hour % 12
     val ampm = if (hour < 12) "AM" else "PM"
-    val time = "$h12:${local.minute.toString().padStart(2, '0')}:${local.second.toString().padStart(2, '0')} $ampm"
-    val date = "${local.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${local.day}, ${local.year}"
+    val time = "$h12:${local.minute.toString().padStart(2, '0')}"
+    val months = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    )
+    val weekdays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    val monthName = months[local.month.ordinal]
+    val weekdayName = weekdays[local.date.dayOfWeek.ordinal]
 
-    LauncherAppShell(title = "Notifications", onClose = onClose) {
-        Box(
+    LauncherAppShell(title = "Widgets", onClose = onClose) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF0B0D11)),
+                .background(
+                    Brush.verticalGradient(listOf(Color(0xE61C2334), Color(0xE6121723))),
+                )
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // The MVE assistant drops in with a bounce and sits at the top
-            // corner, legs dangling — a slow rock + bob sells the perch.
-            val drop = remember { Animatable(-160f) }
-            LaunchedEffect(Unit) {
-                drop.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow,
-                    ),
-                )
-            }
-            val perch = rememberInfiniteTransition()
-            val rock by perch.animateFloat(
-                initialValue = -3.5f,
-                targetValue = 3.5f,
-                animationSpec = infiniteRepeatable(tween(1300), RepeatMode.Reverse),
+            // Clock widget
+            Text(time, color = Color.White, fontSize = 64.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "$weekdayName, $monthName ${local.day}",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 16.sp,
             )
-            val legBob by perch.animateFloat(
-                initialValue = 0f,
-                targetValue = 5f,
-                animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
-            )
-            Image(
-                painter = painterResource(Res.drawable.ns_mascot_alive),
-                contentDescription = "MVE Assistant",
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 10.dp)
-                    .size(128.dp)
-                    .offset { IntOffset(0, (drop.value + legBob).toInt() - 14) }
-                    .graphicsLayer {
-                        rotationZ = rock
-                        transformOrigin = TransformOrigin(0.5f, 0.15f)
-                    }
-                    .clickable { onOpenAssistant() },
-            )
+            Spacer(Modifier.height(18.dp))
 
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(time, color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.Bold)
-                Text(date, color = Color.White.copy(alpha = 0.65f), fontSize = 16.sp)
-                Spacer(Modifier.height(28.dp))
-                Text(
-                    "No new notifications",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 14.sp,
-                )
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "Widgets coming soon",
-                    color = Color.White.copy(alpha = 0.25f),
-                    fontSize = 12.sp,
-                )
+            WeatherWidget()
+            Spacer(Modifier.height(14.dp))
+            CalendarWidget(year = local.year, monthIndex0 = local.month.ordinal, today = local.day, monthName = monthName)
+            Spacer(Modifier.height(14.dp))
+            NoteWidget(settings)
+
+            // The MVE assistant perches in the corner of the panel.
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun WidgetCard(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.10f))
+            .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(18.dp))
+            .padding(16.dp),
+    ) { content() }
+}
+
+@Composable
+private fun WeatherWidget() {
+    var temp by remember { mutableStateOf<String?>(null) }
+    var desc by remember { mutableStateOf("Loading weather…") }
+    var emoji by remember { mutableStateOf("⛅") }
+    var place by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        val w = weatherNow()
+        if (w != null) {
+            temp = "${w.temperatureF}°F"
+            desc = w.description
+            emoji = w.emoji
+            place = w.place
+        } else {
+            desc = "Weather unavailable"
+        }
+    }
+    WidgetCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(emoji, fontSize = 40.sp)
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(temp ?: "—", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(8.dp))
+                    Text(desc, color = Color.White.copy(alpha = 0.8f), fontSize = 15.sp)
+                }
+                if (place.isNotBlank()) {
+                    Text(place, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun CalendarWidget(year: Int, monthIndex0: Int, today: Int, monthName: String) {
+    WidgetCard {
+        Column {
+            Text("$monthName $year", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(10.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                listOf("S", "M", "T", "W", "T", "F", "S").forEach {
+                    Text(
+                        it,
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            val first = LocalDate(year, monthIndex0 + 1, 1)
+            // Sunday-first leading blanks: DayOfWeek.ordinal Mon=0..Sun=6 -> Sun=0.
+            val lead = (first.dayOfWeek.ordinal + 1) % 7
+            val daysInMonth = first.daysUntil(first.plus(DatePeriod(months = 1)))
+            val cells = lead + daysInMonth
+            val rows = (cells + 6) / 7
+            var day = 1
+            for (r in 0 until rows) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (c in 0 until 7) {
+                        val index = r * 7 + c
+                        if (index < lead || day > daysInMonth) {
+                            Spacer(Modifier.weight(1f).height(30.dp))
+                        } else {
+                            val d = day
+                            val isToday = d == today
+                            Box(
+                                modifier = Modifier.weight(1f).height(30.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(if (isToday) Color(0xFF3B82F6) else Color.Transparent),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "$d",
+                                        color = Color.White.copy(alpha = if (isToday) 1f else 0.85f),
+                                        fontSize = 13.sp,
+                                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                                    )
+                                }
+                            }
+                            day++
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteWidget(settings: AppSettings) {
+    var note by remember { mutableStateOf(settings.getLauncherNote()) }
+    WidgetCard {
+        Column {
+            Text("Notes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            TextField(
+                value = note,
+                onValueChange = {
+                    note = it
+                    settings.setLauncherNote(it)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Jot something down…", color = Color.White.copy(alpha = 0.4f)) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.White.copy(alpha = 0.06f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.06f),
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color(0xFF6AA9FF),
+                ),
+            )
         }
     }
 }

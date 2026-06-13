@@ -69,6 +69,7 @@ import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
 import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
 import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsScreen
 import com.ether4o4.morsvitaest.ui.launcher.NotificationsPanel
+import com.ether4o4.morsvitaest.ui.launcher.SpotlightScreen
 import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxFilesContent
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxPackagesContent
@@ -121,6 +122,11 @@ object Shell
 @Serializable
 @SerialName("notifications")
 object Notifications
+
+// Spotlight search — apps, files, web.
+@Serializable
+@SerialName("spotlight")
+object Spotlight
 
 @Serializable
 @SerialName("home")
@@ -308,6 +314,7 @@ private fun AppContent(
                                 onOpenNotifications = {
                                     navController.navigate(Notifications)
                                 },
+                                onOpenSpotlight = { navController.navigate(Spotlight) },
                                 onOpenStub = { title, desc ->
                                     navController.navigate(FoundryStub(title, desc))
                                 },
@@ -376,6 +383,9 @@ private fun AppContent(
                                     navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
                                 },
                             )
+                        }
+                        composable<Spotlight> {
+                            SpotlightScreen(onClose = { navController.navigateUp() })
                         }
                         composable<Files> { entry ->
                             val filesPath = entry.toRoute<Files>().path

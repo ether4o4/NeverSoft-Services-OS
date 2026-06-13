@@ -115,6 +115,7 @@ fun LauncherScreen(
     onOpenModels: () -> Unit,
     onOpenLauncherSettings: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenSpotlight: () -> Unit,
     onOpenStub: (String, String) -> Unit,
     newsPage: @Composable () -> Unit,
 ) {
@@ -209,9 +210,7 @@ fun LauncherScreen(
         shortcut("Security", Res.drawable.ic_desk_security) {
             onOpenStub("Security", "NeverSoft Security — coming soon.")
         },
-        shortcut("Search", Res.drawable.ic_desk_search) {
-            onOpenStub("Spotlight", "Search — coming soon.")
-        },
+        shortcut("Search", Res.drawable.ic_desk_search) { onOpenSpotlight() },
         shortcut("Settings", Res.drawable.ic_desk_settings, onOpenLauncherSettings),
         shortcut("Recycle Bin", Res.drawable.ic_desk_trash) {
             onOpenStub("Recycle Bin", "The Recycle Bin is empty.")
