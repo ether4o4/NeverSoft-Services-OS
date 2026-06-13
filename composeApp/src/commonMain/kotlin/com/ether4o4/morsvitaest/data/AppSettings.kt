@@ -357,15 +357,21 @@ class AppSettings(internal val settings: Settings) {
     fun getLauncherWallpaperImage(): String = settings.getString(KEY_LAUNCHER_WALLPAPER_IMAGE, "")
 
     fun setLauncherWallpaperImage(path: String) {
-        if (path.isBlank()) settings.remove(KEY_LAUNCHER_WALLPAPER_IMAGE)
-        else settings.putString(KEY_LAUNCHER_WALLPAPER_IMAGE, path)
+        if (path.isBlank()) {
+            settings.remove(KEY_LAUNCHER_WALLPAPER_IMAGE)
+        } else {
+            settings.putString(KEY_LAUNCHER_WALLPAPER_IMAGE, path)
+        }
     }
 
     fun getLauncherOrbImage(): String = settings.getString(KEY_LAUNCHER_ORB_IMAGE, "")
 
     fun setLauncherOrbImage(path: String) {
-        if (path.isBlank()) settings.remove(KEY_LAUNCHER_ORB_IMAGE)
-        else settings.putString(KEY_LAUNCHER_ORB_IMAGE, path)
+        if (path.isBlank()) {
+            settings.remove(KEY_LAUNCHER_ORB_IMAGE)
+        } else {
+            settings.putString(KEY_LAUNCHER_ORB_IMAGE, path)
+        }
     }
 
     fun getLauncherDockPins(default: List<String>): List<String> {

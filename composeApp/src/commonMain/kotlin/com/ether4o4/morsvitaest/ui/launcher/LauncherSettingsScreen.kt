@@ -38,9 +38,9 @@ import com.ether4o4.morsvitaest.saveLauncherImage
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.readBytes
-import kotlin.random.Random
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.random.Random
 
 /** Wallpaper presets for the NeverSoft OS desktop. */
 internal val launcherWallpapers = listOf(
@@ -68,20 +68,24 @@ fun LauncherSettingsScreen(
     var orbImage by remember { mutableStateOf(settings.getLauncherOrbImage()) }
 
     val wallpaperPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
-        if (file != null) scope.launch {
-            val path = saveLauncherImage("wp_${Random.nextInt(1_000_000)}.img", file.readBytes())
-            if (path != null) {
-                settings.setLauncherWallpaperImage(path)
-                wallpaperImage = path
+        if (file != null) {
+            scope.launch {
+                val path = saveLauncherImage("wp_${Random.nextInt(1_000_000)}.img", file.readBytes())
+                if (path != null) {
+                    settings.setLauncherWallpaperImage(path)
+                    wallpaperImage = path
+                }
             }
         }
     }
     val orbPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
-        if (file != null) scope.launch {
-            val path = saveLauncherImage("orb_${Random.nextInt(1_000_000)}.img", file.readBytes())
-            if (path != null) {
-                settings.setLauncherOrbImage(path)
-                orbImage = path
+        if (file != null) {
+            scope.launch {
+                val path = saveLauncherImage("orb_${Random.nextInt(1_000_000)}.img", file.readBytes())
+                if (path != null) {
+                    settings.setLauncherOrbImage(path)
+                    orbImage = path
+                }
             }
         }
     }
