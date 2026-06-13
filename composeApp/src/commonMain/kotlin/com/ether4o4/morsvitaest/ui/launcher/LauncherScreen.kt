@@ -60,8 +60,6 @@ import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openUrl
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -80,6 +78,8 @@ import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * NeverSoft launcher — a macOS-style shell (top menu bar + far-left desktop
@@ -192,16 +192,15 @@ fun LauncherScreen(
     }
 
     // Wraps a built-in action so a user-assigned link wins when present.
-    fun shortcut(label: String, image: DrawableResource, builtIn: () -> Unit) =
-        DesktopShortcut(
-            label = label,
-            image = image,
-            onOpen = {
-                val link = iconLinks[label]
-                if (link.isNullOrBlank()) builtIn() else openLink(link)
-            },
-            onConfigure = { linkDialogFor = label },
-        )
+    fun shortcut(label: String, image: DrawableResource, builtIn: () -> Unit) = DesktopShortcut(
+        label = label,
+        image = image,
+        onOpen = {
+            val link = iconLinks[label]
+            if (link.isNullOrBlank()) builtIn() else openLink(link)
+        },
+        onConfigure = { linkDialogFor = label },
+    )
 
     val shortcuts = listOf(
         shortcut("Internet", Res.drawable.ic_desk_internet) {

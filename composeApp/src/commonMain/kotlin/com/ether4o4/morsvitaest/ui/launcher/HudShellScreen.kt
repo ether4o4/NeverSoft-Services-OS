@@ -70,12 +70,12 @@ import com.ether4o4.morsvitaest.ui.sandbox.SandboxSessionViewModel
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
 import com.ether4o4.morsvitaest.ui.settings.SandboxUiState
 import com.ether4o4.morsvitaest.ui.settings.SandboxViewModel
-import kotlin.random.Random
 import kotlinx.coroutines.delay
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ns_mascot
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.random.Random
 
 private val HudCyan = Color(0xFF22E0FF)
 private val MatrixGlyphs = "0123456789ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾊﾋﾌﾍﾎABCDEF#$%&".toList()
@@ -634,13 +634,17 @@ private fun ActiveMascot(modifier: Modifier = Modifier) {
         LaunchedEffect(maxX) {
             while (true) {
                 // Sprint to the right rail.
-                running = true; leaning = false; flipped = false
+                running = true
+                leaning = false
+                flipped = false
                 x.animateTo(maxX, tween((maxX * 8).toInt().coerceAtLeast(1500), easing = LinearEasing))
                 // Lean against the clear wall of code.
-                running = false; leaning = true
+                running = false
+                leaning = true
                 delay(2800)
                 // Glitch across the screen — flicker, ghost, teleport.
-                leaning = false; ghost = true
+                leaning = false
+                ghost = true
                 repeat(3) {
                     visible = false
                     delay(70)
@@ -650,11 +654,14 @@ private fun ActiveMascot(modifier: Modifier = Modifier) {
                 }
                 ghost = false
                 // Sprint back to the left rail.
-                running = true; flipped = true
+                running = true
+                flipped = true
                 x.animateTo(0f, tween((maxX * 8).toInt().coerceAtLeast(1500), easing = LinearEasing))
-                running = false; leaning = true
+                running = false
+                leaning = true
                 delay(2200)
-                leaning = false; ghost = true
+                leaning = false
+                ghost = true
                 repeat(2) {
                     visible = false
                     delay(70)
