@@ -64,6 +64,7 @@ import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.help.HelpAssistantSheet
 import com.ether4o4.morsvitaest.ui.help.HelpBubble
+import com.ether4o4.morsvitaest.ui.launcher.HudShellScreen
 import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
 import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
 import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsScreen
@@ -107,6 +108,11 @@ object Packages
 @Serializable
 @SerialName("launcher.settings")
 object LauncherSettings
+
+// The sci-fi HUD shell — the Alpine terminal in a glowing console frame.
+@Serializable
+@SerialName("hud.shell")
+object Shell
 
 @Serializable
 @SerialName("home")
@@ -281,9 +287,7 @@ private fun AppContent(
                                 onOpenChat = {
                                     navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
                                 },
-                                onOpenShell = {
-                                    navController.navigate(FoundryChat(WorkspaceTab.Shell.name))
-                                },
+                                onOpenShell = { navController.navigate(Shell) },
                                 onOpenFiles = { navController.navigate(Files) },
                                 onOpenSandbox = { navController.navigate(Packages) },
                                 onOpenModels = {
@@ -337,6 +341,9 @@ private fun AppContent(
                                     navController.navigate(Settings(SettingsTab.Services.name))
                                 },
                             )
+                        }
+                        composable<Shell> {
+                            HudShellScreen(onClose = { navController.navigateUp() })
                         }
                         composable<Files> {
                             LauncherAppShell(
