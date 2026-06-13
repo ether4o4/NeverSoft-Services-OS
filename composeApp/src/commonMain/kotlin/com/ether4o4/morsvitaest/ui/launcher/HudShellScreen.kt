@@ -1,16 +1,27 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -21,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -30,17 +42,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
 import com.ether4o4.morsvitaest.ui.settings.SandboxUiState
 import com.ether4o4.morsvitaest.ui.settings.SandboxViewModel
+import kotlin.random.Random
+import kotlinx.coroutines.delay
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.ns_mascot
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private val HudCyan = Color(0xFF22E0FF)
@@ -188,6 +208,16 @@ fun HudShellScreen(onClose: () -> Unit) {
             }
         }
 
+        // The NS guy hangs out on the glass — runs across the top, leans on the
+        // code wall, and glitch-teleports while the shell is open.
+        ActiveMascot(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(76.dp)
+                .align(Alignment.TopStart)
+                .padding(top = 46.dp, start = 44.dp, end = 44.dp),
+        )
+
         // Sci-fi corner brackets on the outer frame.
         Canvas(modifier = Modifier.fillMaxSize()) {
             val len = 22.dp.toPx()
@@ -202,6 +232,105 @@ fun HudShellScreen(onClose: () -> Unit) {
             drawLine(c, Offset(inset, size.height - inset), Offset(inset, size.height - inset - len), w)
             drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset - len, size.height - inset), w)
             drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - len), w)
+        }
+    }
+}
+
+/**
+ * The NS mascot living on the shell: runs along the top of the glass, leans
+ * against the rail, then glitch-teleports (flicker + ghost) to a new spot.
+ */
+@Composable
+private fun ActiveMascot(modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier = modifier) {
+        val widthPx = with(density) { maxWidth.toPx() }
+        val mascotPx = with(density) { 64.dp.toPx() }
+        val maxX = (widthPx - mascotPx).coerceAtLeast(1f)
+        val x = remember { Animatable(0f) }
+        var flipped by remember { mutableStateOf(false) }
+        var leaning by remember { mutableStateOf(false) }
+        var running by remember { mutableStateOf(true) }
+        var visible by remember { mutableStateOf(true) }
+        var ghost by remember { mutableStateOf(false) }
+
+        // Fast little bounce that sells the "running" cycle.
+        val runCycle = rememberInfiniteTransition()
+        val bob by runCycle.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(240, easing = LinearEasing), RepeatMode.Reverse),
+        )
+
+        LaunchedEffect(maxX) {
+            while (true) {
+                // Sprint to the right rail.
+                running = true; leaning = false; flipped = false
+                x.animateTo(maxX, tween((maxX * 8).toInt().coerceAtLeast(1500), easing = LinearEasing))
+                // Lean against the clear wall of code.
+                running = false; leaning = true
+                delay(2800)
+                // Glitch across the screen — flicker, ghost, teleport.
+                leaning = false; ghost = true
+                repeat(3) {
+                    visible = false
+                    delay(70)
+                    x.snapTo(Random.nextFloat() * maxX)
+                    visible = true
+                    delay(110)
+                }
+                ghost = false
+                // Sprint back to the left rail.
+                running = true; flipped = true
+                x.animateTo(0f, tween((maxX * 8).toInt().coerceAtLeast(1500), easing = LinearEasing))
+                running = false; leaning = true
+                delay(2200)
+                leaning = false; ghost = true
+                repeat(2) {
+                    visible = false
+                    delay(70)
+                    x.snapTo(Random.nextFloat() * maxX)
+                    visible = true
+                    delay(110)
+                }
+                ghost = false
+                x.snapTo(0f)
+                flipped = false
+            }
+        }
+
+        val yBob = if (running) bob * 6f else 0f
+        val tilt = when {
+            leaning -> if (flipped) -14f else 14f
+            running -> (bob - 0.5f) * 8f
+            else -> 0f
+        }
+
+        if (ghost) {
+            Image(
+                painter = painterResource(Res.drawable.ns_mascot),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(64.dp)
+                    .offset { IntOffset((x.value + 7f).toInt(), (6 + yBob).toInt()) }
+                    .graphicsLayer {
+                        alpha = 0.25f
+                        scaleX = if (flipped) -1f else 1f
+                    },
+            )
+        }
+        if (visible) {
+            Image(
+                painter = painterResource(Res.drawable.ns_mascot),
+                contentDescription = "NS",
+                modifier = Modifier
+                    .size(64.dp)
+                    .offset { IntOffset(x.value.toInt(), (6 + yBob).toInt()) }
+                    .graphicsLayer {
+                        scaleX = if (flipped) -1f else 1f
+                        rotationZ = tilt
+                    },
+            )
         }
     }
 }

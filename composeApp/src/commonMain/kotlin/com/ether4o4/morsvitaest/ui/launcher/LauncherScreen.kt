@@ -1,8 +1,10 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,6 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,17 +28,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +58,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.launchApp
+import com.ether4o4.morsvitaest.openUrl
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -60,21 +75,20 @@ import morsvitaest.composeapp.generated.resources.ic_desk_search
 import morsvitaest.composeapp.generated.resources.ic_desk_security
 import morsvitaest.composeapp.generated.resources.ic_desk_settings
 import morsvitaest.composeapp.generated.resources.ic_desk_trash
-import morsvitaest.composeapp.generated.resources.ns_mascot
+import morsvitaest.composeapp.generated.resources.logo
 import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 /**
  * NeverSoft launcher — a macOS-style shell (top menu bar + far-left desktop
- * icons + bottom Dock + Launchpad) on a sleek dark desktop. Each tile opens a
- * real Mors Vita Est engine screen, so the shell runs on the actual
- * local-GGUF / sandbox / settings stack rather than a mock.
+ * icons + bottom Dock with a Start orb + two-panel app drawer) on a sleek dark
+ * desktop. Each tile opens a real Mors Vita Est engine screen, so the shell
+ * runs on the actual local-GGUF / sandbox / settings stack rather than a mock.
  */
 private data class LauncherApp(
+    val id: String,
     val label: String,
     val icon: ImageVector?,
     val image: DrawableResource?,
@@ -86,6 +100,17 @@ private data class DesktopShortcut(
     val label: String,
     val image: DrawableResource,
     val onOpen: () -> Unit,
+    val onConfigure: () -> Unit = {},
+)
+
+// Default pin sets. Dock and Start menu pins are fully independent.
+private val defaultDockPins = listOf("assistant", "terminal", "files", "sandbox", "models", "settings")
+private val defaultStartPins = listOf("assistant", "terminal", "files", "settings")
+
+// Stable ids for the desktop icons' persisted launch links.
+private val desktopIconIds = listOf(
+    "Internet", "Computer", "Documents", "Files", "Apps",
+    "Security", "Search", "Settings", "Recycle Bin",
 )
 
 @Composable
@@ -93,6 +118,7 @@ fun LauncherScreen(
     onOpenChat: () -> Unit,
     onOpenShell: () -> Unit,
     onOpenFiles: () -> Unit,
+    onOpenFilesAt: (String) -> Unit,
     onOpenSandbox: () -> Unit,
     onOpenModels: () -> Unit,
     onOpenLauncherSettings: () -> Unit,
@@ -105,34 +131,91 @@ fun LauncherScreen(
             ?.second ?: launcherWallpapers.first().second
     }
     val showLabels = remember { settings.isLauncherLabelsShown() }
+    val orbStyle = remember { settings.getLauncherOrbStyle() }
     val uriHandler = LocalUriHandler.current
-    var showLaunchpad by remember { mutableStateOf(false) }
+    var showDrawer by remember { mutableStateOf(false) }
 
-    val dockApps = listOf(
-        LauncherApp("Assistant", null, Res.drawable.ns_mascot_face, Color(0xFF050507), onOpenChat),
-        LauncherApp("Terminal", Icons.Filled.Terminal, null, Color(0xFF2B2D31), onOpenShell),
-        LauncherApp("Files", Icons.Filled.FolderOpen, null, Color(0xFF1C7FE0), onOpenFiles),
-        LauncherApp("Sandbox", Icons.Filled.Inventory2, null, Color(0xFFE2557A), onOpenSandbox),
-        LauncherApp("Models", Icons.Filled.SmartToy, null, Color(0xFF8A6CFF), onOpenModels),
-        LauncherApp("Settings", Icons.Filled.Settings, null, Color(0xFF6B7077), onOpenLauncherSettings),
-    )
+    // The launcher's app catalog: every app the drawer can offer.
+    val catalog = remember(onOpenChat, onOpenShell, onOpenFiles, onOpenSandbox, onOpenModels, onOpenLauncherSettings) {
+        listOf(
+            LauncherApp("assistant", "Assistant", null, Res.drawable.ns_mascot_face, Color(0xFF050507), onOpenChat),
+            LauncherApp("terminal", "Terminal", Icons.Filled.Terminal, null, Color(0xFF2B2D31), onOpenShell),
+            LauncherApp("files", "Files", Icons.Filled.FolderOpen, null, Color(0xFF1C7FE0), onOpenFiles),
+            LauncherApp("sandbox", "Sandbox", Icons.Filled.Inventory2, null, Color(0xFFE2557A), onOpenSandbox),
+            LauncherApp("models", "Models", Icons.Filled.SmartToy, null, Color(0xFF8A6CFF), onOpenModels),
+            LauncherApp("settings", "Settings", Icons.Filled.Settings, null, Color(0xFF6B7077), onOpenLauncherSettings),
+            LauncherApp("internet", "Internet", Icons.Filled.Language, null, Color(0xFF1769AA)) {
+                openUrl("https://www.google.com")
+            },
+        )
+    }
+    val byId = remember(catalog) { catalog.associateBy { it.id } }
+
+    // Independent, user-curated pin lists (persisted).
+    val dockPins = remember {
+        settings.getLauncherDockPins(defaultDockPins).filter { byId.containsKey(it) }.toMutableStateList()
+    }
+    val startPins = remember {
+        settings.getLauncherStartPins(defaultStartPins).filter { byId.containsKey(it) }.toMutableStateList()
+    }
+
+    fun toggleDockPin(id: String) {
+        if (dockPins.contains(id)) dockPins.remove(id) else dockPins.add(id)
+        settings.setLauncherDockPins(dockPins.toList())
+    }
+
+    fun toggleStartPin(id: String) {
+        if (startPins.contains(id)) startPins.remove(id) else startPins.add(id)
+        settings.setLauncherStartPins(startPins.toList())
+    }
+
+    // Per-icon launch links (URL / sandbox path / app package), persisted.
+    // Long-press an icon to set; tap then launches the linked target.
+    val iconLinks = remember {
+        mutableStateMapOf<String, String>().apply {
+            desktopIconIds.forEach { id ->
+                settings.getLauncherIconLink(id).takeIf { it.isNotBlank() }?.let { put(id, it) }
+            }
+        }
+    }
+    var linkDialogFor by remember { mutableStateOf<String?>(null) }
+
+    fun openLink(target: String) {
+        when {
+            target.startsWith("http://") || target.startsWith("https://") -> openUrl(target)
+            target.startsWith("/") -> onOpenFilesAt(target)
+            else -> if (!launchApp(target)) openUrl(target)
+        }
+    }
+
+    // Wraps a built-in action so a user-assigned link wins when present.
+    fun shortcut(label: String, image: DrawableResource, builtIn: () -> Unit) =
+        DesktopShortcut(
+            label = label,
+            image = image,
+            onOpen = {
+                val link = iconLinks[label]
+                if (link.isNullOrBlank()) builtIn() else openLink(link)
+            },
+            onConfigure = { linkDialogFor = label },
+        )
 
     val shortcuts = listOf(
-        DesktopShortcut("Internet", Res.drawable.ic_desk_internet) {
+        shortcut("Internet", Res.drawable.ic_desk_internet) {
             runCatching { uriHandler.openUri("https://www.google.com") }
         },
-        DesktopShortcut("Computer", Res.drawable.ic_desk_computer, onOpenShell),
-        DesktopShortcut("Documents", Res.drawable.ic_desk_documents, onOpenFiles),
-        DesktopShortcut("Files", Res.drawable.ic_desk_folder, onOpenFiles),
-        DesktopShortcut("Apps", Res.drawable.ic_desk_apps) { showLaunchpad = true },
-        DesktopShortcut("Security", Res.drawable.ic_desk_security) {
+        shortcut("Computer", Res.drawable.ic_desk_computer, onOpenShell),
+        shortcut("Documents", Res.drawable.ic_desk_documents, onOpenFiles),
+        shortcut("Files", Res.drawable.ic_desk_folder, onOpenFiles),
+        shortcut("Apps", Res.drawable.ic_desk_apps) { showDrawer = true },
+        shortcut("Security", Res.drawable.ic_desk_security) {
             onOpenStub("Security", "NeverSoft Security — coming soon.")
         },
-        DesktopShortcut("Search", Res.drawable.ic_desk_search) {
+        shortcut("Search", Res.drawable.ic_desk_search) {
             onOpenStub("Spotlight", "Search — coming soon.")
         },
-        DesktopShortcut("Settings", Res.drawable.ic_desk_settings, onOpenLauncherSettings),
-        DesktopShortcut("Recycle Bin", Res.drawable.ic_desk_trash) {
+        shortcut("Settings", Res.drawable.ic_desk_settings, onOpenLauncherSettings),
+        shortcut("Recycle Bin", Res.drawable.ic_desk_trash) {
             onOpenStub("Recycle Bin", "The Recycle Bin is empty.")
         },
     )
@@ -143,14 +226,14 @@ fun LauncherScreen(
             .background(Brush.verticalGradient(wallpaperColors)),
     ) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-            MacMenuBar()
+            MacMenuBar(onMascotClick = onOpenChat)
 
             val pagerState = rememberPagerState(initialPage = 1) { 3 }
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                     when (page) {
                         0 -> newsPage()
-                        1 -> DesktopPage(shortcuts, showLabels, onOpenChat)
+                        1 -> DesktopPage(shortcuts, showLabels)
                         else -> EmptyDesktopPage()
                     }
                 }
@@ -165,7 +248,7 @@ fun LauncherScreen(
                 )
             }
 
-            // Dock
+            // Dock: Start orb + user-pinned apps.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,26 +262,76 @@ fun LauncherScreen(
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    dockApps.forEach { DockIcon(it.icon, it.image, it.label, it.color, it.onOpen) }
-                    DockIcon(Icons.Filled.Apps, null, "Launchpad", Color(0xFF5A5F68)) {
-                        showLaunchpad = true
+                    StartOrb(style = orbStyle) { showDrawer = true }
+                    dockPins.mapNotNull { byId[it] }.forEach {
+                        DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
                     }
                 }
             }
         }
 
-        if (showLaunchpad) {
-            Launchpad(dockApps) { showLaunchpad = false }
+        if (showDrawer) {
+            StartDrawer(
+                apps = catalog,
+                startPins = startPins,
+                dockPins = dockPins,
+                onToggleStartPin = ::toggleStartPin,
+                onToggleDockPin = ::toggleDockPin,
+                onClose = { showDrawer = false },
+            )
+        }
+
+        linkDialogFor?.let { iconId ->
+            var text by remember(iconId) { mutableStateOf(iconLinks[iconId] ?: "") }
+            AlertDialog(
+                onDismissRequest = { linkDialogFor = null },
+                title = { Text("Link “$iconId”") },
+                text = {
+                    Column {
+                        Text(
+                            "Paste what this icon should launch:\n" +
+                                "• https:// web link\n" +
+                                "• /path — opens Files at that sandbox path\n" +
+                                "• app package (e.g. com.android.chrome)",
+                            fontSize = 13.sp,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { text = it },
+                            singleLine = true,
+                            placeholder = { Text("https://…  /root/…  com.app…") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        settings.setLauncherIconLink(iconId, text)
+                        if (text.isBlank()) iconLinks.remove(iconId) else iconLinks[iconId] = text
+                        linkDialogFor = null
+                    }) { Text("Save") }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = {
+                            settings.setLauncherIconLink(iconId, "")
+                            iconLinks.remove(iconId)
+                            linkDialogFor = null
+                        }) { Text("Clear") }
+                        TextButton(onClick = { linkDialogFor = null }) { Text("Cancel") }
+                    }
+                },
+            )
         }
     }
 }
 
-/** Center "home" page: the far-left classic icons + the mascot centerpiece. */
+/** Center "home" page: the far-left classic icons over the wallpaper. */
 @Composable
 private fun DesktopPage(
     shortcuts: List<DesktopShortcut>,
     showLabels: Boolean,
-    onOpenChat: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         // Windows-style icon flow: fill a column to the screen height, then
@@ -212,26 +345,11 @@ private fun DesktopPage(
         ) {
             shortcuts.chunked(perColumn).forEach { columnIcons ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    columnIcons.forEach { DesktopIcon(it.image, it.label, showLabels, it.onOpen) }
+                    columnIcons.forEach {
+                        DesktopIcon(it.image, it.label, showLabels, it.onOpen, it.onConfigure)
+                    }
                 }
             }
-        }
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Image(
-                painter = painterResource(Res.drawable.ns_mascot),
-                contentDescription = "NeverSoft assistant",
-                modifier = Modifier.size(220.dp).clickable { onOpenChat() },
-            )
-            Text("NeverSoft OS", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text(
-                "Mors Vita Est",
-                color = Color(0xFFE5484D).copy(alpha = 0.85f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-            )
         }
     }
 }
@@ -286,19 +404,21 @@ private fun DesktopClock(onClick: () -> Unit, modifier: Modifier) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DesktopIcon(
     image: DrawableResource,
     label: String,
     showLabel: Boolean,
     onClick: () -> Unit,
+    onLongPress: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
             .padding(vertical = 6.dp)
             .width(76.dp)
             .clip(RoundedCornerShape(10.dp))
-            .clickable { onClick() }
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress)
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -370,7 +490,7 @@ fun LauncherAppShell(
 }
 
 @Composable
-private fun MacMenuBar() {
+private fun MacMenuBar(onMascotClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -378,21 +498,57 @@ private fun MacMenuBar() {
             .padding(horizontal = 12.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            painter = painterResource(Res.drawable.ns_mascot_face),
-            contentDescription = null,
-            modifier = Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)),
-        )
-        Spacer(Modifier.width(7.dp))
         Text("NeverSoft", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.width(16.dp))
-        Text("File", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
-        Spacer(Modifier.width(14.dp))
-        Text("Edit", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
-        Spacer(Modifier.width(14.dp))
-        Text("View", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
         Spacer(Modifier.weight(1f))
         Text("🔍   🔋   📶", color = Color.White, fontSize = 12.sp)
+        Spacer(Modifier.width(10.dp))
+        // The NS guy lives at the top right of the bar; tap to summon him.
+        Image(
+            painter = painterResource(Res.drawable.ns_mascot_face),
+            contentDescription = "NeverSoft assistant",
+            modifier = Modifier
+                .size(20.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .clickable { onMascotClick() },
+        )
+    }
+}
+
+/** The Start orb — customizable via Launcher Settings (mascot / grid / logo). */
+@Composable
+private fun StartOrb(style: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 3.dp)
+            .size(46.dp)
+            .clip(RoundedCornerShape(50))
+            .background(
+                Brush.verticalGradient(listOf(Color(0xFF20242B), Color(0xFF0E1014))),
+            )
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        when (style) {
+            "grid" -> Icon(
+                imageVector = Icons.Filled.Apps,
+                contentDescription = "Start",
+                tint = Color.White,
+                modifier = Modifier.size(26.dp),
+            )
+
+            "logo" -> Image(
+                painter = painterResource(Res.drawable.logo),
+                contentDescription = "Start",
+                modifier = Modifier.size(28.dp),
+            )
+
+            else -> Image(
+                painter = painterResource(Res.drawable.ns_mascot_face),
+                contentDescription = "Start",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
@@ -431,8 +587,23 @@ private fun DockIcon(
     }
 }
 
+/**
+ * The Start drawer: two panels — ALL APPS and PINNED. Tap launches; long-press
+ * opens pin controls. Pin-to-Start and Pin-to-Taskbar are independent.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun Launchpad(apps: List<LauncherApp>, onClose: () -> Unit) {
+private fun StartDrawer(
+    apps: List<LauncherApp>,
+    startPins: List<String>,
+    dockPins: List<String>,
+    onToggleStartPin: (String) -> Unit,
+    onToggleDockPin: (String) -> Unit,
+    onClose: () -> Unit,
+) {
+    var tab by remember { mutableStateOf(0) }
+    var pinDialogFor by remember { mutableStateOf<LauncherApp?>(null) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -442,18 +613,55 @@ private fun Launchpad(apps: List<LauncherApp>, onClose: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 80.dp),
+                .padding(top = 56.dp)
+                .clickable(enabled = false) {},
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            apps.chunked(4).forEach { row ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+            // Panel tabs
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .padding(4.dp),
+            ) {
+                listOf("ALL APPS", "PINNED").forEachIndexed { i, label ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (tab == i) Color.White.copy(alpha = 0.18f) else Color.Transparent)
+                            .clickable { tab = i }
+                            .padding(horizontal = 18.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            label,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            val shown = if (tab == 0) apps else startPins.mapNotNull { id -> apps.firstOrNull { it.id == id } }
+            if (shown.isEmpty()) {
+                Text(
+                    "Nothing pinned yet — long-press an app in ALL APPS.",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 40.dp),
+                )
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 ) {
-                    row.forEach { app ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    items(shown, key = { it.id }) { app ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 14.dp),
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(64.dp)
@@ -463,10 +671,13 @@ private fun Launchpad(apps: List<LauncherApp>, onClose: () -> Unit) {
                                             listOf(app.color.copy(alpha = 0.92f), app.color),
                                         ),
                                     )
-                                    .clickable {
-                                        onClose()
-                                        app.onOpen()
-                                    },
+                                    .combinedClickable(
+                                        onClick = {
+                                            onClose()
+                                            app.onOpen()
+                                        },
+                                        onLongClick = { pinDialogFor = app },
+                                    ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (app.image != null) {
@@ -492,5 +703,30 @@ private fun Launchpad(apps: List<LauncherApp>, onClose: () -> Unit) {
                 }
             }
         }
+    }
+
+    pinDialogFor?.let { app ->
+        val inStart = startPins.contains(app.id)
+        val inDock = dockPins.contains(app.id)
+        AlertDialog(
+            onDismissRequest = { pinDialogFor = null },
+            title = { Text(app.label) },
+            text = { Text("Pin to Start and Pin to Taskbar are separate — set each how you like.") },
+            confirmButton = {
+                Column {
+                    TextButton(onClick = {
+                        onToggleStartPin(app.id)
+                        pinDialogFor = null
+                    }) { Text(if (inStart) "Unpin from Start" else "Pin to Start") }
+                    TextButton(onClick = {
+                        onToggleDockPin(app.id)
+                        pinDialogFor = null
+                    }) { Text(if (inDock) "Unpin from Taskbar" else "Pin to Taskbar") }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pinDialogFor = null }) { Text("Cancel") }
+            },
+        )
     }
 }

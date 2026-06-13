@@ -472,6 +472,21 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual fun launchApp(appId: String): Boolean = try {
+    val context: Context by inject(Context::class.java)
+    val intent = context.packageManager.getLaunchIntentForPackage(appId)?.apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    if (intent != null) {
+        context.startActivity(intent)
+        true
+    } else {
+        false
+    }
+} catch (_: Exception) {
+    false
+}
+
 actual fun openUrl(url: String): Boolean = try {
     val context: Context by inject(Context::class.java)
     val parsedUri = url.toUri()

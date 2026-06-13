@@ -105,6 +105,40 @@ fun LauncherSettingsScreen(
             }
 
             Spacer(Modifier.height(18.dp))
+            SectionLabel("Start Orb")
+            var orb by remember { mutableStateOf(settings.getLauncherOrbStyle()) }
+            listOf("mascot" to "NS Mascot", "grid" to "App Grid", "logo" to "NeverSoft Logo").forEach { (id, label) ->
+                val selected = orb == id
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 5.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
+                        .border(
+                            width = if (selected) 2.dp else 0.dp,
+                            color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        .clickable {
+                            orb = id
+                            settings.setLauncherOrbStyle(id)
+                        }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        label,
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    if (selected) Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
             SectionLabel("Desktop")
             Row(
                 modifier = Modifier

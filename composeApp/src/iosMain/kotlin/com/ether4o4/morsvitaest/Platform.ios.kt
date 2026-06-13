@@ -153,6 +153,8 @@ actual fun getAvailableTools(): List<Tool> = buildList {
 }
 
 @Suppress("CAST_NEVER_SUCCEEDS")
+actual fun launchApp(appId: String): Boolean = false
+
 actual fun openUrl(url: String): Boolean = try {
     val nsUrl = platform.Foundation.NSURL.URLWithString(url)
     if (nsUrl != null) {

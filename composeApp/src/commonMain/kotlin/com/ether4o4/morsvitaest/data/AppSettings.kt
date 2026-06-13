@@ -344,6 +344,44 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_LAUNCHER_LABELS, shown)
     }
 
+    // Start orb + app pins. Dock pins and Start-menu pins are independent
+    // lists of launcher app ids, fully user-curated.
+    fun getLauncherOrbStyle(): String = settings.getString(KEY_LAUNCHER_ORB_STYLE, "mascot")
+
+    fun setLauncherOrbStyle(style: String) {
+        settings.putString(KEY_LAUNCHER_ORB_STYLE, style)
+    }
+
+    fun getLauncherDockPins(default: List<String>): List<String> {
+        val raw = settings.getString(KEY_LAUNCHER_DOCK_PINS, "")
+        return if (raw.isBlank()) default else raw.split(",").filter { it.isNotBlank() }
+    }
+
+    fun setLauncherDockPins(ids: List<String>) {
+        settings.putString(KEY_LAUNCHER_DOCK_PINS, ids.joinToString(","))
+    }
+
+    fun getLauncherStartPins(default: List<String>): List<String> {
+        val raw = settings.getString(KEY_LAUNCHER_START_PINS, "")
+        return if (raw.isBlank()) default else raw.split(",").filter { it.isNotBlank() }
+    }
+
+    fun setLauncherStartPins(ids: List<String>) {
+        settings.putString(KEY_LAUNCHER_START_PINS, ids.joinToString(","))
+    }
+
+    // Per-icon launch links: a URL, a sandbox file path, or an app package name
+    // assigned to a desktop icon. Empty = use the icon's built-in action.
+    fun getLauncherIconLink(iconId: String): String = settings.getString("$KEY_LAUNCHER_ICON_LINK_PREFIX$iconId", "")
+
+    fun setLauncherIconLink(iconId: String, target: String) {
+        if (target.isBlank()) {
+            settings.remove("$KEY_LAUNCHER_ICON_LINK_PREFIX$iconId")
+        } else {
+            settings.putString("$KEY_LAUNCHER_ICON_LINK_PREFIX$iconId", target)
+        }
+    }
+
     fun getScheduledTasksJson(): String = settings.getString(KEY_SCHEDULED_TASKS, "[]")
 
     fun setScheduledTasksJson(json: String) {
@@ -627,6 +665,10 @@ class AppSettings(internal val settings: Settings) {
 
         const val KEY_LAUNCHER_WALLPAPER = "launcher_wallpaper"
         const val KEY_LAUNCHER_LABELS = "launcher_labels"
+        const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
+        const val KEY_LAUNCHER_ORB_STYLE = "launcher_orb_style"
+        const val KEY_LAUNCHER_DOCK_PINS = "launcher_dock_pins"
+        const val KEY_LAUNCHER_START_PINS = "launcher_start_pins"
 
         // Basic memory guidance shared by every chat variant. The advanced `## Structured
         // Learning` block lives in `ChatSystemPromptBuilder.DEFAULT_STRUCTURED_LEARNING_SECTION`

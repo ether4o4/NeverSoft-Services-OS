@@ -95,9 +95,11 @@ import org.koin.dsl.koinConfiguration
 @SerialName("launcher")
 object Launcher
 
+// Optional [path] deep-links the sandbox file browser to a directory (used by
+// desktop icons linked to a file path).
 @Serializable
 @SerialName("files")
-object Files
+data class Files(val path: String? = null)
 
 @Serializable
 @SerialName("packages")
@@ -288,7 +290,8 @@ private fun AppContent(
                                     navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
                                 },
                                 onOpenShell = { navController.navigate(Shell) },
-                                onOpenFiles = { navController.navigate(Files) },
+                                onOpenFiles = { navController.navigate(Files()) },
+                                onOpenFilesAt = { path -> navController.navigate(Files(path)) },
                                 onOpenSandbox = { navController.navigate(Packages) },
                                 onOpenModels = {
                                     navController.navigate(Settings(SettingsTab.Services.name))
@@ -345,12 +348,17 @@ private fun AppContent(
                         composable<Shell> {
                             HudShellScreen(onClose = { navController.navigateUp() })
                         }
-                        composable<Files> {
+                        composable<Files> { entry ->
+                            val filesPath = entry.toRoute<Files>().path
                             LauncherAppShell(
                                 title = "Files",
                                 onClose = { navController.navigateUp() },
                             ) {
-                                SandboxFilesContent()
+                                if (filesPath != null) {
+                                    SandboxFilesContent(initialPath = filesPath)
+                                } else {
+                                    SandboxFilesContent()
+                                }
                             }
                         }
                         composable<Packages> {

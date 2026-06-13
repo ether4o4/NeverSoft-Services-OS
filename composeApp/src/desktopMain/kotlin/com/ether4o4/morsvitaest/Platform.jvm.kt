@@ -170,6 +170,8 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual fun launchApp(appId: String): Boolean = false
+
 actual fun openUrl(url: String): Boolean = try {
     java.awt.Desktop.getDesktop().browse(URI(url))
     true
