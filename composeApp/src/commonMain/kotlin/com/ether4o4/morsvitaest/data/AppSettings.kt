@@ -332,7 +332,7 @@ class AppSettings(internal val settings: Settings) {
     }
 
     // Launcher (NeverSoft OS shell)
-    fun getLauncherWallpaper(): String = settings.getString(KEY_LAUNCHER_WALLPAPER, "dark")
+    fun getLauncherWallpaper(): String = settings.getString(KEY_LAUNCHER_WALLPAPER, "sunset")
 
     fun setLauncherWallpaper(value: String) {
         settings.putString(KEY_LAUNCHER_WALLPAPER, value)

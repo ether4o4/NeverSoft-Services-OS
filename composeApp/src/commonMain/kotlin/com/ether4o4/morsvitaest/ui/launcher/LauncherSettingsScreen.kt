@@ -44,9 +44,11 @@ import kotlin.random.Random
 
 /** Wallpaper presets for the NeverSoft OS desktop. */
 internal val launcherWallpapers = listOf(
-    "dark" to listOf(Color(0xFF0C0F14), Color(0xFF060709), Color(0xFF000000)),
+    "sunset" to listOf(Color(0xFF3B4B86), Color(0xFF8A6F9E), Color(0xFFC98C86), Color(0xFFE9A86B)),
+    "aurora" to listOf(Color(0xFF2B5876), Color(0xFF4E4376), Color(0xFF7B5EA7), Color(0xFFB07EA0)),
+    "daybreak" to listOf(Color(0xFF8EC5FC), Color(0xFFA9B7F0), Color(0xFFE0C3FC)),
     "midnight" to listOf(Color(0xFF13203A), Color(0xFF0B1426), Color(0xFF05080F)),
-    "blue" to listOf(Color(0xFF2C5AA0), Color(0xFF1A3A5C), Color(0xFF0D2137)),
+    "dark" to listOf(Color(0xFF0C0F14), Color(0xFF060709), Color(0xFF000000)),
 )
 
 /**

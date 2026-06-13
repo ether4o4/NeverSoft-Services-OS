@@ -121,6 +121,7 @@ fun HudShellScreen(
     val appSettings = koinInject<AppSettings>()
     var showCheats by remember { mutableStateOf(false) }
     var showDrawer by remember { mutableStateOf(false) }
+    var maximized by remember { mutableStateOf(false) }
     var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
     LaunchedEffect(Unit) { installedApps = getInstalledApps() }
 
@@ -158,11 +159,7 @@ fun HudShellScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF0A0D12), Color(0xFF05070A), Color(0xFF000000)),
-                ),
-            )
+            .background(Color.Black.copy(alpha = 0.45f))
             .clickable { onClose() }
             .systemBarsPadding()
             .imePadding(),
@@ -184,11 +181,13 @@ fun HudShellScreen(
             }
         }
 
-        // ——— The cyberdeck window ———
+        // ——— The cyberdeck window (popup; the desktop shows behind) ———
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.84f)
+                .let {
+                    if (maximized) it.fillMaxWidth(0.98f).fillMaxHeight(0.94f)
+                    else it.fillMaxWidth(0.84f).fillMaxHeight(0.6f)
+                }
                 .clickable(enabled = false) {},
         ) {
             Column(
@@ -234,16 +233,11 @@ fun HudShellScreen(
                         )
                     }
                     Spacer(Modifier.width(12.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clip(RoundedCornerShape(50))
-                            .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(50))
-                            .clickable { onClose() },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("✕", color = HudCyan, fontSize = 12.sp)
-                    }
+                    ShellWinButton("—", onClick = onClose)
+                    Spacer(Modifier.width(8.dp))
+                    ShellWinButton(if (maximized) "❐" else "▢", onClick = { maximized = !maximized })
+                    Spacer(Modifier.width(8.dp))
+                    ShellWinButton("✕", onClick = onClose)
                 }
 
                 // Body: matrix rail | screen + deck | matrix rail
@@ -709,6 +703,20 @@ private fun CheatSheetOverlay(onClose: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ShellWinButton(glyph: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(50))
+            .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(glyph, color = HudCyan, fontSize = 11.sp)
     }
 }
 

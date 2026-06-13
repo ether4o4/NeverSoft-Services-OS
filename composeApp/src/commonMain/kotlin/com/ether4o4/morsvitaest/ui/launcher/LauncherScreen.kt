@@ -3,6 +3,7 @@ package com.ether4o4.morsvitaest.ui.launcher
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -261,9 +263,14 @@ fun LauncherScreen(
             ) {
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White.copy(alpha = 0.10f))
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.12f)),
+                            ),
+                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(26.dp))
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
@@ -423,22 +430,35 @@ private fun DesktopIcon(
         modifier = Modifier
             .padding(vertical = 6.dp)
             .width(76.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongPress)
-            .padding(vertical = 4.dp),
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Image(
-            painter = painterResource(image),
-            contentDescription = label,
-            modifier = Modifier.size(48.dp),
-        )
+        // Frosted-glass tile holding the icon.
+        Box(
+            modifier = Modifier
+                .size(58.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.12f)),
+                    ),
+                )
+                .border(1.dp, Color.White.copy(alpha = 0.38f), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(image),
+                contentDescription = label,
+                modifier = Modifier.size(40.dp),
+            )
+        }
         if (showLabel) {
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 label,
                 color = Color.White,
                 fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
@@ -447,9 +467,9 @@ private fun DesktopIcon(
 }
 
 /**
- * Chrome wrapper for an opened app — a thin macOS-style title bar with a
- * traffic-light "close" dot that returns to the desktop, hosting any engine
- * screen below it.
+ * Chrome wrapper for an opened app — a floating, glass-framed window (not full
+ * screen, so the desktop shows behind the dim scrim) with minimize / maximize /
+ * close buttons in a glass title bar, hosting any engine screen below it.
  */
 @Composable
 fun LauncherAppShell(
@@ -457,41 +477,78 @@ fun LauncherAppShell(
     onClose: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-        Row(
+    var maximized by remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.32f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF1B1D22))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .let { if (maximized) it.fillMaxSize() else it.fillMaxWidth(0.94f).fillMaxHeight(0.9f) }
+                .systemBarsPadding()
+                .padding(if (maximized) 0.dp else 4.dp)
+                .clip(RoundedCornerShape(if (maximized) 0.dp else 18.dp))
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.30f),
+                    RoundedCornerShape(if (maximized) 0.dp else 18.dp),
+                ),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(13.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFFFF5F57))
-                    .clickable { onClose() },
+            WindowTitleBar(
+                title = title,
+                onMinimize = onClose,
+                onMaximizeToggle = { maximized = !maximized },
+                onClose = onClose,
             )
-            Spacer(Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(13.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFFFEBC2E)),
-            )
-            Spacer(Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(13.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFF28C840)),
-            )
-            Spacer(Modifier.width(14.dp))
-            Text(title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Box(modifier = Modifier.fillMaxSize()) {
+                content()
+            }
         }
-        Box(modifier = Modifier.fillMaxSize()) {
-            content()
-        }
+    }
+}
+
+/** Glass title bar with minimize / maximize / close controls. */
+@Composable
+internal fun WindowTitleBar(
+    title: String,
+    onMinimize: () -> Unit,
+    onMaximizeToggle: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xF22A2E38), Color(0xF21A1D24)),
+                ),
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.weight(1f))
+        WindowButton("—", Color(0xFFFEBC2E), onMinimize)
+        Spacer(Modifier.width(8.dp))
+        WindowButton("▢", Color(0xFF28C840), onMaximizeToggle)
+        Spacer(Modifier.width(8.dp))
+        WindowButton("✕", Color(0xFFFF5F57), onClose)
+    }
+}
+
+@Composable
+private fun WindowButton(glyph: String, color: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(50))
+            .background(color.copy(alpha = 0.9f))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(glyph, color = Color(0xFF20140A), fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -579,8 +636,13 @@ private fun DockIcon(
         modifier = Modifier
             .padding(horizontal = 3.dp)
             .size(46.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Brush.verticalGradient(listOf(color.copy(alpha = 0.92f), color)))
+            .clip(RoundedCornerShape(13.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.14f)),
+                ),
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.40f), RoundedCornerShape(13.dp))
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
@@ -589,7 +651,7 @@ private fun DockIcon(
                 painter = painterResource(image),
                 contentDescription = label,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(13.dp)),
             )
         } else if (icon != null) {
             Icon(
