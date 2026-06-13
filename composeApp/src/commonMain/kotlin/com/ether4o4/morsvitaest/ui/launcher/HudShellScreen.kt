@@ -26,7 +26,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,6 +79,7 @@ private val MatrixGlyphs = "0123456789ｱｲｳｴｵｶｷｸｹｺｻｼｽｾ
 fun HudShellScreen(onClose: () -> Unit) {
     val vm = koinViewModel<SandboxViewModel>()
     val state: SandboxUiState = vm.state.collectAsStateWithLifecycle().value
+    var showCheats by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -126,12 +129,21 @@ fun HudShellScreen(onClose: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.weight(1f))
-                Text(
-                    "C:\\>",
-                    color = HudCyan.copy(alpha = 0.7f),
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                        .clickable { showCheats = true }
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        "CMDS",
+                        color = HudCyan,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
                 Spacer(Modifier.width(12.dp))
                 Box(
                     modifier = Modifier
@@ -208,6 +220,10 @@ fun HudShellScreen(onClose: () -> Unit) {
             }
         }
 
+        if (showCheats) {
+            CheatSheetOverlay(onClose = { showCheats = false })
+        }
+
         // The NS guy hangs out on the glass — runs across the top, leans on the
         // code wall, and glitch-teleports while the shell is open.
         ActiveMascot(
@@ -232,6 +248,206 @@ fun HudShellScreen(onClose: () -> Unit) {
             drawLine(c, Offset(inset, size.height - inset), Offset(inset, size.height - inset - len), w)
             drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset - len, size.height - inset), w)
             drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - len), w)
+        }
+    }
+}
+
+// ————— Command cheat sheet —————
+
+private val cheatGuide = """
+HOW TO GET AROUND
+You start in /root (your home). The prompt shows where you are.
+  ls            see what's in this folder
+  cd name       step INTO a folder        cd ..   step back OUT
+  pwd           print where you are right now
+  ls -la        list EVERYTHING here, hidden files + sizes too
+
+HOW TO FIND THINGS
+  find / -name "*.txt"          hunt the whole system for .txt files
+  find . -name "notes*"         hunt from HERE down for names starting with notes
+  grep -r "password" .          search inside every file here for a word
+  which python3                 where does a command live?
+  du -sh *                      what's taking up space in this folder
+""".trimIndent()
+
+private val cheatSections: List<Pair<String, List<Pair<String, String>>>> = listOf(
+    "NAVIGATE" to listOf(
+        "pwd" to "where am I",
+        "ls" to "list files here",
+        "ls -la" to "list all + hidden + details",
+        "cd dir" to "enter a folder",
+        "cd .." to "go up one level",
+        "cd ~ | cd /" to "jump home | jump to root",
+        "tree" to "folder map (apk add tree)",
+    ),
+    "FILES & FOLDERS" to listOf(
+        "cat file" to "print a file",
+        "less file" to "scroll a file (q quits)",
+        "head/tail file" to "first / last lines",
+        "tail -f log" to "watch a file live",
+        "touch file" to "make an empty file",
+        "mkdir -p a/b" to "make folders (nested)",
+        "cp src dst" to "copy  (cp -r for folders)",
+        "mv src dst" to "move / rename",
+        "rm file" to "delete  (rm -rf dir = folder, careful)",
+        "ln -s tgt name" to "make a shortcut (symlink)",
+        "nano file" to "edit a file (apk add nano)",
+        "vi file" to "edit (i=insert, Esc :wq=save+quit)",
+    ),
+    "FIND & SEARCH" to listOf(
+        "find . -name \"*.log\"" to "find by name from here",
+        "find / -size +10M" to "find big files",
+        "find . -mtime -1" to "changed in last day",
+        "grep word file" to "search inside a file",
+        "grep -ri word ." to "search all files, any case",
+        "grep -rn word ." to "…with line numbers",
+        "which cmd" to "path of a command",
+        "du -sh *" to "sizes of everything here",
+        "df -h" to "disk space overall",
+    ),
+    "PACKAGES (Alpine)" to listOf(
+        "apk update" to "refresh package index",
+        "apk add pkg" to "install (e.g. apk add htop)",
+        "apk del pkg" to "uninstall",
+        "apk search word" to "find a package",
+        "apk info pkg" to "package details",
+    ),
+    "PROCESSES & SYSTEM" to listOf(
+        "ps aux" to "everything running",
+        "top" to "live process monitor (q quits)",
+        "kill PID" to "stop a process (kill -9 = force)",
+        "free -m" to "memory usage",
+        "uptime" to "load + time up",
+        "uname -a" to "system info",
+        "date" to "current date/time",
+        "clear" to "wipe the screen",
+        "history" to "your past commands",
+    ),
+    "NETWORK" to listOf(
+        "ping host" to "is it reachable (Ctrl+C stops)",
+        "curl url" to "fetch a page/API",
+        "curl -O url" to "download a file",
+        "wget url" to "download (alt)",
+        "curl -s api | jq" to "pretty-print JSON",
+        "ssh user@host" to "remote shell",
+        "scp file user@host:~" to "copy file to a server",
+        "ip addr" to "my addresses",
+    ),
+    "ARCHIVES" to listOf(
+        "tar -czf out.tgz dir" to "zip a folder up",
+        "tar -xzf file.tgz" to "unpack it",
+        "unzip file.zip" to "unpack zip (apk add unzip)",
+        "gzip / gunzip file" to "compress / decompress",
+    ),
+    "PERMISSIONS" to listOf(
+        "chmod +x script.sh" to "make runnable",
+        "chmod 644 file" to "rw for you, read for rest",
+        "chown user file" to "change owner",
+        "whoami" to "who am I",
+    ),
+    "SCRIPTING & DEV" to listOf(
+        "python3 file.py" to "run python",
+        "python3 -m http.server" to "instant web server",
+        "node file.js" to "run javascript",
+        "pip install pkg" to "python packages",
+        "git clone url" to "grab a repo",
+        "git status / log" to "repo state / history",
+        "bash script.sh" to "run a shell script",
+        "echo \"x\" > f / >> f" to "overwrite / append to file",
+        "cmd1 | cmd2" to "pipe output into next command",
+        "cmd > out.txt 2>&1" to "save all output to a file",
+        "ctrl+c" to "stop the running command",
+    ),
+)
+
+/** Scrollable HUD-styled command cheat sheet over the console. */
+@Composable
+private fun CheatSheetOverlay(onClose: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xF2010407))
+            .clickable { onClose() }
+            .padding(14.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.5.dp, HudCyan.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+                .background(Color(0xFF030A10))
+                .clickable(enabled = false) {},
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(HudCyan.copy(alpha = 0.08f))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "◢ COMMAND CHEAT SHEET",
+                    color = HudCyan,
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(RoundedCornerShape(50))
+                        .border(1.dp, HudCyan.copy(alpha = 0.6f), RoundedCornerShape(50))
+                        .clickable { onClose() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("✕", color = HudCyan, fontSize = 12.sp)
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(12.dp),
+            ) {
+                Text(
+                    cheatGuide,
+                    color = Color(0xFFB8F4E6),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    lineHeight = 16.sp,
+                )
+                Spacer(Modifier.height(14.dp))
+                cheatSections.forEach { (title, rows) ->
+                    Text(
+                        "── $title ${"─".repeat((28 - title.length).coerceAtLeast(2))}",
+                        color = HudCyan,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
+                    )
+                    rows.forEach { (cmd, desc) ->
+                        Row(modifier = Modifier.padding(vertical = 1.dp)) {
+                            Text(
+                                cmd,
+                                color = Color(0xFFE8FBFF),
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.width(170.dp),
+                            )
+                            Text(
+                                desc,
+                                color = HudCyan.copy(alpha = 0.65f),
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+            }
         }
     }
 }
