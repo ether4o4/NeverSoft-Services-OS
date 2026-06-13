@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.saveLauncherImage
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.readBytes
+import kotlin.random.Random
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /** Wallpaper presets for the NeverSoft OS desktop. */
@@ -54,8 +61,30 @@ fun LauncherSettingsScreen(
     onOpenAiSettings: () -> Unit,
 ) {
     val settings = koinInject<AppSettings>()
+    val scope = rememberCoroutineScope()
     var wallpaper by remember { mutableStateOf(settings.getLauncherWallpaper()) }
     var showLabels by remember { mutableStateOf(settings.isLauncherLabelsShown()) }
+    var wallpaperImage by remember { mutableStateOf(settings.getLauncherWallpaperImage()) }
+    var orbImage by remember { mutableStateOf(settings.getLauncherOrbImage()) }
+
+    val wallpaperPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
+        if (file != null) scope.launch {
+            val path = saveLauncherImage("wp_${Random.nextInt(1_000_000)}.img", file.readBytes())
+            if (path != null) {
+                settings.setLauncherWallpaperImage(path)
+                wallpaperImage = path
+            }
+        }
+    }
+    val orbPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
+        if (file != null) scope.launch {
+            val path = saveLauncherImage("orb_${Random.nextInt(1_000_000)}.img", file.readBytes())
+            if (path != null) {
+                settings.setLauncherOrbImage(path)
+                orbImage = path
+            }
+        }
+    }
 
     LauncherAppShell(title = "Launcher Settings", onClose = onClose) {
         Column(
@@ -100,9 +129,20 @@ fun LauncherSettingsScreen(
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                     )
                     Spacer(Modifier.weight(1f))
-                    if (selected) Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                    if (selected && wallpaperImage.isBlank()) {
+                        Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                    }
                 }
             }
+            PhotoRow(
+                label = if (wallpaperImage.isNotBlank()) "Custom photo set" else "Choose a photo…",
+                active = wallpaperImage.isNotBlank(),
+                onPick = { wallpaperPicker.launch() },
+                onClear = {
+                    settings.setLauncherWallpaperImage("")
+                    wallpaperImage = ""
+                },
+            )
 
             Spacer(Modifier.height(18.dp))
             SectionLabel("Start Orb")
@@ -134,9 +174,20 @@ fun LauncherSettingsScreen(
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                     )
                     Spacer(Modifier.weight(1f))
-                    if (selected) Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                    if (selected && orbImage.isBlank()) {
+                        Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                    }
                 }
             }
+            PhotoRow(
+                label = if (orbImage.isNotBlank()) "Custom photo set" else "Use a photo…",
+                active = orbImage.isNotBlank(),
+                onPick = { orbPicker.launch() },
+                onClear = {
+                    settings.setLauncherOrbImage("")
+                    orbImage = ""
+                },
+            )
 
             Spacer(Modifier.height(18.dp))
             SectionLabel("Desktop")
@@ -187,6 +238,45 @@ fun LauncherSettingsScreen(
                 color = Color.White.copy(alpha = 0.4f),
                 fontSize = 12.sp,
                 modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhotoRow(label: String, active: Boolean, onPick: () -> Unit, onClear: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = if (active) 0.12f else 0.05f))
+                .border(
+                    width = if (active) 2.dp else 0.dp,
+                    color = if (active) Color(0xFF3B82F6) else Color.Transparent,
+                    shape = RoundedCornerShape(12.dp),
+                )
+                .clickable { onPick() }
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("🖼", fontSize = 16.sp)
+            Spacer(Modifier.width(12.dp))
+            Text(label, color = Color.White, fontSize = 15.sp)
+        }
+        if (active) {
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "Clear",
+                color = Color(0xFFE5484D),
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { onClear() }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             )
         }
     }

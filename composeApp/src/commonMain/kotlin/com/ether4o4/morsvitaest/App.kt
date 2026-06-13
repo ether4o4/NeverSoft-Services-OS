@@ -355,7 +355,19 @@ private fun AppContent(
                             )
                         }
                         composable<Shell> {
-                            HudShellScreen(onClose = { navController.navigateUp() })
+                            HudShellScreen(
+                                onClose = { navController.navigateUp() },
+                                onOpenChat = {
+                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+                                },
+                                onOpenFiles = { navController.navigate(Files()) },
+                                onOpenSandbox = { navController.navigate(Packages) },
+                                onOpenModels = {
+                                    navController.navigate(Settings(SettingsTab.Services.name))
+                                },
+                                onOpenSettings = { navController.navigate(LauncherSettings) },
+                                onOpenNotifications = { navController.navigate(Notifications) },
+                            )
                         }
                         composable<Notifications> {
                             NotificationsPanel(

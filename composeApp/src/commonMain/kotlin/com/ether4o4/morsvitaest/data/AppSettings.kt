@@ -352,6 +352,22 @@ class AppSettings(internal val settings: Settings) {
         settings.putString(KEY_LAUNCHER_ORB_STYLE, style)
     }
 
+    // Custom photos for the wallpaper and the Start orb (absolute file paths).
+    // Empty = use the built-in gradient / orb style.
+    fun getLauncherWallpaperImage(): String = settings.getString(KEY_LAUNCHER_WALLPAPER_IMAGE, "")
+
+    fun setLauncherWallpaperImage(path: String) {
+        if (path.isBlank()) settings.remove(KEY_LAUNCHER_WALLPAPER_IMAGE)
+        else settings.putString(KEY_LAUNCHER_WALLPAPER_IMAGE, path)
+    }
+
+    fun getLauncherOrbImage(): String = settings.getString(KEY_LAUNCHER_ORB_IMAGE, "")
+
+    fun setLauncherOrbImage(path: String) {
+        if (path.isBlank()) settings.remove(KEY_LAUNCHER_ORB_IMAGE)
+        else settings.putString(KEY_LAUNCHER_ORB_IMAGE, path)
+    }
+
     fun getLauncherDockPins(default: List<String>): List<String> {
         val raw = settings.getString(KEY_LAUNCHER_DOCK_PINS, "")
         return if (raw.isBlank()) default else raw.split(",").filter { it.isNotBlank() }
@@ -667,6 +683,8 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_LAUNCHER_LABELS = "launcher_labels"
         const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
         const val KEY_LAUNCHER_ORB_STYLE = "launcher_orb_style"
+        const val KEY_LAUNCHER_WALLPAPER_IMAGE = "launcher_wallpaper_image"
+        const val KEY_LAUNCHER_ORB_IMAGE = "launcher_orb_image"
         const val KEY_LAUNCHER_DOCK_PINS = "launcher_dock_pins"
         const val KEY_LAUNCHER_START_PINS = "launcher_start_pins"
 

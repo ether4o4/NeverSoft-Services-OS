@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openUrl
@@ -87,27 +88,12 @@ import kotlin.time.ExperimentalTime
  * desktop. Each tile opens a real Mors Vita Est engine screen, so the shell
  * runs on the actual local-GGUF / sandbox / settings stack rather than a mock.
  */
-private data class LauncherApp(
-    val id: String,
-    val label: String,
-    val icon: ImageVector?,
-    val image: DrawableResource?,
-    val color: Color,
-    val onOpen: () -> Unit,
-)
-
 private data class DesktopShortcut(
     val label: String,
     val image: DrawableResource,
     val onOpen: () -> Unit,
     val onConfigure: () -> Unit = {},
 )
-
-// Default pin sets. Dock and Start menu pins are fully independent. The
-// assistant lives in the notifications panel (and menu bar) rather than the
-// dock by default — pin him back anytime from the drawer.
-private val defaultDockPins = listOf("terminal", "files", "sandbox", "models", "settings")
-private val defaultStartPins = listOf("assistant", "terminal", "files", "settings")
 
 // Stable ids for the desktop icons' persisted launch links.
 private val desktopIconIds = listOf(
@@ -135,6 +121,8 @@ fun LauncherScreen(
     }
     val showLabels = remember { settings.isLauncherLabelsShown() }
     val orbStyle = remember { settings.getLauncherOrbStyle() }
+    val wallpaperImage = remember { settings.getLauncherWallpaperImage() }
+    val orbImage = remember { settings.getLauncherOrbImage() }
     val uriHandler = LocalUriHandler.current
     var showDrawer by remember { mutableStateOf(false) }
 
@@ -222,11 +210,19 @@ fun LauncherScreen(
         },
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(wallpaperColors)),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Wallpaper: a chosen photo, else the preset gradient.
+        if (wallpaperImage.isNotBlank()) {
+            AsyncImage(
+                model = "file://$wallpaperImage",
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(wallpaperColors)))
+        }
+
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
             MacMenuBar(onMascotClick = onOpenChat)
 
@@ -264,7 +260,7 @@ fun LauncherScreen(
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    StartOrb(style = orbStyle) { showDrawer = true }
+                    StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
                     dockPins.mapNotNull { byId[it] }.forEach {
                         DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
                     }
@@ -516,9 +512,9 @@ private fun MacMenuBar(onMascotClick: () -> Unit) {
     }
 }
 
-/** The Start orb — customizable via Launcher Settings (mascot / grid / logo). */
+/** The Start orb — a chosen photo, or a style (mascot / grid / logo). */
 @Composable
-private fun StartOrb(style: String, onClick: () -> Unit) {
+private fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .padding(horizontal = 3.dp)
@@ -530,6 +526,15 @@ private fun StartOrb(style: String, onClick: () -> Unit) {
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
+        if (imagePath.isNotBlank()) {
+            AsyncImage(
+                model = "file://$imagePath",
+                contentDescription = "Start",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            return@Box
+        }
         when (style) {
             "grid" -> Icon(
                 imageVector = Icons.Filled.Apps,
@@ -589,146 +594,3 @@ private fun DockIcon(
     }
 }
 
-/**
- * The Start drawer: two panels — ALL APPS and PINNED. Tap launches; long-press
- * opens pin controls. Pin-to-Start and Pin-to-Taskbar are independent.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun StartDrawer(
-    apps: List<LauncherApp>,
-    startPins: List<String>,
-    dockPins: List<String>,
-    onToggleStartPin: (String) -> Unit,
-    onToggleDockPin: (String) -> Unit,
-    onClose: () -> Unit,
-) {
-    var tab by remember { mutableStateOf(0) }
-    var pinDialogFor by remember { mutableStateOf<LauncherApp?>(null) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.86f))
-            .clickable { onClose() },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 56.dp)
-                .clickable(enabled = false) {},
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Panel tabs
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.10f))
-                    .padding(4.dp),
-            ) {
-                listOf("ALL APPS", "PINNED").forEachIndexed { i, label ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (tab == i) Color.White.copy(alpha = 0.18f) else Color.Transparent)
-                            .clickable { tab = i }
-                            .padding(horizontal = 18.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            label,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            val shown = if (tab == 0) apps else startPins.mapNotNull { id -> apps.firstOrNull { it.id == id } }
-            if (shown.isEmpty()) {
-                Text(
-                    "Nothing pinned yet — long-press an app in ALL APPS.",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(top = 40.dp),
-                )
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                ) {
-                    items(shown, key = { it.id }) { app ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(vertical = 14.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(app.color.copy(alpha = 0.92f), app.color),
-                                        ),
-                                    )
-                                    .combinedClickable(
-                                        onClick = {
-                                            onClose()
-                                            app.onOpen()
-                                        },
-                                        onLongClick = { pinDialogFor = app },
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                if (app.image != null) {
-                                    Image(
-                                        painter = painterResource(app.image),
-                                        contentDescription = app.label,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                } else if (app.icon != null) {
-                                    Icon(
-                                        imageVector = app.icon,
-                                        contentDescription = app.label,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(34.dp),
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Text(app.label, color = Color.White, fontSize = 12.sp)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    pinDialogFor?.let { app ->
-        val inStart = startPins.contains(app.id)
-        val inDock = dockPins.contains(app.id)
-        AlertDialog(
-            onDismissRequest = { pinDialogFor = null },
-            title = { Text(app.label) },
-            text = { Text("Pin to Start and Pin to Taskbar are separate — set each how you like.") },
-            confirmButton = {
-                Column {
-                    TextButton(onClick = {
-                        onToggleStartPin(app.id)
-                        pinDialogFor = null
-                    }) { Text(if (inStart) "Unpin from Start" else "Pin to Start") }
-                    TextButton(onClick = {
-                        onToggleDockPin(app.id)
-                        pinDialogFor = null
-                    }) { Text(if (inDock) "Unpin from Taskbar" else "Pin to Taskbar") }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pinDialogFor = null }) { Text("Cancel") }
-            },
-        )
-    }
-}

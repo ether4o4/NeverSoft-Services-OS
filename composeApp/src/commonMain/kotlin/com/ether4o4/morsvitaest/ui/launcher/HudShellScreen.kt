@@ -36,6 +36,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -46,6 +53,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,14 +74,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ether4o4.morsvitaest.TerminalLine
+import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.openUrl
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxSessionViewModel
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
 import com.ether4o4.morsvitaest.ui.settings.SandboxUiState
 import com.ether4o4.morsvitaest.ui.settings.SandboxViewModel
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.delay
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.ns_mascot
+import morsvitaest.composeapp.generated.resources.ns_mascot_alive
+import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.random.Random
 
@@ -88,10 +104,51 @@ private val MatrixGlyphs = "0123456789ｱｲｳｴｵｶｷｸｹｺｻｼｽｾ
  * the Computer desktop icon and the Terminal dock tile.
  */
 @Composable
-fun HudShellScreen(onClose: () -> Unit) {
+fun HudShellScreen(
+    onClose: () -> Unit,
+    onOpenChat: () -> Unit = {},
+    onOpenFiles: () -> Unit = {},
+    onOpenSandbox: () -> Unit = {},
+    onOpenModels: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
+) {
     val vm = koinViewModel<SandboxViewModel>()
     val state: SandboxUiState = vm.state.collectAsStateWithLifecycle().value
+    val appSettings = koinInject<AppSettings>()
     var showCheats by remember { mutableStateOf(false) }
+    var showDrawer by remember { mutableStateOf(false) }
+
+    // The same app catalog the NeverSoft OS desktop uses, so the shell's Start
+    // button opens an identical drawer.
+    val catalog = remember(onOpenChat, onOpenFiles, onOpenSandbox, onOpenModels, onOpenSettings) {
+        listOf(
+            LauncherApp("assistant", "Assistant", null, Res.drawable.ns_mascot_face, Color(0xFF050507), onOpenChat),
+            LauncherApp("terminal", "Terminal", Icons.Filled.Terminal, null, Color(0xFF2B2D31)) { showDrawer = false },
+            LauncherApp("files", "Files", Icons.Filled.FolderOpen, null, Color(0xFF1C7FE0), onOpenFiles),
+            LauncherApp("sandbox", "Sandbox", Icons.Filled.Inventory2, null, Color(0xFFE2557A), onOpenSandbox),
+            LauncherApp("models", "Models", Icons.Filled.SmartToy, null, Color(0xFF8A6CFF), onOpenModels),
+            LauncherApp("settings", "Settings", Icons.Filled.Settings, null, Color(0xFF6B7077), onOpenSettings),
+            LauncherApp("internet", "Internet", Icons.Filled.Language, null, Color(0xFF1769AA)) {
+                openUrl("https://www.google.com")
+            },
+        )
+    }
+    val byId = remember(catalog) { catalog.associateBy { it.id } }
+    val dockPins = remember {
+        appSettings.getLauncherDockPins(defaultDockPins).filter { byId.containsKey(it) }.toMutableStateList()
+    }
+    val startPins = remember {
+        appSettings.getLauncherStartPins(defaultStartPins).filter { byId.containsKey(it) }.toMutableStateList()
+    }
+    fun toggleDockPin(id: String) {
+        if (dockPins.contains(id)) dockPins.remove(id) else dockPins.add(id)
+        appSettings.setLauncherDockPins(dockPins.toList())
+    }
+    fun toggleStartPin(id: String) {
+        if (startPins.contains(id)) startPins.remove(id) else startPins.add(id)
+        appSettings.setLauncherStartPins(startPins.toList())
+    }
 
     Box(
         modifier = Modifier
@@ -154,6 +211,8 @@ fun HudShellScreen(onClose: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(Modifier.weight(1f))
+                    ShellClock(onClick = onOpenNotifications)
+                    Spacer(Modifier.width(10.dp))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -237,9 +296,9 @@ fun HudShellScreen(onClose: () -> Unit) {
             ActiveMascot(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(70.dp)
+                    .height(104.dp)
                     .align(Alignment.TopStart)
-                    .padding(top = 34.dp, start = 40.dp, end = 40.dp),
+                    .padding(top = 30.dp, start = 36.dp, end = 36.dp),
             )
 
             // Corner brackets on the window frame.
@@ -257,10 +316,51 @@ fun HudShellScreen(onClose: () -> Unit) {
                 drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset - len, size.height - inset), w)
                 drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - len), w)
             }
+
+            // Start button in the bottom-left corner of the deck — opens the
+            // identical NeverSoft OS app drawer.
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 8.dp, bottom = 8.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, HudCyan.copy(alpha = 0.7f), RoundedCornerShape(10.dp))
+                    .background(
+                        Brush.verticalGradient(listOf(Color(0xFF12303A), Color(0xFF0A171D))),
+                    )
+                    .clickable { showDrawer = true }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.ns_mascot_face),
+                    contentDescription = "Start",
+                    modifier = Modifier.size(20.dp).clip(RoundedCornerShape(5.dp)),
+                )
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    "START",
+                    color = HudCyan,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
 
         if (showCheats) {
             CheatSheetOverlay(onClose = { showCheats = false })
+        }
+
+        if (showDrawer) {
+            StartDrawer(
+                apps = catalog,
+                startPins = startPins,
+                dockPins = dockPins,
+                onToggleStartPin = ::toggleStartPin,
+                onToggleDockPin = ::toggleDockPin,
+                onClose = { showDrawer = false },
+            )
         }
     }
 }
@@ -605,16 +705,43 @@ private fun CheatSheetOverlay(onClose: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalTime::class)
+@Composable
+private fun ShellClock(onClick: () -> Unit) {
+    var now by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Clock.System.now()
+            delay(15_000)
+        }
+    }
+    val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
+    val h = local.hour
+    val h12 = if (h % 12 == 0) 12 else h % 12
+    val ampm = if (h < 12) "AM" else "PM"
+    Text(
+        "$h12:${local.minute.toString().padStart(2, '0')} $ampm",
+        color = HudCyan,
+        fontSize = 11.sp,
+        fontFamily = FontFamily.Monospace,
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+    )
+}
+
 /**
- * The NS mascot living on the shell: runs along the top of the glass, leans
- * against the rail, then glitch-teleports (flicker + ghost) to a new spot.
+ * The NS mascot living on the shell: a feathered cutout (no block) that runs
+ * along the top of the glass with a squash/stretch walk, leans against the
+ * rail, then glitch-teleports (flicker + ghost) to a new spot.
  */
 @Composable
 private fun ActiveMascot(modifier: Modifier = Modifier) {
     val density = LocalDensity.current
     BoxWithConstraints(modifier = modifier) {
         val widthPx = with(density) { maxWidth.toPx() }
-        val mascotPx = with(density) { 64.dp.toPx() }
+        val mascotPx = with(density) { 96.dp.toPx() }
         val maxX = (widthPx - mascotPx).coerceAtLeast(1f)
         val x = remember { Animatable(0f) }
         var flipped by remember { mutableStateOf(false) }
@@ -675,35 +802,40 @@ private fun ActiveMascot(modifier: Modifier = Modifier) {
             }
         }
 
-        val yBob = if (running) bob * 6f else 0f
+        // Walk bob + squash/stretch: he compresses on the down-step and
+        // stretches on the up-step, so the legs read as actually moving.
+        val yBob = if (running) bob * 9f else 0f
+        val squashY = if (running) 1f + (bob - 0.5f) * 0.10f else 1f
+        val squashX = if (running) 1f - (bob - 0.5f) * 0.10f else 1f
         val tilt = when {
-            leaning -> if (flipped) -14f else 14f
-            running -> (bob - 0.5f) * 8f
+            leaning -> if (flipped) -12f else 12f
+            running -> (bob - 0.5f) * 6f
             else -> 0f
         }
 
         if (ghost) {
             Image(
-                painter = painterResource(Res.drawable.ns_mascot),
+                painter = painterResource(Res.drawable.ns_mascot_alive),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(64.dp)
-                    .offset { IntOffset((x.value + 7f).toInt(), (6 + yBob).toInt()) }
+                    .size(96.dp)
+                    .offset { IntOffset((x.value + 10f).toInt(), yBob.toInt()) }
                     .graphicsLayer {
-                        alpha = 0.25f
+                        alpha = 0.22f
                         scaleX = if (flipped) -1f else 1f
                     },
             )
         }
         if (visible) {
             Image(
-                painter = painterResource(Res.drawable.ns_mascot),
+                painter = painterResource(Res.drawable.ns_mascot_alive),
                 contentDescription = "NS",
                 modifier = Modifier
-                    .size(64.dp)
-                    .offset { IntOffset(x.value.toInt(), (6 + yBob).toInt()) }
+                    .size(96.dp)
+                    .offset { IntOffset(x.value.toInt(), yBob.toInt()) }
                     .graphicsLayer {
-                        scaleX = if (flipped) -1f else 1f
+                        scaleX = (if (flipped) -1f else 1f) * squashX
+                        scaleY = squashY
                         rotationZ = tilt
                     },
             )

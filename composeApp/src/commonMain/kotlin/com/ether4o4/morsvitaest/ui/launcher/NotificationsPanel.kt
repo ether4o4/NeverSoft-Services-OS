@@ -39,7 +39,7 @@ import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import morsvitaest.composeapp.generated.resources.Res
-import morsvitaest.composeapp.generated.resources.ns_mascot
+import morsvitaest.composeapp.generated.resources.ns_mascot_alive
 import org.jetbrains.compose.resources.painterResource
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -98,12 +98,12 @@ fun NotificationsPanel(
                 animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
             )
             Image(
-                painter = painterResource(Res.drawable.ns_mascot),
+                painter = painterResource(Res.drawable.ns_mascot_alive),
                 contentDescription = "MVE Assistant",
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(end = 16.dp)
-                    .size(92.dp)
+                    .padding(end = 10.dp)
+                    .size(128.dp)
                     .offset { IntOffset(0, (drop.value + legBob).toInt() - 14) }
                     .graphicsLayer {
                         rotationZ = rock

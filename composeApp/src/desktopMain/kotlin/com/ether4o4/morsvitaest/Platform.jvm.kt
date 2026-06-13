@@ -170,6 +170,16 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = try {
+    val dir = java.io.File(getAppFilesDirectory(), "launcher")
+    dir.mkdirs()
+    val f = java.io.File(dir, name)
+    f.writeBytes(bytes)
+    f.absolutePath
+} catch (_: Exception) {
+    null
+}
+
 actual fun launchApp(appId: String): Boolean = false
 
 actual fun openUrl(url: String): Boolean = try {

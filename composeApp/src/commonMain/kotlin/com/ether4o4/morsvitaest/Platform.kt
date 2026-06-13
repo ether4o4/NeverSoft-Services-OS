@@ -79,6 +79,13 @@ expect fun openUrl(url: String): Boolean
 /** Launch an installed app by its platform identifier (Android package name). */
 expect fun launchApp(appId: String): Boolean
 
+/**
+ * Persist a picked image's [bytes] into app storage under [name] and return its
+ * absolute path (or null on failure / unsupported platform). Used for the
+ * customizable launcher wallpaper and Start orb.
+ */
+expect fun saveLauncherImage(name: String, bytes: ByteArray): String?
+
 @androidx.compose.runtime.Composable
 expect fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit)
 
