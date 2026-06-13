@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -124,134 +124,134 @@ internal fun StartDrawer(
                     .clickable(enabled = false) {}
                     .padding(14.dp),
             ) {
-            // Header
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Start", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color.White.copy(alpha = 0.10f))
-                        .clickable { onClose() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("✕", color = Color.White, fontSize = 14.sp)
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Search
-            TextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
-                singleLine = true,
-                placeholder = { Text("Search apps…", color = Color.White.copy(alpha = 0.4f)) },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White.copy(alpha = 0.08f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color(0xFF3B82F6),
-                ),
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            // Tabs
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
-                    .padding(3.dp),
-            ) {
-                listOf("ALL APPS", "PINNED").forEachIndexed { i, label ->
+                // Header
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Start", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (tab == i) Color.White.copy(alpha = 0.16f) else Color.Transparent)
-                            .clickable { tab = i }
-                            .padding(horizontal = 16.dp, vertical = 7.dp),
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(Color.White.copy(alpha = 0.10f))
+                            .clickable { onClose() },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            label,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
-                        )
+                        Text("✕", color = Color.White, fontSize = 14.sp)
                     }
                 }
-            }
 
-            Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
 
-            if (tab == 0) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    if (builtInShown.isNotEmpty()) {
-                        item { DrawerSectionLabel("NEVERSOFT") }
-                        items(builtInShown, key = { "ns_" + it.id }) { app ->
-                            AppRow(
-                                label = app.label,
-                                color = app.color,
-                                icon = app.icon,
-                                image = app.image,
-                                onClick = {
-                                    onClose()
-                                    app.onOpen()
-                                },
-                                onLongClick = { pinDialogFor = app },
+                // Search
+                TextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
+                    singleLine = true,
+                    placeholder = { Text("Search apps…", color = Color.White.copy(alpha = 0.4f)) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.White.copy(alpha = 0.08f),
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color(0xFF3B82F6),
+                    ),
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Tabs
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .padding(3.dp),
+                ) {
+                    listOf("ALL APPS", "PINNED").forEachIndexed { i, label ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (tab == i) Color.White.copy(alpha = 0.16f) else Color.Transparent)
+                                .clickable { tab = i }
+                                .padding(horizontal = 16.dp, vertical = 7.dp),
+                        ) {
+                            Text(
+                                label,
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
                             )
                         }
                     }
-                    item { DrawerSectionLabel("ALL APPS") }
-                    if (installedApps.isEmpty()) {
-                        item {
-                            Text(
-                                "Loading installed apps…",
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(12.dp),
-                            )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                if (tab == 0) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        if (builtInShown.isNotEmpty()) {
+                            item { DrawerSectionLabel("NEVERSOFT") }
+                            items(builtInShown, key = { "ns_" + it.id }) { app ->
+                                AppRow(
+                                    label = app.label,
+                                    color = app.color,
+                                    icon = app.icon,
+                                    image = app.image,
+                                    onClick = {
+                                        onClose()
+                                        app.onOpen()
+                                    },
+                                    onLongClick = { pinDialogFor = app },
+                                )
+                            }
                         }
+                        item { DrawerSectionLabel("ALL APPS") }
+                        if (installedApps.isEmpty()) {
+                            item {
+                                Text(
+                                    "Loading installed apps…",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(12.dp),
+                                )
+                            }
+                        } else {
+                            items(installedShown, key = { it.packageName }) { app ->
+                                InstalledAppRow(app) {
+                                    onClose()
+                                    onLaunchPackage(app.packageName)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (pinnedShown.isEmpty()) {
+                        Text(
+                            "Nothing pinned — long-press a NeverSoft app in ALL APPS.",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 30.dp),
+                        )
                     } else {
-                        items(installedShown, key = { it.packageName }) { app ->
-                            InstalledAppRow(app) {
-                                onClose()
-                                onLaunchPackage(app.packageName)
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(pinnedShown, key = { "pin_" + it.id }) { app ->
+                                AppRow(
+                                    label = app.label,
+                                    color = app.color,
+                                    icon = app.icon,
+                                    image = app.image,
+                                    onClick = {
+                                        onClose()
+                                        app.onOpen()
+                                    },
+                                    onLongClick = { pinDialogFor = app },
+                                )
                             }
                         }
                     }
                 }
-            } else {
-                if (pinnedShown.isEmpty()) {
-                    Text(
-                        "Nothing pinned — long-press a NeverSoft app in ALL APPS.",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 30.dp),
-                    )
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(pinnedShown, key = { "pin_" + it.id }) { app ->
-                            AppRow(
-                                label = app.label,
-                                color = app.color,
-                                icon = app.icon,
-                                image = app.image,
-                                onClick = {
-                                    onClose()
-                                    app.onOpen()
-                                },
-                                onLongClick = { pinDialogFor = app },
-                            )
-                        }
-                    }
-                }
-            }
             }
 
             // Drag this corner to resize the Start menu.

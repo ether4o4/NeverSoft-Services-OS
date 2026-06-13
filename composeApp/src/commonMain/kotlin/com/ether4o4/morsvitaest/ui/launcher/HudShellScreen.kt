@@ -185,8 +185,11 @@ fun HudShellScreen(
         Box(
             modifier = Modifier
                 .let {
-                    if (maximized) it.fillMaxWidth(0.98f).fillMaxHeight(0.94f)
-                    else it.fillMaxWidth(0.84f).fillMaxHeight(0.6f)
+                    if (maximized) {
+                        it.fillMaxWidth(0.98f).fillMaxHeight(0.94f)
+                    } else {
+                        it.fillMaxWidth(0.84f).fillMaxHeight(0.6f)
+                    }
                 }
                 .clickable(enabled = false) {},
         ) {
