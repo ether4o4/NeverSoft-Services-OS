@@ -9,6 +9,7 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.scale
 import androidx.core.net.toUri
 import com.ether4o4.morsvitaest.data.AppSettings
@@ -484,8 +485,7 @@ actual suspend fun getInstalledApps(): List<InstalledApp> =
                     if (pkg == context.packageName) return@mapNotNull null
                     val label = ri.loadLabel(pm).toString()
                     val icon = try {
-                        androidx.core.graphics.drawable.toBitmap(ri.loadIcon(pm), 96, 96)
-                            .asImageBitmap()
+                        ri.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
                     } catch (_: Exception) {
                         null
                     }
