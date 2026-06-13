@@ -473,30 +473,29 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
-actual suspend fun getInstalledApps(): List<InstalledApp> =
-    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-        try {
-            val context: Context by inject(Context::class.java)
-            val pm = context.packageManager
-            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-            pm.queryIntentActivities(intent, 0)
-                .mapNotNull { ri ->
-                    val pkg = ri.activityInfo?.packageName ?: return@mapNotNull null
-                    if (pkg == context.packageName) return@mapNotNull null
-                    val label = ri.loadLabel(pm).toString()
-                    val icon = try {
-                        ri.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
-                    } catch (_: Exception) {
-                        null
-                    }
-                    InstalledApp(label, pkg, icon)
+actual suspend fun getInstalledApps(): List<InstalledApp> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+    try {
+        val context: Context by inject(Context::class.java)
+        val pm = context.packageManager
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        pm.queryIntentActivities(intent, 0)
+            .mapNotNull { ri ->
+                val pkg = ri.activityInfo?.packageName ?: return@mapNotNull null
+                if (pkg == context.packageName) return@mapNotNull null
+                val label = ri.loadLabel(pm).toString()
+                val icon = try {
+                    ri.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
+                } catch (_: Exception) {
+                    null
                 }
-                .distinctBy { it.packageName }
-                .sortedBy { it.label.lowercase() }
-        } catch (_: Exception) {
-            emptyList()
-        }
+                InstalledApp(label, pkg, icon)
+            }
+            .distinctBy { it.packageName }
+            .sortedBy { it.label.lowercase() }
+    } catch (_: Exception) {
+        emptyList()
     }
+}
 
 actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = try {
     val dir = java.io.File(getAppFilesDirectory(), "launcher")
