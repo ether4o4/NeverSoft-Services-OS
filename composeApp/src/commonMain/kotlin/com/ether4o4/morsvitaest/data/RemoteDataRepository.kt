@@ -1673,11 +1673,19 @@ class RemoteDataRepository(
     override fun currentService(): Service {
         if (appSettings.isFreeServicePrimary()) return Service.Free
         // Skip disabled instances — chat send should never route to a
-        // service the user has toggled off. If every instance is
-        // disabled, fall through to Service.Free (shared key).
+        // service the user has toggled off.
         val instances = getConfiguredServiceInstances()
             .filter { appSettings.getInstanceEnabled(it.instanceId) }
-        return instances.firstOrNull()?.let { Service.fromId(it.serviceId) } ?: Service.Free
+        // A real cloud (API-key) service always wins when configured.
+        instances.firstOrNull { Service.fromId(it.serviceId)?.isOnDevice == false }
+            ?.let { return Service.fromId(it.serviceId) }
+        // An on-device service is only usable once a GGUF model is downloaded;
+        // until then fall back to the hosted Free model so chat works out of the
+        // box instead of erroring with "no AI downloaded".
+        instances.firstOrNull { Service.fromId(it.serviceId)?.isOnDevice == true }
+            ?.takeIf { getLocalDownloadedModels().isNotEmpty() }
+            ?.let { return Service.fromId(it.serviceId) }
+        return Service.Free
     }
 
     private fun setCurrentConversationId(id: String?) {
