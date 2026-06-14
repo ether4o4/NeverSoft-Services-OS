@@ -151,6 +151,54 @@ fun LauncherSettingsScreen(
             )
 
             Spacer(Modifier.height(18.dp))
+            SectionLabel("Theme")
+            var themeId by remember { mutableStateOf(settings.getLauncherTheme()) }
+            Text(
+                "Colors the taskbar, Start menu, and widgets window.",
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
+            )
+            launcherThemes.forEach { t ->
+                val selected = themeId == t.id
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
+                        .border(
+                            width = if (selected) 2.dp else 0.dp,
+                            color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        .clickable {
+                            themeId = t.id
+                            settings.setLauncherTheme(t.id)
+                        }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (t.glass) Color.White.copy(alpha = 0.3f) else t.panel)
+                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                    )
+                    Spacer(Modifier.width(14.dp))
+                    Text(
+                        t.label,
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    if (selected) Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
             SectionLabel("Start Orb")
             var orb by remember { mutableStateOf(settings.getLauncherOrbStyle()) }
             listOf("mascot" to "NS Mascot", "grid" to "App Grid", "logo" to "NeverSoft Logo").forEach { (id, label) ->

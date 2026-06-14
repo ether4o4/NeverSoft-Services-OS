@@ -366,6 +366,13 @@ class AppSettings(internal val settings: Settings) {
         settings.putString(KEY_LAUNCHER_ORB_STYLE, style)
     }
 
+    // Theme that tints the taskbar, Start menu, and widgets window.
+    fun getLauncherTheme(): String = settings.getString(KEY_LAUNCHER_THEME, "glass")
+
+    fun setLauncherTheme(id: String) {
+        settings.putString(KEY_LAUNCHER_THEME, id)
+    }
+
     // Custom photos for the wallpaper and the Start orb (absolute file paths).
     // Empty = use the built-in gradient / orb style.
     fun getLauncherWallpaperImage(): String = settings.getString(KEY_LAUNCHER_WALLPAPER_IMAGE, "")
@@ -705,6 +712,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_DEFAULT_FILE_EXPLORER = "default_file_explorer"
         const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
         const val KEY_LAUNCHER_ORB_STYLE = "launcher_orb_style"
+        const val KEY_LAUNCHER_THEME = "launcher_theme"
         const val KEY_LAUNCHER_WALLPAPER_IMAGE = "launcher_wallpaper_image"
         const val KEY_LAUNCHER_ORB_IMAGE = "launcher_orb_image"
         const val KEY_LAUNCHER_DOCK_PINS = "launcher_dock_pins"

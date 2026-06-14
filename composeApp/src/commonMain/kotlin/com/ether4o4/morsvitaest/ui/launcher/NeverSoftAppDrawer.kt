@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,8 +47,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.InstalledApp
+import com.ether4o4.morsvitaest.data.AppSettings
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 
 /** A launchable app entry shared by the NeverSoft OS dock/drawer and the shell. */
 internal data class LauncherApp(
@@ -86,6 +89,8 @@ internal fun StartDrawer(
     var tab by remember { mutableStateOf(0) }
     var query by remember { mutableStateOf("") }
     var pinDialogFor by remember { mutableStateOf<LauncherApp?>(null) }
+    val theme = resolveLauncherTheme(koinInject<AppSettings>().getLauncherTheme())
+    val c = theme.content
 
     val q = query.trim()
     val builtInShown = apps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
@@ -114,29 +119,36 @@ internal fun StartDrawer(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.13f)),
-                        ),
+                    .then(
+                        if (theme.glass) {
+                            Modifier.background(
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.13f)),
+                                ),
+                            )
+                        } else {
+                            Modifier.background(theme.panel)
+                        },
                     )
-                    .border(1.dp, Color.White.copy(alpha = 0.40f), RoundedCornerShape(24.dp))
+                    .border(1.dp, c.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
                     .clickable(enabled = false) {}
                     .padding(14.dp),
             ) {
-                // Header
+                // Header — close on the left, resize grip lives at the top-right.
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Start", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.weight(1f))
                     Box(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.10f))
+                            .background(c.copy(alpha = 0.12f))
                             .clickable { onClose() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("✕", color = Color.White, fontSize = 14.sp)
+                        Text("✕", color = c, fontSize = 14.sp)
                     }
+                    Spacer(Modifier.width(12.dp))
+                    Text("Start", color = c, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -147,14 +159,14 @@ internal fun StartDrawer(
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
                     singleLine = true,
-                    placeholder = { Text("Search apps…", color = Color.White.copy(alpha = 0.4f)) },
+                    placeholder = { Text("Search apps…", color = c.copy(alpha = 0.4f)) },
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White.copy(alpha = 0.08f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
+                        focusedContainerColor = c.copy(alpha = 0.08f),
+                        unfocusedContainerColor = c.copy(alpha = 0.08f),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = c,
+                        unfocusedTextColor = c,
                         cursorColor = Color(0xFF3B82F6),
                     ),
                 )
@@ -165,20 +177,20 @@ internal fun StartDrawer(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .background(c.copy(alpha = 0.08f))
                         .padding(3.dp),
                 ) {
                     listOf("ALL APPS", "PINNED").forEachIndexed { i, label ->
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(if (tab == i) Color.White.copy(alpha = 0.16f) else Color.Transparent)
+                                .background(if (tab == i) c.copy(alpha = 0.16f) else Color.Transparent)
                                 .clickable { tab = i }
                                 .padding(horizontal = 16.dp, vertical = 7.dp),
                         ) {
                             Text(
                                 label,
-                                color = Color.White,
+                                color = c,
                                 fontSize = 12.sp,
                                 fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
                             )
@@ -191,13 +203,14 @@ internal fun StartDrawer(
                 if (tab == 0) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         if (builtInShown.isNotEmpty()) {
-                            item { DrawerSectionLabel("NEVERSOFT") }
+                            item { DrawerSectionLabel("NEVERSOFT", c) }
                             items(builtInShown, key = { "ns_" + it.id }) { app ->
                                 AppRow(
                                     label = app.label,
                                     color = app.color,
                                     icon = app.icon,
                                     image = app.image,
+                                    content = c,
                                     onClick = {
                                         onClose()
                                         app.onOpen()
@@ -206,19 +219,19 @@ internal fun StartDrawer(
                                 )
                             }
                         }
-                        item { DrawerSectionLabel("ALL APPS") }
+                        item { DrawerSectionLabel("ALL APPS", c) }
                         if (installedApps.isEmpty()) {
                             item {
                                 Text(
                                     "Loading installed apps…",
-                                    color = Color.White.copy(alpha = 0.4f),
+                                    color = c.copy(alpha = 0.4f),
                                     fontSize = 13.sp,
                                     modifier = Modifier.padding(12.dp),
                                 )
                             }
                         } else {
                             items(installedShown, key = { it.packageName }) { app ->
-                                InstalledAppRow(app) {
+                                InstalledAppRow(app, c) {
                                     onClose()
                                     onLaunchPackage(app.packageName)
                                 }
@@ -229,7 +242,7 @@ internal fun StartDrawer(
                     if (pinnedShown.isEmpty()) {
                         Text(
                             "Nothing pinned — long-press a NeverSoft app in ALL APPS.",
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = c.copy(alpha = 0.5f),
                             fontSize = 13.sp,
                             modifier = Modifier.padding(top = 30.dp),
                         )
@@ -241,6 +254,7 @@ internal fun StartDrawer(
                                     color = app.color,
                                     icon = app.icon,
                                     image = app.image,
+                                    content = c,
                                     onClick = {
                                         onClose()
                                         app.onOpen()
@@ -253,24 +267,24 @@ internal fun StartDrawer(
                 }
             }
 
-            // Drag this corner to resize the Start menu.
+            // Drag this top-right grip to resize the Start menu.
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(4.dp)
                     .size(30.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color.White.copy(alpha = 0.18f))
+                    .background(c.copy(alpha = 0.18f))
                     .pointerInput(Unit) {
                         detectDragGestures { change, drag ->
                             change.consume()
                             wFrac = (wFrac + drag.x / maxWpx).coerceIn(0.55f, 1f)
-                            hFrac = (hFrac + drag.y / maxHpx).coerceIn(0.45f, 0.92f)
+                            hFrac = (hFrac + drag.y / maxHpx).coerceIn(0.45f, 0.95f)
                         }
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Text("⤡", color = Color.White, fontSize = 16.sp)
+                Text("⤡", color = c, fontSize = 16.sp)
             }
         }
     }
@@ -302,10 +316,10 @@ internal fun StartDrawer(
 }
 
 @Composable
-private fun DrawerSectionLabel(text: String) {
+private fun DrawerSectionLabel(text: String, content: Color) {
     Text(
         text,
-        color = Color.White.copy(alpha = 0.45f),
+        color = content.copy(alpha = 0.45f),
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp),
@@ -319,6 +333,7 @@ private fun AppRow(
     color: Color,
     icon: ImageVector?,
     image: DrawableResource?,
+    content: Color,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -349,12 +364,12 @@ private fun AppRow(
             }
         }
         Spacer(Modifier.size(14.dp))
-        Text(label, color = Color.White, fontSize = 15.sp)
+        Text(label, color = content, fontSize = 15.sp)
     }
 }
 
 @Composable
-private fun InstalledAppRow(app: InstalledApp, onClick: () -> Unit) {
+private fun InstalledAppRow(app: InstalledApp, content: Color, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -378,10 +393,10 @@ private fun InstalledAppRow(app: InstalledApp, onClick: () -> Unit) {
                     modifier = Modifier.size(34.dp),
                 )
             } else {
-                Text(app.label.take(1).uppercase(), color = Color.White, fontSize = 16.sp)
+                Text(app.label.take(1).uppercase(), color = content, fontSize = 16.sp)
             }
         }
         Spacer(Modifier.size(14.dp))
-        Text(app.label, color = Color.White, fontSize = 15.sp, maxLines = 1)
+        Text(app.label, color = content, fontSize = 15.sp, maxLines = 1)
     }
 }

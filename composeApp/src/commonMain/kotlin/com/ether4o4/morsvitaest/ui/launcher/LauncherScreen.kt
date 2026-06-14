@@ -129,6 +129,7 @@ fun LauncherScreen(
     val orbStyle = remember { settings.getLauncherOrbStyle() }
     val wallpaperImage = remember { settings.getLauncherWallpaperImage() }
     val orbImage = remember { settings.getLauncherOrbImage() }
+    val theme = remember { resolveLauncherTheme(settings.getLauncherTheme()) }
     val uriHandler = LocalUriHandler.current
     var showDrawer by remember { mutableStateOf(false) }
     var showFileChooser by remember { mutableStateOf(false) }
@@ -254,25 +255,32 @@ fun LauncherScreen(
                 )
             }
 
-            // Edge-to-edge glass taskbar.
+            // Edge-to-edge themed taskbar.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
-                        ),
+                    .then(
+                        if (theme.glass) {
+                            Modifier.background(
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
+                                ),
+                            )
+                        } else {
+                            Modifier.background(theme.panel)
+                        },
                     )
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
                 Spacer(Modifier.width(6.dp))
-                TaskbarButton(icon = Icons.Filled.Search, label = "Spotlight", onClick = onOpenSpotlight)
+                TaskbarButton(icon = Icons.Filled.Search, label = "Spotlight", tint = theme.content, onClick = onOpenSpotlight)
                 Spacer(Modifier.width(6.dp))
                 TaskbarButton(
                     icon = Icons.Filled.FolderOpen,
                     label = "Files",
+                    tint = theme.content,
                     onClick = {
                         if (defaultExplorer.isNotBlank()) launchApp(defaultExplorer)
                         else showFileChooser = true
@@ -284,7 +292,7 @@ fun LauncherScreen(
                     DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
                 }
                 Spacer(Modifier.weight(1f))
-                DesktopClock(onClick = onOpenNotifications, modifier = Modifier.padding(end = 6.dp))
+                DesktopClock(onClick = onOpenNotifications, content = theme.content, modifier = Modifier.padding(end = 6.dp))
             }
         }
 
@@ -366,6 +374,7 @@ fun LauncherScreen(
 private fun TaskbarButton(
     icon: ImageVector,
     label: String,
+    tint: Color,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
@@ -373,16 +382,12 @@ private fun TaskbarButton(
         modifier = Modifier
             .size(44.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.12f)),
-                ),
-            )
-            .border(1.dp, Color.White.copy(alpha = 0.32f), RoundedCornerShape(12.dp))
+            .background(tint.copy(alpha = 0.14f))
+            .border(1.dp, tint.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -452,7 +457,7 @@ private fun PageDots(count: Int, current: Int, modifier: Modifier) {
 
 @OptIn(ExperimentalTime::class)
 @Composable
-private fun DesktopClock(onClick: () -> Unit, modifier: Modifier) {
+private fun DesktopClock(onClick: () -> Unit, content: Color, modifier: Modifier) {
     var now by remember { mutableStateOf(Clock.System.now()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -473,8 +478,8 @@ private fun DesktopClock(onClick: () -> Unit, modifier: Modifier) {
             .padding(horizontal = 6.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.End,
     ) {
-        Text(time, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-        Text(date, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+        Text(time, color = content, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(date, color = content.copy(alpha = 0.6f), fontSize = 11.sp)
     }
 }
 
