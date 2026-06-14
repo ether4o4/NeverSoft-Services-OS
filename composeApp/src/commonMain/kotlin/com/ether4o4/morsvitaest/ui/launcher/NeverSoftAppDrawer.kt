@@ -105,13 +105,15 @@ internal fun StartDrawer(
     ) {
         val maxWpx = constraints.maxWidth.toFloat()
         val maxHpx = constraints.maxHeight.toFloat()
-        var wFrac by remember { mutableFloatStateOf(0.96f) }
-        var hFrac by remember { mutableFloatStateOf(0.84f) }
+        var wFrac by remember { mutableFloatStateOf(0.66f) }
+        var hFrac by remember { mutableFloatStateOf(0.74f) }
 
+        // Hugs the bottom-left; the bottom-left corner is fixed and the
+        // top-right grip grows it out to the right / upward.
         Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 40.dp)
+                .align(Alignment.BottomStart)
+                .padding(bottom = 62.dp)
                 .fillMaxWidth(wFrac)
                 .fillMaxHeight(hFrac),
         ) {
@@ -278,8 +280,9 @@ internal fun StartDrawer(
                     .pointerInput(Unit) {
                         detectDragGestures { change, drag ->
                             change.consume()
-                            wFrac = (wFrac + drag.x / maxWpx).coerceIn(0.55f, 1f)
-                            hFrac = (hFrac + drag.y / maxHpx).coerceIn(0.45f, 0.95f)
+                            // Bottom-left is fixed: drag right widens, drag up grows taller.
+                            wFrac = (wFrac + drag.x / maxWpx).coerceIn(0.45f, 1f)
+                            hFrac = (hFrac - drag.y / maxHpx).coerceIn(0.4f, 0.92f)
                         }
                     },
                 contentAlignment = Alignment.Center,

@@ -95,13 +95,15 @@ fun NotificationsPanel(
     ) {
         val maxWpx = constraints.maxWidth.toFloat()
         val maxHpx = constraints.maxHeight.toFloat()
-        var wFrac by remember { mutableFloatStateOf(0.96f) }
-        var hFrac by remember { mutableFloatStateOf(0.84f) }
+        var wFrac by remember { mutableFloatStateOf(0.66f) }
+        var hFrac by remember { mutableFloatStateOf(0.74f) }
 
+        // Hugs the bottom-right; the bottom-right corner is fixed and the
+        // top-left grip grows it out to the left / upward.
         Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 40.dp)
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 62.dp)
                 .fillMaxWidth(wFrac)
                 .fillMaxHeight(hFrac),
         ) {
@@ -124,8 +126,9 @@ fun NotificationsPanel(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Header — close on the left, resize grip at the top-right.
+                // Header — resize grip is top-left, so close sits top-right.
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(Modifier.weight(1f))
                     Box(
                         modifier = Modifier
                             .size(28.dp)
@@ -136,7 +139,6 @@ fun NotificationsPanel(
                     ) {
                         Text("✕", color = c, fontSize = 14.sp)
                     }
-                    Spacer(Modifier.weight(1f))
                 }
 
                 // Clock widget
@@ -154,10 +156,10 @@ fun NotificationsPanel(
                 Spacer(Modifier.height(8.dp))
             }
 
-            // Drag the top-right grip to resize, like the Start menu.
+            // Drag the top-left grip to resize; bottom-right corner stays put.
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
                     .padding(4.dp)
                     .size(30.dp)
                     .clip(RoundedCornerShape(10.dp))
@@ -165,13 +167,14 @@ fun NotificationsPanel(
                     .pointerInput(Unit) {
                         detectDragGestures { change, drag ->
                             change.consume()
-                            wFrac = (wFrac + drag.x / maxWpx).coerceIn(0.55f, 1f)
-                            hFrac = (hFrac + drag.y / maxHpx).coerceIn(0.45f, 0.95f)
+                            // Bottom-right is fixed: drag left widens, drag up grows taller.
+                            wFrac = (wFrac - drag.x / maxWpx).coerceIn(0.45f, 1f)
+                            hFrac = (hFrac - drag.y / maxHpx).coerceIn(0.4f, 0.92f)
                         }
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Text("⤡", color = c, fontSize = 16.sp)
+                Text("⤢", color = c, fontSize = 16.sp)
             }
         }
     }

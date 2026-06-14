@@ -132,6 +132,7 @@ fun LauncherScreen(
     val theme = remember { resolveLauncherTheme(settings.getLauncherTheme()) }
     val uriHandler = LocalUriHandler.current
     var showDrawer by remember { mutableStateOf(false) }
+    var showWidgets by remember { mutableStateOf(false) }
     var showFileChooser by remember { mutableStateOf(false) }
     var defaultExplorer by remember { mutableStateOf(settings.getDefaultFileExplorer()) }
 
@@ -292,7 +293,7 @@ fun LauncherScreen(
                     DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
                 }
                 Spacer(Modifier.weight(1f))
-                DesktopClock(onClick = onOpenNotifications, content = theme.content, modifier = Modifier.padding(end = 6.dp))
+                DesktopClock(onClick = { showWidgets = true }, content = theme.content, modifier = Modifier.padding(end = 6.dp))
             }
         }
 
@@ -306,6 +307,13 @@ fun LauncherScreen(
                 onToggleDockPin = ::toggleDockPin,
                 onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
+            )
+        }
+
+        if (showWidgets) {
+            NotificationsPanel(
+                onClose = { showWidgets = false },
+                onOpenAssistant = onOpenChat,
             )
         }
 
