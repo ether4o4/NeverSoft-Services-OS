@@ -351,6 +351,13 @@ class AppSettings(internal val settings: Settings) {
         settings.putString(KEY_LAUNCHER_NOTE, text)
     }
 
+    // The app package the taskbar's file-explorer button launches.
+    fun getDefaultFileExplorer(): String = settings.getString(KEY_DEFAULT_FILE_EXPLORER, "")
+
+    fun setDefaultFileExplorer(pkg: String) {
+        settings.putString(KEY_DEFAULT_FILE_EXPLORER, pkg)
+    }
+
     // Start orb + app pins. Dock pins and Start-menu pins are independent
     // lists of launcher app ids, fully user-curated.
     fun getLauncherOrbStyle(): String = settings.getString(KEY_LAUNCHER_ORB_STYLE, "mascot")
@@ -695,6 +702,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_LAUNCHER_WALLPAPER = "launcher_wallpaper"
         const val KEY_LAUNCHER_LABELS = "launcher_labels"
         const val KEY_LAUNCHER_NOTE = "launcher_note"
+        const val KEY_DEFAULT_FILE_EXPLORER = "default_file_explorer"
         const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
         const val KEY_LAUNCHER_ORB_STYLE = "launcher_orb_style"
         const val KEY_LAUNCHER_WALLPAPER_IMAGE = "launcher_wallpaper_image"

@@ -59,10 +59,9 @@ internal data class LauncherApp(
     val onOpen: () -> Unit,
 )
 
-// Default pin sets. Dock and Start menu pins are fully independent. The
-// assistant lives in the notifications panel (and menu bar) rather than the
-// dock by default — pin him back anytime from the drawer.
-internal val defaultDockPins = listOf("terminal", "files", "sandbox", "models", "settings")
+// Default pin sets. The taskbar starts empty — the user pins their own apps.
+// The Start menu keeps a few handy defaults.
+internal val defaultDockPins = emptyList<String>()
 internal val defaultStartPins = listOf("assistant", "terminal", "files", "settings")
 
 /**

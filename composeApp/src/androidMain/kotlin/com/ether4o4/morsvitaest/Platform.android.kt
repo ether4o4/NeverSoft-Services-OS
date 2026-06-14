@@ -473,6 +473,37 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual suspend fun getSystemStats(): SystemStats =
+    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+        try {
+            val context: Context by inject(Context::class.java)
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            val mem = android.app.ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }
+            val totalMb = mem.totalMem / (1024 * 1024)
+            val usedMb = (mem.totalMem - mem.availMem) / (1024 * 1024)
+            val stat = android.os.StatFs(android.os.Environment.getDataDirectory().path)
+            val totalGb = stat.totalBytes.toDouble() / 1_000_000_000.0
+            val freeGb = stat.availableBytes.toDouble() / 1_000_000_000.0
+            val chip = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                android.os.Build.SOC_MODEL.takeIf { it.isNotBlank() && it != "unknown" }
+                    ?: android.os.Build.HARDWARE
+            } else {
+                android.os.Build.HARDWARE
+            }
+            SystemStats(
+                cpu = chip,
+                cores = Runtime.getRuntime().availableProcessors(),
+                gpu = android.os.Build.MANUFACTURER,
+                ramUsedMb = usedMb,
+                ramTotalMb = totalMb,
+                storageFreeGb = freeGb,
+                storageTotalGb = totalGb,
+            )
+        } catch (_: Exception) {
+            SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
+        }
+    }
+
 actual suspend fun getInstalledApps(): List<InstalledApp> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
     try {
         val context: Context by inject(Context::class.java)

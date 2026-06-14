@@ -96,6 +96,19 @@ data class InstalledApp(
 /** Every launchable app installed on the device, sorted by label. */
 expect suspend fun getInstalledApps(): List<InstalledApp>
 
+/** Live system stats for the widgets panel. */
+data class SystemStats(
+    val cpu: String,
+    val cores: Int,
+    val gpu: String,
+    val ramUsedMb: Long,
+    val ramTotalMb: Long,
+    val storageFreeGb: Double,
+    val storageTotalGb: Double,
+)
+
+expect suspend fun getSystemStats(): SystemStats
+
 @androidx.compose.runtime.Composable
 expect fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit)
 

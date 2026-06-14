@@ -170,6 +170,8 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual suspend fun getSystemStats(): SystemStats = SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
+
 actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
 
 actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = try {

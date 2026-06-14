@@ -16,13 +16,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Terminal
@@ -130,6 +131,8 @@ fun LauncherScreen(
     val orbImage = remember { settings.getLauncherOrbImage() }
     val uriHandler = LocalUriHandler.current
     var showDrawer by remember { mutableStateOf(false) }
+    var showFileChooser by remember { mutableStateOf(false) }
+    var defaultExplorer by remember { mutableStateOf(settings.getDefaultFileExplorer()) }
 
     // Installed device apps for the drawer (loaded off the main thread).
     var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
@@ -233,12 +236,14 @@ fun LauncherScreen(
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
             MacMenuBar(onMascotClick = onOpenChat)
 
+            // Empty homescreen — the user places their own icons. The
+            // side pages keep the news feed and a widgets page.
             val pagerState = rememberPagerState(initialPage = 1) { 3 }
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                     when (page) {
                         0 -> newsPage()
-                        1 -> DesktopPage(shortcuts, showLabels)
+                        1 -> Box(Modifier.fillMaxSize())
                         else -> EmptyDesktopPage()
                     }
                 }
@@ -247,36 +252,39 @@ fun LauncherScreen(
                     current = pagerState.currentPage,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
                 )
-                DesktopClock(
-                    onClick = onOpenNotifications,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 4.dp),
-                )
             }
 
-            // Dock: Start orb + user-pinned apps.
+            // Edge-to-edge glass taskbar.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.Center,
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
+                        ),
+                    )
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.12f)),
-                            ),
-                        )
-                        .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(26.dp))
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
-                    dockPins.mapNotNull { byId[it] }.forEach {
-                        DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
-                    }
+                StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
+                Spacer(Modifier.width(6.dp))
+                TaskbarButton(icon = Icons.Filled.Search, label = "Spotlight", onClick = onOpenSpotlight)
+                Spacer(Modifier.width(6.dp))
+                TaskbarButton(
+                    icon = Icons.Filled.FolderOpen,
+                    label = "Files",
+                    onClick = {
+                        if (defaultExplorer.isNotBlank()) launchApp(defaultExplorer)
+                        else showFileChooser = true
+                    },
+                    onLongClick = { showFileChooser = true },
+                )
+                dockPins.mapNotNull { byId[it] }.forEach {
+                    Spacer(Modifier.width(6.dp))
+                    DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
                 }
+                Spacer(Modifier.weight(1f))
+                DesktopClock(onClick = onOpenNotifications, modifier = Modifier.padding(end = 6.dp))
             }
         }
 
@@ -290,6 +298,19 @@ fun LauncherScreen(
                 onToggleDockPin = ::toggleDockPin,
                 onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
+            )
+        }
+
+        if (showFileChooser) {
+            FileExplorerChooser(
+                installedApps = installedApps,
+                onPick = { pkg ->
+                    settings.setDefaultFileExplorer(pkg)
+                    defaultExplorer = pkg
+                    showFileChooser = false
+                    launchApp(pkg)
+                },
+                onClose = { showFileChooser = false },
             )
         }
 
@@ -339,31 +360,72 @@ fun LauncherScreen(
     }
 }
 
-/** Center "home" page: the far-left classic icons over the wallpaper. */
+/** A taskbar button — glass tile with an icon; supports tap + long-press. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DesktopPage(
-    shortcuts: List<DesktopShortcut>,
-    showLabels: Boolean,
+private fun TaskbarButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        // Windows-style icon flow: fill a column to the screen height, then
-        // wrap into the next column so nothing hides behind the dock.
-        val cellHeight = 96.dp
-        val perColumn = maxOf(3, (maxHeight / cellHeight).toInt())
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 10.dp, start = 6.dp),
-        ) {
-            shortcuts.chunked(perColumn).forEach { columnIcons ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    columnIcons.forEach {
-                        DesktopIcon(it.image, it.label, showLabels, it.onOpen, it.onConfigure)
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.12f)),
+                ),
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.32f), RoundedCornerShape(12.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
+    }
+}
+
+/** Pick which installed app the taskbar's file button should launch. */
+@Composable
+private fun FileExplorerChooser(
+    installedApps: List<InstalledApp>,
+    onPick: (String) -> Unit,
+    onClose: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Choose your file explorer") },
+        text = {
+            if (installedApps.isEmpty()) {
+                Text("Loading installed apps…")
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
+                ) {
+                    items(installedApps, key = { it.packageName }) { app ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onPick(app.packageName) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            val ic = app.icon
+                            if (ic != null) {
+                                Image(bitmap = ic, contentDescription = app.label, modifier = Modifier.size(30.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text(app.label, fontSize = 15.sp)
+                        }
                     }
                 }
             }
-        }
-    }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onClose) { Text("Cancel") } },
+    )
 }
 
 /** Right page — reserved for widgets. */

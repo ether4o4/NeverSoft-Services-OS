@@ -100,6 +100,8 @@ fun NotificationsPanel(
 
             WeatherWidget()
             Spacer(Modifier.height(14.dp))
+            SystemWidget()
+            Spacer(Modifier.height(14.dp))
             CalendarWidget(year = local.year, monthIndex0 = local.month.ordinal, today = local.day, monthName = monthName)
             Spacer(Modifier.height(14.dp))
             NoteWidget(settings)
@@ -216,6 +218,43 @@ private fun CalendarWidget(year: Int, monthIndex0: Int, today: Int, monthName: S
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SystemWidget() {
+    var stats by remember { mutableStateOf<com.ether4o4.morsvitaest.SystemStats?>(null) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            stats = com.ether4o4.morsvitaest.getSystemStats()
+            delay(3_000)
+        }
+    }
+    WidgetCard {
+        Column {
+            Text("System", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            val s = stats
+            if (s == null) {
+                Text("Reading…", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+            } else {
+                StatRow("CPU", "${s.cpu} · ${s.cores} cores")
+                val ramPct = if (s.ramTotalMb > 0) (s.ramUsedMb * 100 / s.ramTotalMb) else 0
+                StatRow("RAM", "${s.ramUsedMb} / ${s.ramTotalMb} MB ($ramPct%)")
+                StatRow(
+                    "Storage",
+                    "${(s.storageTotalGb - s.storageFreeGb).toInt()} / ${s.storageTotalGb.toInt()} GB used",
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+        Text(label, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, modifier = Modifier.width(76.dp))
+        Text(value, color = Color.White, fontSize = 13.sp)
     }
 }
 
