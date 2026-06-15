@@ -85,6 +85,8 @@ actual fun getAvailableTools(): List<Tool> = buildList {
     addAll(WebKoinHelper.mcpServerManager.getEnabledMcpTools())
 }
 
+actual fun openSystemSetting(setting: SystemSetting): Boolean = false
+
 actual suspend fun getSystemStats(): SystemStats = SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
 
 actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()

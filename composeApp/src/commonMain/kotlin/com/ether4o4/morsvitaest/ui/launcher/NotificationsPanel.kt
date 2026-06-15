@@ -55,9 +55,77 @@ import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
 
 /**
+ * The live widgets surface (clock, weather, system, calendar, sticky note)
+ * without any full-screen overlay chrome, so it can be hosted inside a NeverSoft
+ * OS window. The host supplies the window frame, scroll, and close button.
+ */
+@OptIn(ExperimentalTime::class)
+@Composable
+fun WidgetsContent() {
+    val settings = koinInject<AppSettings>()
+    val theme = resolveLauncherTheme(settings.getLauncherTheme())
+    val c = theme.content
+    var now by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Clock.System.now()
+            delay(1_000)
+        }
+    }
+    val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
+    val hour = local.hour
+    val h12 = if (hour % 12 == 0) 12 else hour % 12
+    val time = "$h12:${local.minute.toString().padStart(2, '0')}"
+    val months = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    )
+    val weekdays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    val monthName = months[local.month.ordinal]
+    val weekdayName = weekdays[local.date.dayOfWeek.ordinal]
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(
+                if (theme.glass) {
+                    Modifier.background(
+                        Brush.verticalGradient(listOf(Color(0xE61C2334), Color(0xE6121723))),
+                    )
+                } else {
+                    Modifier.background(theme.panel)
+                },
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // The NS guy hangs out at the top of the widgets box, swinging and
+        // switching poses.
+        HangingMascot(sizeDp = 132)
+        // Clock widget
+        Text(time, color = c, fontSize = 64.sp, fontWeight = FontWeight.Bold)
+        Text("$weekdayName, $monthName ${local.day}", color = c.copy(alpha = 0.75f), fontSize = 16.sp)
+        Spacer(Modifier.height(18.dp))
+
+        WeatherWidget(c)
+        Spacer(Modifier.height(14.dp))
+        SystemWidget(c)
+        Spacer(Modifier.height(14.dp))
+        CalendarWidget(local.year, local.month.ordinal, local.day, monthName, c)
+        Spacer(Modifier.height(14.dp))
+        NoteWidget(settings, c)
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/**
  * The Widgets window, opened from the taskbar clock — a themed, resizable glass
  * panel of live widgets (clock, weather, system, calendar, sticky note). No
  * quick toggles. Drag the top-right grip to resize, just like the Start menu.
+ *
+ * Kept as a full-screen overlay entry; the window-hostable surface lives in
+ * [WidgetsContent].
  */
 @OptIn(ExperimentalTime::class)
 @Composable

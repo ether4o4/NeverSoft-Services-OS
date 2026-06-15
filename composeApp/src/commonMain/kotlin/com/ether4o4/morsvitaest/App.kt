@@ -55,6 +55,7 @@ import com.ether4o4.morsvitaest.tools.SmsSendPermissionController
 import com.ether4o4.morsvitaest.ui.DarkColorScheme
 import com.ether4o4.morsvitaest.ui.LightColorScheme
 import com.ether4o4.morsvitaest.ui.Theme
+import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
 import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
@@ -64,15 +65,23 @@ import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.help.HelpAssistantSheet
 import com.ether4o4.morsvitaest.ui.help.HelpBubble
+import com.ether4o4.morsvitaest.ui.launcher.DesktopApp
+import com.ether4o4.morsvitaest.ui.launcher.HangingMascot
 import com.ether4o4.morsvitaest.ui.launcher.HudShellScreen
 import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
 import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
+import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsContent
 import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsScreen
 import com.ether4o4.morsvitaest.ui.launcher.NotificationsPanel
+import com.ether4o4.morsvitaest.ui.launcher.SpotlightContent
 import com.ether4o4.morsvitaest.ui.launcher.SpotlightScreen
+import com.ether4o4.morsvitaest.ui.launcher.WidgetsContent
+import com.ether4o4.morsvitaest.ui.onboarding.SetupWizard
 import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxFilesContent
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxPackagesContent
+import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
+import com.ether4o4.morsvitaest.ui.settings.SandboxViewModel
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.settings.SettingsTab
 import com.ether4o4.morsvitaest.ui.withBlackBackground
@@ -199,8 +208,10 @@ private fun AppContent(
     // First-run welcome tour + the always-available help bubble/sheet.
     var showTour by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
+    var showSetup by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!appSettings.hasSeenWelcome()) showTour = true
+        if (!appSettings.hasSeenSetup()) showSetup = true
     }
 
     // Set up permission handlers
@@ -292,8 +303,9 @@ private fun AppContent(
                         modifier = Modifier.background(MaterialTheme.colorScheme.background),
                     ) {
                         composable<Launcher> {
-                            // NeverSoft OS desktop. Each dock tile opens a real
-                            // Mors Vita Est engine screen on the local-GGUF / sandbox stack.
+                            // NeverSoft OS desktop. Desktop icons, taskbar buttons,
+                            // the Start menu, and the clock open apps as floating
+                            // windows over the wallpaper (see appContent below).
                             // The left page is the live Foundry news feed.
                             val homeViewModel = koinViewModel<FoundryHomeViewModel>()
                             val homeState by homeViewModel.state.collectAsStateWithLifecycle()
@@ -317,6 +329,13 @@ private fun AppContent(
                                 onOpenSpotlight = { navController.navigate(Spotlight) },
                                 onOpenStub = { title, desc ->
                                     navController.navigate(FoundryStub(title, desc))
+                                },
+                                appContent = { app, onRequestClose ->
+                                    LauncherAppWindowContent(
+                                        app = app,
+                                        onRequestClose = onRequestClose,
+                                        textToSpeech = textToSpeech,
+                                    )
                                 },
                                 newsPage = {
                                     FoundryHome(
@@ -530,8 +549,75 @@ private fun AppContent(
                             },
                         )
                     }
+
+                    // First-run setup wizard sits on top: opens the real Android
+                    // settings screens for launcher / restricted-settings / perms.
+                    if (showSetup) {
+                        SetupWizard(
+                            onFinish = {
+                                appSettings.setSetupSeen()
+                                showSetup = false
+                            },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * Renders the body of a NeverSoft OS floating window for [app] by reusing the
+ * existing engine screens, hosted without their own full-screen chrome.
+ * [onRequestClose] lets a screen dismiss its window (e.g. Settings' back arrow).
+ */
+@Composable
+private fun LauncherAppWindowContent(
+    app: DesktopApp,
+    onRequestClose: () -> Unit,
+    textToSpeech: TextToSpeechInstance?,
+) {
+    when (app) {
+        DesktopApp.Assistant -> ChatScreen(
+            textToSpeech = textToSpeech,
+            onNavigateToSettings = { /* Settings opens from its own desktop tile. */ },
+            isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
+            showSettingsButton = false,
+        )
+
+        DesktopApp.Files -> SandboxFilesContent()
+
+        DesktopApp.Sandbox -> SandboxPackagesContent()
+
+        DesktopApp.Settings -> SettingsScreen(
+            onNavigateBack = onRequestClose,
+            navigationTabBar = null,
+            initialTab = SettingsTab.Services,
+        )
+
+        DesktopApp.Terminal -> {
+            val sandboxViewModel = koinViewModel<SandboxViewModel>()
+            val sandboxState by sandboxViewModel.state.collectAsStateWithLifecycle()
+            Box(Modifier.fillMaxSize()) {
+                SandboxTabsContent(
+                    sandboxState = sandboxState,
+                    onSetupSandbox = { sandboxViewModel.onSetupSandbox() },
+                    onCancelSandbox = { sandboxViewModel.onCancelSandbox() },
+                )
+                // The NS guy hangs around the top of the shell, switching poses.
+                HangingMascot(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(end = 6.dp),
+                    sizeDp = 92,
+                )
+            }
+        }
+
+        DesktopApp.Spotlight -> SpotlightContent(onRequestClose = onRequestClose)
+
+        DesktopApp.Widgets -> WidgetsContent()
+
+        DesktopApp.LauncherSettings -> LauncherSettingsContent(
+            onOpenAiSettings = { /* AI settings opens from the Settings desktop tile. */ },
+        )
     }
 }

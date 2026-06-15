@@ -18,6 +18,7 @@ internal data class LauncherTheme(
 
 internal val launcherThemes = listOf(
     LauncherTheme("glass", "Glass", Color.White.copy(alpha = 0.16f), Color.White, glass = true),
+    LauncherTheme("macbook", "MacBook", Color(0xF2ECEEF1), Color(0xFF1D1D1F), glass = false),
     LauncherTheme("red", "Red", Color(0xF26E1A22), Color.White, glass = false),
     LauncherTheme("purple", "Purple", Color(0xF22E1A47), Color.White, glass = false),
     LauncherTheme("blue", "Blue", Color(0xF2143257), Color.White, glass = false),

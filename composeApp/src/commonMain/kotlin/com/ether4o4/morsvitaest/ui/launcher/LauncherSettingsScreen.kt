@@ -44,8 +44,9 @@ import kotlin.random.Random
 
 /** Wallpaper presets for the NeverSoft OS desktop. */
 internal val launcherWallpapers = listOf(
+    // NeverSoft OS — Vista-Aero blue glass, the default desktop.
+    "aurora" to listOf(Color(0xFF2C5AA0), Color(0xFF3D7AB8), Color(0xFF1A3A5C), Color(0xFF0D2137)),
     "sunset" to listOf(Color(0xFF3B4B86), Color(0xFF8A6F9E), Color(0xFFC98C86), Color(0xFFE9A86B)),
-    "aurora" to listOf(Color(0xFF2B5876), Color(0xFF4E4376), Color(0xFF7B5EA7), Color(0xFFB07EA0)),
     "daybreak" to listOf(Color(0xFF8EC5FC), Color(0xFFA9B7F0), Color(0xFFE0C3FC)),
     "midnight" to listOf(Color(0xFF13203A), Color(0xFF0B1426), Color(0xFF05080F)),
     "dark" to listOf(Color(0xFF0C0F14), Color(0xFF060709), Color(0xFF000000)),
@@ -56,10 +57,26 @@ internal val launcherWallpapers = listOf(
  * icons), opened from the dock gear and the app drawer. Distinct from the MVE
  * engine's AI settings (model / API keys / heartbeat), which live in the blue
  * tabs behind the Assistant.
+ *
+ * Kept as a full-screen entry; the window-hostable body lives in
+ * [LauncherSettingsContent].
  */
 @Composable
 fun LauncherSettingsScreen(
     onClose: () -> Unit,
+    onOpenAiSettings: () -> Unit,
+) {
+    LauncherAppShell(title = "Launcher Settings", onClose = onClose) {
+        LauncherSettingsContent(onOpenAiSettings = onOpenAiSettings)
+    }
+}
+
+/**
+ * The Launcher Settings body without full-screen chrome, so it can render inside
+ * a NeverSoft OS window. [onOpenAiSettings] opens the MVE engine settings.
+ */
+@Composable
+fun LauncherSettingsContent(
     onOpenAiSettings: () -> Unit,
 ) {
     val settings = koinInject<AppSettings>()
@@ -92,208 +109,206 @@ fun LauncherSettingsScreen(
         }
     }
 
-    LauncherAppShell(title = "Launcher Settings", onClose = onClose) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF0B0D11))
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-        ) {
-            SectionLabel("Wallpaper")
-            launcherWallpapers.forEach { (id, colors) ->
-                val selected = wallpaper == id
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
-                        .border(
-                            width = if (selected) 2.dp else 0.dp,
-                            color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        .clickable {
-                            wallpaper = id
-                            settings.setLauncherWallpaper(id)
-                        }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(androidx.compose.ui.graphics.Brush.verticalGradient(colors)),
-                    )
-                    Spacer(Modifier.width(14.dp))
-                    Text(
-                        id.replaceFirstChar { it.uppercase() },
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    if (selected && wallpaperImage.isBlank()) {
-                        Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
-                    }
-                }
-            }
-            PhotoRow(
-                label = if (wallpaperImage.isNotBlank()) "Custom photo set" else "Choose a photo…",
-                active = wallpaperImage.isNotBlank(),
-                onPick = { wallpaperPicker.launch() },
-                onClear = {
-                    settings.setLauncherWallpaperImage("")
-                    wallpaperImage = ""
-                },
-            )
-
-            Spacer(Modifier.height(18.dp))
-            SectionLabel("Theme")
-            var themeId by remember { mutableStateOf(settings.getLauncherTheme()) }
-            Text(
-                "Colors the taskbar, Start menu, and widgets window.",
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 12.sp,
-                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
-            )
-            launcherThemes.forEach { t ->
-                val selected = themeId == t.id
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
-                        .border(
-                            width = if (selected) 2.dp else 0.dp,
-                            color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        .clickable {
-                            themeId = t.id
-                            settings.setLauncherTheme(t.id)
-                        }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (t.glass) Color.White.copy(alpha = 0.3f) else t.panel)
-                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
-                    )
-                    Spacer(Modifier.width(14.dp))
-                    Text(
-                        t.label,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    if (selected) Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-            SectionLabel("Start Orb")
-            var orb by remember { mutableStateOf(settings.getLauncherOrbStyle()) }
-            listOf("mascot" to "NS Mascot", "grid" to "App Grid", "logo" to "NeverSoft Logo").forEach { (id, label) ->
-                val selected = orb == id
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
-                        .border(
-                            width = if (selected) 2.dp else 0.dp,
-                            color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        .clickable {
-                            orb = id
-                            settings.setLauncherOrbStyle(id)
-                        }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        label,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    if (selected && orbImage.isBlank()) {
-                        Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
-                    }
-                }
-            }
-            PhotoRow(
-                label = if (orbImage.isNotBlank()) "Custom photo set" else "Use a photo…",
-                active = orbImage.isNotBlank(),
-                onPick = { orbPicker.launch() },
-                onClear = {
-                    settings.setLauncherOrbImage("")
-                    orbImage = ""
-                },
-            )
-
-            Spacer(Modifier.height(18.dp))
-            SectionLabel("Desktop")
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0B0D11))
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+    ) {
+        SectionLabel("Wallpaper")
+        launcherWallpapers.forEach { (id, colors) ->
+            val selected = wallpaper == id
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(vertical = 5.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                    .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
+                    .border(
+                        width = if (selected) 2.dp else 0.dp,
+                        color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    .clickable {
+                        wallpaper = id
+                        settings.setLauncherWallpaper(id)
+                    }
+                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Show icon labels", color = Color.White, fontSize = 15.sp)
-                Spacer(Modifier.weight(1f))
-                Switch(
-                    checked = showLabels,
-                    onCheckedChange = {
-                        showLabels = it
-                        settings.setLauncherLabelsShown(it)
-                    },
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(androidx.compose.ui.graphics.Brush.verticalGradient(colors)),
                 )
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    id.replaceFirstChar { it.uppercase() },
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                )
+                Spacer(Modifier.weight(1f))
+                if (selected && wallpaperImage.isBlank()) {
+                    Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                }
             }
+        }
+        PhotoRow(
+            label = if (wallpaperImage.isNotBlank()) "Custom photo set" else "Choose a photo…",
+            active = wallpaperImage.isNotBlank(),
+            onPick = { wallpaperPicker.launch() },
+            onClear = {
+                settings.setLauncherWallpaperImage("")
+                wallpaperImage = ""
+            },
+        )
 
-            Spacer(Modifier.height(18.dp))
-            SectionLabel("AI Engine")
+        Spacer(Modifier.height(18.dp))
+        SectionLabel("Theme")
+        var themeId by remember { mutableStateOf(settings.getLauncherTheme()) }
+        Text(
+            "Colors the taskbar, Start menu, and widgets window.",
+            color = Color.White.copy(alpha = 0.5f),
+            fontSize = 12.sp,
+            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
+        )
+        launcherThemes.forEach { t ->
+            val selected = themeId == t.id
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(vertical = 4.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .clickable { onOpenAiSettings() }
-                    .padding(14.dp),
+                    .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
+                    .border(
+                        width = if (selected) 2.dp else 0.dp,
+                        color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    .clickable {
+                        themeId = t.id
+                        settings.setLauncherTheme(t.id)
+                    }
+                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text("MVE AI Settings", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                    Text(
-                        "Model, API keys, heartbeat — opens the Assistant settings",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 12.sp,
-                    )
-                }
-                Text("›", color = Color.White.copy(alpha = 0.6f), fontSize = 22.sp)
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (t.glass) Color.White.copy(alpha = 0.3f) else t.panel)
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                )
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    t.label,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                )
+                Spacer(Modifier.weight(1f))
+                if (selected) Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
             }
+        }
 
-            Spacer(Modifier.height(24.dp))
-            Text(
-                "NeverSoft OS · Mors Vita Est",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 12.sp,
-                modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.height(18.dp))
+        SectionLabel("Start Orb")
+        var orb by remember { mutableStateOf(settings.getLauncherOrbStyle()) }
+        listOf("mascot" to "NS Mascot", "grid" to "App Grid", "logo" to "NeverSoft Logo").forEach { (id, label) ->
+            val selected = orb == id
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 5.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
+                    .border(
+                        width = if (selected) 2.dp else 0.dp,
+                        color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    .clickable {
+                        orb = id
+                        settings.setLauncherOrbStyle(id)
+                    }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    label,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                )
+                Spacer(Modifier.weight(1f))
+                if (selected && orbImage.isBlank()) {
+                    Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                }
+            }
+        }
+        PhotoRow(
+            label = if (orbImage.isNotBlank()) "Custom photo set" else "Use a photo…",
+            active = orbImage.isNotBlank(),
+            onPick = { orbPicker.launch() },
+            onClear = {
+                settings.setLauncherOrbImage("")
+                orbImage = ""
+            },
+        )
+
+        Spacer(Modifier.height(18.dp))
+        SectionLabel("Desktop")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = 0.05f))
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Show icon labels", color = Color.White, fontSize = 15.sp)
+            Spacer(Modifier.weight(1f))
+            Switch(
+                checked = showLabels,
+                onCheckedChange = {
+                    showLabels = it
+                    settings.setLauncherLabelsShown(it)
+                },
             )
         }
+
+        Spacer(Modifier.height(18.dp))
+        SectionLabel("AI Engine")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = 0.05f))
+                .clickable { onOpenAiSettings() }
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("MVE AI Settings", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    "Model, API keys, heartbeat — opens the Assistant settings",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 12.sp,
+                )
+            }
+            Text("›", color = Color.White.copy(alpha = 0.6f), fontSize = 22.sp)
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Text(
+            "NeverSoft OS · Mors Vita Est",
+            color = Color.White.copy(alpha = 0.4f),
+            fontSize = 12.sp,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

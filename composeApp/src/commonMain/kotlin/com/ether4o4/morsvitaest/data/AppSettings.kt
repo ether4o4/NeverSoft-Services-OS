@@ -189,6 +189,13 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_WELCOME_SEEN, seen)
     }
 
+    // First-run setup wizard (home launcher / restricted settings / permissions).
+    fun hasSeenSetup(): Boolean = settings.getBoolean(KEY_SETUP_SEEN, false)
+
+    fun setSetupSeen(seen: Boolean = true) {
+        settings.putBoolean(KEY_SETUP_SEEN, seen)
+    }
+
     // Tool enable/disable settings
     fun isToolEnabled(toolId: String, defaultEnabled: Boolean = true): Boolean = settings.getBoolean("$KEY_TOOL_PREFIX$toolId", defaultEnabled)
 
@@ -332,7 +339,7 @@ class AppSettings(internal val settings: Settings) {
     }
 
     // Launcher (NeverSoft OS shell)
-    fun getLauncherWallpaper(): String = settings.getString(KEY_LAUNCHER_WALLPAPER, "sunset")
+    fun getLauncherWallpaper(): String = settings.getString(KEY_LAUNCHER_WALLPAPER, "aurora")
 
     fun setLauncherWallpaper(value: String) {
         settings.putString(KEY_LAUNCHER_WALLPAPER, value)
@@ -360,7 +367,7 @@ class AppSettings(internal val settings: Settings) {
 
     // Start orb + app pins. Dock pins and Start-menu pins are independent
     // lists of launcher app ids, fully user-curated.
-    fun getLauncherOrbStyle(): String = settings.getString(KEY_LAUNCHER_ORB_STYLE, "mascot")
+    fun getLauncherOrbStyle(): String = settings.getString(KEY_LAUNCHER_ORB_STYLE, "orb")
 
     fun setLauncherOrbStyle(style: String) {
         settings.putString(KEY_LAUNCHER_ORB_STYLE, style)
@@ -640,6 +647,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_CURRENT_SERVICE_ID = "current_service_id"
         const val KEY_APP_OPENS = "app_opens"
         const val KEY_WELCOME_SEEN = "welcome_seen"
+        const val KEY_SETUP_SEEN = "setup_wizard_seen"
 
         const val KEY_CONVERSATIONS = "conversations_json"
         const val KEY_CURRENT_CONVERSATION_ID = "current_conversation_id"

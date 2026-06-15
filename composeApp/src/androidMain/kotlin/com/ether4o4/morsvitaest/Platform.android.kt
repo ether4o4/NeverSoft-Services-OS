@@ -473,6 +473,36 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual fun openSystemSetting(setting: SystemSetting): Boolean = try {
+    val context: Context by inject(Context::class.java)
+    val pkgUri = "package:${context.packageName}".toUri()
+    val intent = when (setting) {
+        SystemSetting.HomeLauncher ->
+            Intent(android.provider.Settings.ACTION_HOME_SETTINGS)
+        SystemSetting.AppDetails ->
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+        SystemSetting.AppNotifications ->
+            Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+    }.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    context.startActivity(intent)
+    true
+} catch (_: Exception) {
+    // Fall back to the app details page, which always exists.
+    try {
+        val context: Context by inject(Context::class.java)
+        context.startActivity(
+            Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                "package:${context.packageName}".toUri(),
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        true
+    } catch (_: Exception) {
+        false
+    }
+}
+
 actual suspend fun getSystemStats(): SystemStats =
     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
         try {

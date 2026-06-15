@@ -8,8 +8,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -43,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,13 +54,19 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -72,13 +81,10 @@ import kotlinx.datetime.toLocalDateTime
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_desk_apps
 import morsvitaest.composeapp.generated.resources.ic_desk_computer
-import morsvitaest.composeapp.generated.resources.ic_desk_documents
 import morsvitaest.composeapp.generated.resources.ic_desk_folder
-import morsvitaest.composeapp.generated.resources.ic_desk_internet
 import morsvitaest.composeapp.generated.resources.ic_desk_search
 import morsvitaest.composeapp.generated.resources.ic_desk_security
 import morsvitaest.composeapp.generated.resources.ic_desk_settings
-import morsvitaest.composeapp.generated.resources.ic_desk_trash
 import morsvitaest.composeapp.generated.resources.logo
 import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
@@ -106,6 +112,7 @@ private val desktopIconIds = listOf(
     "Security", "Search", "Settings", "Recycle Bin",
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LauncherScreen(
     onOpenChat: () -> Unit,
@@ -119,6 +126,7 @@ fun LauncherScreen(
     onOpenSpotlight: () -> Unit,
     onOpenStub: (String, String) -> Unit,
     newsPage: @Composable () -> Unit,
+    appContent: @Composable (DesktopApp, onRequestClose: () -> Unit) -> Unit,
 ) {
     val settings = koinInject<AppSettings>()
     val wallpaperColors = remember {
@@ -130,25 +138,74 @@ fun LauncherScreen(
     val wallpaperImage = remember { settings.getLauncherWallpaperImage() }
     val orbImage = remember { settings.getLauncherOrbImage() }
     val theme = remember { resolveLauncherTheme(settings.getLauncherTheme()) }
-    val uriHandler = LocalUriHandler.current
     var showDrawer by remember { mutableStateOf(false) }
-    var showWidgets by remember { mutableStateOf(false) }
     var showFileChooser by remember { mutableStateOf(false) }
     var defaultExplorer by remember { mutableStateOf(settings.getDefaultFileExplorer()) }
+
+    // ---- Window manager: apps open as floating windows over the desktop. ----
+    val windows = remember { mutableStateListOf<WinState>() }
+    val cascadeStepPx = with(LocalDensity.current) { 28.dp.toPx() }.toInt()
+
+    fun raise(win: WinState) {
+        val top = (windows.maxOfOrNull { it.z } ?: 0) + 1
+        win.z = top
+    }
+
+    fun openWindow(app: DesktopApp) {
+        val existing = windows.firstOrNull { it.app == app }
+        if (existing != null) {
+            existing.minimized = false
+            raise(existing)
+        } else {
+            val n = windows.size
+            val newWin = WinState(
+                app = app,
+                offsetX = cascadeStepPx * (n % 8),
+                offsetY = cascadeStepPx * (n % 8),
+                z = (windows.maxOfOrNull { it.z } ?: 0) + 1,
+            )
+            windows.add(newWin)
+        }
+    }
+
+    fun toggleTaskbar(win: WinState) {
+        val isTop = win.z == (windows.maxOfOrNull { it.z } ?: 0)
+        when {
+            win.minimized -> {
+                win.minimized = false
+                raise(win)
+            }
+            isTop -> win.minimized = true
+            else -> raise(win)
+        }
+    }
 
     // Installed device apps for the drawer (loaded off the main thread).
     var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
     LaunchedEffect(Unit) { installedApps = getInstalledApps() }
 
-    // The launcher's app catalog: every app the drawer can offer.
-    val catalog = remember(onOpenChat, onOpenShell, onOpenFiles, onOpenSandbox, onOpenModels, onOpenLauncherSettings) {
+    // The launcher's app catalog: every app the drawer can offer. NeverSoft apps
+    // open as windows; Internet launches externally.
+    val catalog = remember {
         listOf(
-            LauncherApp("assistant", "Assistant", null, Res.drawable.ns_mascot_face, Color(0xFF050507), onOpenChat),
-            LauncherApp("terminal", "Terminal", Icons.Filled.Terminal, null, Color(0xFF2B2D31), onOpenShell),
-            LauncherApp("files", "Files", Icons.Filled.FolderOpen, null, Color(0xFF1C7FE0), onOpenFiles),
-            LauncherApp("sandbox", "Sandbox", Icons.Filled.Inventory2, null, Color(0xFFE2557A), onOpenSandbox),
-            LauncherApp("models", "Models", Icons.Filled.SmartToy, null, Color(0xFF8A6CFF), onOpenModels),
-            LauncherApp("settings", "Settings", Icons.Filled.Settings, null, Color(0xFF6B7077), onOpenLauncherSettings),
+            LauncherApp("assistant", "Assistant", null, Res.drawable.ns_mascot_face, Color(0xFF050507)) {
+                openWindow(DesktopApp.Assistant)
+            },
+            LauncherApp("terminal", "Terminal", Icons.Filled.Terminal, null, Color(0xFF2B2D31)) {
+                openWindow(DesktopApp.Terminal)
+            },
+            LauncherApp("files", "Files", Icons.Filled.FolderOpen, null, Color(0xFF1C7FE0)) {
+                openWindow(DesktopApp.Files)
+            },
+            LauncherApp("sandbox", "Sandbox", Icons.Filled.Inventory2, null, Color(0xFFE2557A)) {
+                openWindow(DesktopApp.Sandbox)
+            },
+            LauncherApp("models", "Models", Icons.Filled.SmartToy, null, Color(0xFF8A6CFF)) {
+                openWindow(DesktopApp.Settings)
+            },
+            LauncherApp("settings", "Settings", Icons.Filled.Settings, null, Color(0xFF6B7077)) {
+                openWindow(DesktopApp.LauncherSettings)
+            },
             LauncherApp("internet", "Internet", Icons.Filled.Language, null, Color(0xFF1769AA)) {
                 openUrl("https://www.google.com")
             },
@@ -204,26 +261,19 @@ fun LauncherScreen(
         onConfigure = { linkDialogFor = label },
     )
 
+    // Desktop tiles — each opens its app as a window over the desktop.
     val shortcuts = listOf(
-        shortcut("Internet", Res.drawable.ic_desk_internet) {
-            runCatching { uriHandler.openUri("https://www.google.com") }
-        },
-        shortcut("Computer", Res.drawable.ic_desk_computer, onOpenShell),
-        shortcut("Documents", Res.drawable.ic_desk_documents, onOpenFiles),
-        shortcut("Files", Res.drawable.ic_desk_folder, onOpenFiles),
-        shortcut("Apps", Res.drawable.ic_desk_apps) { showDrawer = true },
-        shortcut("Security", Res.drawable.ic_desk_security) {
-            onOpenStub("Security", "NeverSoft Security — coming soon.")
-        },
-        shortcut("Search", Res.drawable.ic_desk_search) { onOpenSpotlight() },
-        shortcut("Settings", Res.drawable.ic_desk_settings, onOpenLauncherSettings),
-        shortcut("Recycle Bin", Res.drawable.ic_desk_trash) {
-            onOpenStub("Recycle Bin", "The Recycle Bin is empty.")
-        },
+        shortcut("Assistant", Res.drawable.ic_desk_apps) { openWindow(DesktopApp.Assistant) },
+        shortcut("Files", Res.drawable.ic_desk_folder) { openWindow(DesktopApp.Files) },
+        shortcut("Sandbox", Res.drawable.ic_desk_security) { openWindow(DesktopApp.Sandbox) },
+        shortcut("Terminal", Res.drawable.ic_desk_computer) { openWindow(DesktopApp.Terminal) },
+        shortcut("Settings", Res.drawable.ic_desk_settings) { openWindow(DesktopApp.LauncherSettings) },
+        shortcut("Search", Res.drawable.ic_desk_search) { openWindow(DesktopApp.Spotlight) },
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Wallpaper: a chosen photo, else the preset gradient.
+        // Wallpaper: a chosen photo, else the preset diagonal (top-left →
+        // bottom-right) gradient — the NeverSoft OS Aurora blue glass desktop.
         if (wallpaperImage.isNotBlank()) {
             AsyncImage(
                 model = "file://$wallpaperImage",
@@ -232,20 +282,76 @@ fun LauncherScreen(
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(wallpaperColors)))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = wallpaperColors,
+                            start = Offset.Zero,
+                            end = Offset.Infinite,
+                        ),
+                    ),
+            )
         }
 
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-            MacMenuBar(onMascotClick = onOpenChat)
+            MacMenuBar(onMascotClick = { openWindow(DesktopApp.Assistant) })
 
-            // Empty homescreen — the user places their own icons. The
-            // side pages keep the news feed and a widgets page.
+            // The desktop area: wrapping grid of frosted-glass app tiles at the
+            // top-left, with floating app windows layered above. The news feed
+            // and widgets pages flank it.
             val pagerState = rememberPagerState(initialPage = 1) { 3 }
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                var areaSize by remember { mutableStateOf(IntSize.Zero) }
+                HorizontalPager(
+                    state = pagerState,
+                    userScrollEnabled = windows.none { !it.minimized },
+                    modifier = Modifier.fillMaxSize(),
+                ) { page ->
                     when (page) {
                         0 -> newsPage()
-                        1 -> Box(Modifier.fillMaxSize())
+                        1 -> Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .onSizeChanged { areaSize = it },
+                        ) {
+                            // Top-left wrapping grid of desktop icons.
+                            FlowRow(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(12.dp)
+                                    .widthIn(max = 360.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                shortcuts.forEach { sc ->
+                                    DesktopIcon(
+                                        image = sc.image,
+                                        label = sc.label,
+                                        showLabel = showLabels,
+                                        onClick = sc.onOpen,
+                                        onLongPress = sc.onConfigure,
+                                    )
+                                }
+                            }
+
+                            // Floating windows (sorted by z), above icons.
+                            windows.sortedBy { it.z }.forEach { win ->
+                                if (!win.minimized) {
+                                    WindowFrame(
+                                        win = win,
+                                        areaWidthPx = areaSize.width,
+                                        areaHeightPx = areaSize.height,
+                                        onFocus = { raise(win) },
+                                        onMinimize = { win.minimized = true },
+                                        onClose = { windows.remove(win) },
+                                    ) {
+                                        appContent(win.app) { windows.remove(win) }
+                                    }
+                                }
+                            }
+                        }
                         else -> EmptyDesktopPage()
                     }
                 }
@@ -256,27 +362,46 @@ fun LauncherScreen(
                 )
             }
 
-            // Edge-to-edge themed taskbar.
+            // Edge-to-edge glass taskbar (48dp): Start orb, kept Spotlight +
+            // Files buttons, a button per open window, then the 2-line clock.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(48.dp)
                     .then(
                         if (theme.glass) {
                             Modifier.background(
                                 Brush.verticalGradient(
-                                    listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
+                                    listOf(
+                                        Color(0xFF1E4C7E).copy(alpha = 0.55f),
+                                        Color(0xFF0C2238).copy(alpha = 0.60f),
+                                    ),
                                 ),
                             )
                         } else {
                             Modifier.background(theme.panel)
                         },
                     )
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .drawBehind {
+                        // 1px white top-edge highlight line.
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.5f),
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 1f,
+                        )
+                    }
+                    .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
                 Spacer(Modifier.width(6.dp))
-                TaskbarButton(icon = Icons.Filled.Search, label = "Spotlight", tint = theme.content, onClick = onOpenSpotlight)
+                TaskbarButton(
+                    icon = Icons.Filled.Search,
+                    label = "Spotlight",
+                    tint = theme.content,
+                    onClick = { openWindow(DesktopApp.Spotlight) },
+                )
                 Spacer(Modifier.width(6.dp))
                 TaskbarButton(
                     icon = Icons.Filled.FolderOpen,
@@ -288,12 +413,28 @@ fun LauncherScreen(
                     },
                     onLongClick = { showFileChooser = true },
                 )
+                // User-pinned apps (open as windows).
                 dockPins.mapNotNull { byId[it] }.forEach {
                     Spacer(Modifier.width(6.dp))
                     DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
                 }
+                // One button per open window.
+                val topZ = windows.maxOfOrNull { it.z } ?: 0
+                windows.forEach { win ->
+                    Spacer(Modifier.width(6.dp))
+                    TaskbarWindowButton(
+                        label = win.app.title,
+                        active = !win.minimized && win.z == topZ,
+                        tint = theme.content,
+                        onClick = { toggleTaskbar(win) },
+                    )
+                }
                 Spacer(Modifier.weight(1f))
-                DesktopClock(onClick = { showWidgets = true }, content = theme.content, modifier = Modifier.padding(end = 6.dp))
+                DesktopClock(
+                    onClick = { openWindow(DesktopApp.Widgets) },
+                    content = theme.content,
+                    modifier = Modifier.padding(end = 6.dp),
+                )
             }
         }
 
@@ -307,13 +448,6 @@ fun LauncherScreen(
                 onToggleDockPin = ::toggleDockPin,
                 onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
-            )
-        }
-
-        if (showWidgets) {
-            NotificationsPanel(
-                onClose = { showWidgets = false },
-                onOpenAssistant = onOpenChat,
             )
         }
 
@@ -388,14 +522,55 @@ private fun TaskbarButton(
 ) {
     Box(
         modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .size(40.dp)
+            .clip(RoundedCornerShape(8.dp))
             .background(tint.copy(alpha = 0.14f))
-            .border(1.dp, tint.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
+            .border(1.dp, tint.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(22.dp))
+    }
+}
+
+/**
+ * A taskbar button for one open window — a glass pill with the app title and an
+ * accent bar under it when this window is focused (active). Tapping toggles
+ * minimize/restore via the host.
+ */
+@Composable
+private fun TaskbarWindowButton(
+    label: String,
+    active: Boolean,
+    tint: Color,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(tint.copy(alpha = if (active) 0.22f else 0.10f))
+            .border(1.dp, tint.copy(alpha = if (active) 0.45f else 0.22f), RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            label,
+            color = tint.copy(alpha = if (active) 1f else 0.8f),
+            fontSize = 12.sp,
+            fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
+            maxLines = 1,
+        )
+        Spacer(Modifier.height(3.dp))
+        Box(
+            modifier = Modifier
+                .height(2.dp)
+                .width(if (active) 22.dp else 0.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (active) Color(0xFF00D4FF) else Color.Transparent),
+        )
     }
 }
 
@@ -503,27 +678,23 @@ private fun DesktopIcon(
     Column(
         modifier = Modifier
             .padding(vertical = 6.dp)
-            .width(76.dp)
+            .width(72.dp)
             .combinedClickable(onClick = onClick, onLongClick = onLongPress),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Frosted-glass tile holding the icon.
         Box(
             modifier = Modifier
-                .size(58.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.12f)),
-                    ),
-                )
-                .border(1.dp, Color.White.copy(alpha = 0.38f), RoundedCornerShape(16.dp)),
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.15f))
+                .border(1.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(image),
                 contentDescription = label,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(30.dp),
             )
         }
         if (showLabel) {
@@ -535,6 +706,13 @@ private fun DesktopIcon(
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        offset = Offset(0f, 1f),
+                        blurRadius = 2f,
+                    ),
+                ),
             )
         }
     }
@@ -651,16 +829,24 @@ private fun MacMenuBar(onMascotClick: () -> Unit) {
     }
 }
 
-/** The Start orb — a chosen photo, or a style (mascot / grid / logo). */
+/**
+ * The Start orb — a glossy blue→cyan radial-gradient circle ringed by a soft
+ * cyan (#00D4FF) glow. A user photo or alternate style (mascot / grid / logo)
+ * overrides the default glyph; the glowing orb is the default look.
+ */
 @Composable
 private fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .padding(horizontal = 3.dp)
-            .size(46.dp)
+            .size(40.dp)
             .clip(RoundedCornerShape(50))
+            // Soft cyan glow ring + glossy blue→cyan radial body.
+            .border(1.5.dp, Color(0xFF00D4FF).copy(alpha = 0.5f), RoundedCornerShape(50))
             .background(
-                Brush.verticalGradient(listOf(Color(0xFF20242B), Color(0xFF0E1014))),
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFF8FE6FF), Color(0xFF1E7FD0), Color(0xFF0B3C73)),
+                ),
             )
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
@@ -679,20 +865,33 @@ private fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
                 imageVector = Icons.Filled.Apps,
                 contentDescription = "Start",
                 tint = Color.White,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(24.dp),
             )
 
             "logo" -> Image(
                 painter = painterResource(Res.drawable.logo),
                 contentDescription = "Start",
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(26.dp),
             )
 
-            else -> Image(
+            "mascot" -> Image(
                 painter = painterResource(Res.drawable.ns_mascot_face),
                 contentDescription = "Start",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+            )
+
+            // Default "orb" — a glossy white highlight over the blue body.
+            else -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(5.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.55f), Color.White.copy(alpha = 0.0f)),
+                        ),
+                    ),
             )
         }
     }
@@ -708,15 +907,14 @@ private fun DockIcon(
 ) {
     Box(
         modifier = Modifier
-            .padding(horizontal = 3.dp)
-            .size(46.dp)
-            .clip(RoundedCornerShape(13.dp))
+            .size(40.dp)
+            .clip(RoundedCornerShape(8.dp))
             .background(
                 Brush.verticalGradient(
                     listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.14f)),
                 ),
             )
-            .border(1.dp, Color.White.copy(alpha = 0.40f), RoundedCornerShape(13.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.40f), RoundedCornerShape(8.dp))
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
@@ -725,14 +923,14 @@ private fun DockIcon(
                 painter = painterResource(image),
                 contentDescription = label,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(13.dp)),
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
             )
         } else if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = Color.White,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(22.dp),
             )
         }
     }

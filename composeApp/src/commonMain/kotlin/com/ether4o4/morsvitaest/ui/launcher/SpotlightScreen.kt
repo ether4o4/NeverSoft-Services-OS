@@ -45,9 +45,24 @@ import androidx.compose.foundation.Image
  * Spotlight — a glass search surface. Type to filter the apps installed on the
  * device (real labels + icons, tap to launch) and to search the web. Opened
  * from the desktop Search icon.
+ *
+ * Kept as a full-screen entry for any caller that still references it; the inner
+ * surface lives in [SpotlightContent] so it can be hosted inside a window.
  */
 @Composable
 fun SpotlightScreen(onClose: () -> Unit) {
+    LauncherAppShell(title = "Spotlight", onClose = onClose) {
+        SpotlightContent(onRequestClose = onClose)
+    }
+}
+
+/**
+ * The searchable Spotlight surface without any full-screen chrome, so it can be
+ * dropped into a NeverSoft OS window. [onRequestClose] dismisses the host (used
+ * when a result launches the browser / an app).
+ */
+@Composable
+fun SpotlightContent(onRequestClose: () -> Unit) {
     var query by remember { mutableStateOf("") }
     var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
     LaunchedEffect(Unit) { installedApps = getInstalledApps() }
@@ -56,92 +71,90 @@ fun SpotlightScreen(onClose: () -> Unit) {
     val appMatches = if (q.isBlank()) emptyList()
     else installedApps.filter { it.label.contains(q, ignoreCase = true) }.take(20)
 
-    LauncherAppShell(title = "Spotlight", onClose = onClose) {
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(Color(0xCC1A2030), Color(0xCC10141C)),
+                ),
+            )
+            .padding(16.dp),
+    ) {
+        // Search field
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                        listOf(Color(0xCC1A2030), Color(0xCC10141C)),
-                    ),
-                )
-                .padding(16.dp),
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(26.dp))
+                .background(Color.White.copy(alpha = 0.14f))
+                .padding(start = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Search field
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(Color.White.copy(alpha = 0.14f))
-                    .padding(start = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Filled.Search, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(22.dp))
-                TextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = {
-                        Text("Search apps, files, web…", color = Color.White.copy(alpha = 0.45f))
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color(0xFF6AA9FF),
-                    ),
-                )
+            Icon(Icons.Filled.Search, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(22.dp))
+            TextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = {
+                    Text("Search apps, files, web…", color = Color.White.copy(alpha = 0.45f))
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color(0xFF6AA9FF),
+                ),
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            if (q.isNotBlank()) {
+                item { SpotlightSection("WEB") }
+                item {
+                    SpotlightRow(
+                        leading = { Icon(Icons.Filled.Search, null, tint = Color.White, modifier = Modifier.size(22.dp)) },
+                        title = "Search the web for \"$q\"",
+                        subtitle = "Opens your browser",
+                    ) {
+                        onRequestClose()
+                        openUrl("https://www.google.com/search?q=" + q.replace(" ", "+"))
+                    }
+                }
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                if (q.isNotBlank()) {
-                    item { SpotlightSection("WEB") }
-                    item {
-                        SpotlightRow(
-                            leading = { Icon(Icons.Filled.Search, null, tint = Color.White, modifier = Modifier.size(22.dp)) },
-                            title = "Search the web for \"$q\"",
-                            subtitle = "Opens your browser",
-                        ) {
-                            onClose()
-                            openUrl("https://www.google.com/search?q=" + q.replace(" ", "+"))
-                        }
+            if (appMatches.isNotEmpty()) {
+                item { SpotlightSection("APPS") }
+                items(appMatches, key = { it.packageName }) { app ->
+                    SpotlightRow(
+                        leading = {
+                            val ic = app.icon
+                            if (ic != null) {
+                                Image(bitmap = ic, contentDescription = app.label, modifier = Modifier.size(30.dp))
+                            } else {
+                                Text(app.label.take(1).uppercase(), color = Color.White)
+                            }
+                        },
+                        title = app.label,
+                        subtitle = app.packageName,
+                    ) {
+                        onRequestClose()
+                        launchApp(app.packageName)
                     }
                 }
-                if (appMatches.isNotEmpty()) {
-                    item { SpotlightSection("APPS") }
-                    items(appMatches, key = { it.packageName }) { app ->
-                        SpotlightRow(
-                            leading = {
-                                val ic = app.icon
-                                if (ic != null) {
-                                    Image(bitmap = ic, contentDescription = app.label, modifier = Modifier.size(30.dp))
-                                } else {
-                                    Text(app.label.take(1).uppercase(), color = Color.White)
-                                }
-                            },
-                            title = app.label,
-                            subtitle = app.packageName,
-                        ) {
-                            onClose()
-                            launchApp(app.packageName)
-                        }
-                    }
-                }
-                if (q.isBlank()) {
-                    item {
-                        Text(
-                            "Type to search your apps and the web.",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(top = 30.dp),
-                        )
-                    }
+            }
+            if (q.isBlank()) {
+                item {
+                    Text(
+                        "Type to search your apps and the web.",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 30.dp),
+                    )
                 }
             }
         }

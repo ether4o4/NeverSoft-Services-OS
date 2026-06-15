@@ -79,6 +79,22 @@ expect fun openUrl(url: String): Boolean
 /** Launch an installed app by its platform identifier (Android package name). */
 expect fun launchApp(appId: String): Boolean
 
+/** A specific system settings screen the first-run setup wizard can open. */
+enum class SystemSetting {
+    /** Default home-app / launcher chooser. */
+    HomeLauncher,
+
+    /** This app's "App info" page — where "Allow restricted settings" + the
+     *  Permissions list live. */
+    AppDetails,
+
+    /** This app's notification settings. */
+    AppNotifications,
+}
+
+/** Opens the given system settings screen. Returns false if unavailable. */
+expect fun openSystemSetting(setting: SystemSetting): Boolean
+
 /**
  * Persist a picked image's [bytes] into app storage under [name] and return its
  * absolute path (or null on failure / unsupported platform). Used for the

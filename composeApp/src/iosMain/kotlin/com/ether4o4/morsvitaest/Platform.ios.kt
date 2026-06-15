@@ -153,6 +153,8 @@ actual fun getAvailableTools(): List<Tool> = buildList {
 }
 
 @Suppress("CAST_NEVER_SUCCEEDS")
+actual fun openSystemSetting(setting: SystemSetting): Boolean = false
+
 actual suspend fun getSystemStats(): SystemStats = SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
 
 actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
