@@ -196,6 +196,14 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_SETUP_SEEN, seen)
     }
 
+    // Guided settings tour (setup recap + appearance + system/AI settings).
+    // Shown once after setup; re-launchable from the Start menu any time.
+    fun hasSeenGuide(): Boolean = settings.getBoolean(KEY_GUIDE_SEEN, false)
+
+    fun setGuideSeen(seen: Boolean = true) {
+        settings.putBoolean(KEY_GUIDE_SEEN, seen)
+    }
+
     // Tool enable/disable settings
     fun isToolEnabled(toolId: String, defaultEnabled: Boolean = true): Boolean = settings.getBoolean("$KEY_TOOL_PREFIX$toolId", defaultEnabled)
 
@@ -666,6 +674,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_APP_OPENS = "app_opens"
         const val KEY_WELCOME_SEEN = "welcome_seen"
         const val KEY_SETUP_SEEN = "setup_wizard_seen"
+        const val KEY_GUIDE_SEEN = "settings_guide_seen"
 
         const val KEY_CONVERSATIONS = "conversations_json"
         const val KEY_CURRENT_CONVERSATION_ID = "current_conversation_id"

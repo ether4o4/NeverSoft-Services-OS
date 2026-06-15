@@ -93,6 +93,8 @@ internal fun StartDrawer(
     onToggleDockPin: (String) -> Unit,
     onLaunchPackage: (String) -> Unit,
     onClose: () -> Unit,
+    onOpenGuide: () -> Unit = {},
+    showGuideButton: Boolean = false,
 ) {
     val settings = koinInject<AppSettings>()
     var query by remember { mutableStateOf("") }
@@ -280,6 +282,23 @@ internal fun StartDrawer(
                     Spacer(Modifier.width(10.dp))
                     Text("NeverSoft", color = c, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.weight(1f))
+                    // Replay the guided settings tour (desktop only).
+                    if (showGuideButton) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(c.copy(alpha = 0.10f))
+                                .clickable {
+                                    onClose()
+                                    onOpenGuide()
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("?", color = c.copy(alpha = 0.85f), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(Modifier.width(8.dp))
+                    }
                     Box(
                         modifier = Modifier
                             .size(28.dp)

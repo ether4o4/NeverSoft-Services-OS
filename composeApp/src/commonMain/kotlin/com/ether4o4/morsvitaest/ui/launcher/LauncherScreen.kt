@@ -72,11 +72,14 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.SystemApp
+import com.ether4o4.morsvitaest.SystemSetting
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getInstalledApps
 import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openSystemApp
+import com.ether4o4.morsvitaest.openSystemSetting
 import com.ether4o4.morsvitaest.openUrl
+import com.ether4o4.morsvitaest.ui.onboarding.SettingsGuide
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
@@ -146,10 +149,17 @@ fun LauncherScreen(
     val theme = remember { resolveLauncherTheme(settings.getLauncherTheme()) }
     var showDrawer by remember { mutableStateOf(false) }
     var showWidgets by remember { mutableStateOf(false) }
+    var showGuide by remember { mutableStateOf(false) }
 
-    // Shared Haze source so the Start menu + widgets panel really blur the
-    // wallpaper behind them (glassmorphism).
+    // Shared Haze source so the floating windows really blur the wallpaper
+    // behind them (glassmorphism).
     val hazeState = remember { HazeState() }
+
+    // Once setup is done, offer the guided tour a single time; it's always
+    // re-launchable from the Start menu afterward.
+    LaunchedEffect(Unit) {
+        if (settings.hasSeenSetup() && !settings.hasSeenGuide()) showGuide = true
+    }
 
     // ---- Window manager: apps open as floating windows over the desktop. ----
     val windows = remember { mutableStateListOf<WinState>() }
@@ -454,6 +464,11 @@ fun LauncherScreen(
                 onToggleDockPin = ::toggleDockPin,
                 onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
+                onOpenGuide = {
+                    showDrawer = false
+                    showGuide = true
+                },
+                showGuideButton = true,
             )
         }
 
@@ -461,6 +476,18 @@ fun LauncherScreen(
             NotificationsPanel(
                 onClose = { showWidgets = false },
                 onOpenAssistant = { openWindow(DesktopApp.Assistant) },
+            )
+        }
+
+        if (showGuide) {
+            SettingsGuide(
+                onOpenAppearance = { openWindow(DesktopApp.LauncherSettings) },
+                onOpenSystemSettings = { openWindow(DesktopApp.Settings) },
+                onOpenSystemSetting = { openSystemSetting(it) },
+                onFinish = {
+                    showGuide = false
+                    settings.setGuideSeen()
+                },
             )
         }
 
