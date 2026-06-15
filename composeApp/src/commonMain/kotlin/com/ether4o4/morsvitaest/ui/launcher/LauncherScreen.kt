@@ -569,7 +569,7 @@ private fun TaskbarWindowButton(
                 .height(2.dp)
                 .width(if (active) 22.dp else 0.dp)
                 .clip(RoundedCornerShape(50))
-                .background(if (active) Color(0xFF00D4FF) else Color.Transparent),
+                .background(if (active) NeverSoftAccent else Color.Transparent),
         )
     }
 }
@@ -839,10 +839,10 @@ private fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .padding(horizontal = 3.dp)
-            .size(40.dp)
+            .size(44.dp)
             .clip(RoundedCornerShape(50))
             // Soft cyan glow ring + glossy blue→cyan radial body.
-            .border(1.5.dp, Color(0xFF00D4FF).copy(alpha = 0.5f), RoundedCornerShape(50))
+            .border(2.dp, NeverSoftAccent.copy(alpha = 0.6f), RoundedCornerShape(50))
             .background(
                 Brush.radialGradient(
                     colors = listOf(Color(0xFF8FE6FF), Color(0xFF1E7FD0), Color(0xFF0B3C73)),

@@ -1,5 +1,7 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -92,6 +97,10 @@ internal fun StartDrawer(
     val theme = resolveLauncherTheme(koinInject<AppSettings>().getLauncherTheme())
     val c = theme.content
 
+    // Spring open: slide up + fade + scale from the bottom-left corner it hugs.
+    val reveal = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { reveal.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 380f)) }
+
     val q = query.trim()
     val builtInShown = apps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
     val installedShown = installedApps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
@@ -115,24 +124,28 @@ internal fun StartDrawer(
                 .align(Alignment.BottomStart)
                 .padding(bottom = 62.dp)
                 .fillMaxWidth(wFrac)
-                .fillMaxHeight(hFrac),
+                .fillMaxHeight(hFrac)
+                .graphicsLayer {
+                    val p = reveal.value
+                    alpha = p
+                    scaleX = 0.95f + 0.05f * p
+                    scaleY = 0.95f + 0.05f * p
+                    translationY = (1f - p) * 60f
+                    transformOrigin = TransformOrigin(0f, 1f)
+                },
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .then(
                         if (theme.glass) {
-                            Modifier.background(
-                                Brush.verticalGradient(
-                                    listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.13f)),
-                                ),
-                            )
+                            Modifier.background(neverSoftGlass)
                         } else {
                             Modifier.background(theme.panel)
                         },
                     )
-                    .border(1.dp, c.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .border(1.dp, c.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
                     .clickable(enabled = false) {}
                     .padding(14.dp),
             ) {
@@ -159,7 +172,7 @@ internal fun StartDrawer(
                 TextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
                     singleLine = true,
                     placeholder = { Text("Search apps…", color = c.copy(alpha = 0.4f)) },
                     colors = TextFieldDefaults.colors(
@@ -169,7 +182,7 @@ internal fun StartDrawer(
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedTextColor = c,
                         unfocusedTextColor = c,
-                        cursorColor = Color(0xFF3B82F6),
+                        cursorColor = NeverSoftAccent,
                     ),
                 )
 
@@ -178,14 +191,14 @@ internal fun StartDrawer(
                 // Tabs
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(c.copy(alpha = 0.08f))
                         .padding(3.dp),
                 ) {
                     listOf("ALL APPS", "PINNED").forEachIndexed { i, label ->
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(if (tab == i) c.copy(alpha = 0.16f) else Color.Transparent)
                                 .clickable { tab = i }
                                 .padding(horizontal = 16.dp, vertical = 7.dp),
@@ -343,7 +356,7 @@ private fun AppRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(8.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 7.dp, horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -351,7 +364,7 @@ private fun AppRow(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(Brush.verticalGradient(listOf(color.copy(alpha = 0.92f), color))),
             contentAlignment = Alignment.Center,
         ) {
@@ -376,7 +389,7 @@ private fun InstalledAppRow(app: InstalledApp, content: Color, onClick: () -> Un
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
             .padding(vertical = 7.dp, horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -384,7 +397,7 @@ private fun InstalledAppRow(app: InstalledApp, content: Color, onClick: () -> Un
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(Color.White.copy(alpha = 0.06f)),
             contentAlignment = Alignment.Center,
         ) {

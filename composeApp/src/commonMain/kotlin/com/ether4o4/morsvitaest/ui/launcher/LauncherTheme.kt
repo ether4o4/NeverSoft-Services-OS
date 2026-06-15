@@ -1,6 +1,22 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+
+/**
+ * The NeverSoft OS system accent (cyan) — used for the Start-orb glow, active
+ * taskbar indicators, selection rings, and cursors across the launcher.
+ */
+internal val NeverSoftAccent = Color(0xFF00D4FF)
+
+/**
+ * The single NeverSoft OS frosted-glass fill shared by the Start menu and the
+ * widgets/notifications window so every translucent surface reads as the same
+ * material: a bright top reflection fading to a fainter base (Vista-Aero glass).
+ */
+internal val neverSoftGlass: Brush = Brush.verticalGradient(
+    listOf(Color.White.copy(alpha = 0.24f), Color.White.copy(alpha = 0.12f)),
+)
 
 /**
  * A launcher theme tints the three system surfaces — taskbar, Start menu, and

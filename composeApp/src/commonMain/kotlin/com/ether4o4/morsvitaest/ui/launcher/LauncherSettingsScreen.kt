@@ -123,12 +123,12 @@ fun LauncherSettingsContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 5.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
                     .border(
                         width = if (selected) 2.dp else 0.dp,
-                        color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
-                        shape = RoundedCornerShape(12.dp),
+                        color = if (selected) NeverSoftAccent else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp),
                     )
                     .clickable {
                         wallpaper = id
@@ -152,7 +152,7 @@ fun LauncherSettingsContent(
                 )
                 Spacer(Modifier.weight(1f))
                 if (selected && wallpaperImage.isBlank()) {
-                    Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                    Text("✓", color = NeverSoftAccent, fontSize = 18.sp)
                 }
             }
         }
@@ -181,12 +181,12 @@ fun LauncherSettingsContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
                     .border(
                         width = if (selected) 2.dp else 0.dp,
-                        color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
-                        shape = RoundedCornerShape(12.dp),
+                        color = if (selected) NeverSoftAccent else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp),
                     )
                     .clickable {
                         themeId = t.id
@@ -210,7 +210,7 @@ fun LauncherSettingsContent(
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 )
                 Spacer(Modifier.weight(1f))
-                if (selected) Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                if (selected) Text("✓", color = NeverSoftAccent, fontSize = 18.sp)
             }
         }
 
@@ -223,12 +223,12 @@ fun LauncherSettingsContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 5.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(Color.White.copy(alpha = if (selected) 0.12f else 0.05f))
                     .border(
                         width = if (selected) 2.dp else 0.dp,
-                        color = if (selected) Color(0xFF3B82F6) else Color.Transparent,
-                        shape = RoundedCornerShape(12.dp),
+                        color = if (selected) NeverSoftAccent else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp),
                     )
                     .clickable {
                         orb = id
@@ -245,7 +245,7 @@ fun LauncherSettingsContent(
                 )
                 Spacer(Modifier.weight(1f))
                 if (selected && orbImage.isBlank()) {
-                    Text("✓", color = Color(0xFF3B82F6), fontSize = 18.sp)
+                    Text("✓", color = NeverSoftAccent, fontSize = 18.sp)
                 }
             }
         }
@@ -264,7 +264,7 @@ fun LauncherSettingsContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(Color.White.copy(alpha = 0.05f))
                 .padding(horizontal = 14.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -285,7 +285,7 @@ fun LauncherSettingsContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(Color.White.copy(alpha = 0.05f))
                 .clickable { onOpenAiSettings() }
                 .padding(14.dp),
@@ -321,12 +321,12 @@ private fun PhotoRow(label: String, active: Boolean, onPick: () -> Unit, onClear
         Row(
             modifier = Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(Color.White.copy(alpha = if (active) 0.12f else 0.05f))
                 .border(
                     width = if (active) 2.dp else 0.dp,
-                    color = if (active) Color(0xFF3B82F6) else Color.Transparent,
-                    shape = RoundedCornerShape(12.dp),
+                    color = if (active) NeverSoftAccent else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp),
                 )
                 .clickable { onPick() }
                 .padding(12.dp),

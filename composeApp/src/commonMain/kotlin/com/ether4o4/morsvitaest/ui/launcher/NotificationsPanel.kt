@@ -1,5 +1,7 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,8 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -89,9 +92,7 @@ fun WidgetsContent() {
             .fillMaxSize()
             .then(
                 if (theme.glass) {
-                    Modifier.background(
-                        Brush.verticalGradient(listOf(Color(0xE61C2334), Color(0xE6121723))),
-                    )
+                    Modifier.background(neverSoftGlass)
                 } else {
                     Modifier.background(theme.panel)
                 },
@@ -166,6 +167,10 @@ fun NotificationsPanel(
         var wFrac by remember { mutableFloatStateOf(0.66f) }
         var hFrac by remember { mutableFloatStateOf(0.74f) }
 
+        // Spring open: slide in + fade + scale from the bottom-right corner it hugs.
+        val reveal = remember { Animatable(0f) }
+        LaunchedEffect(Unit) { reveal.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 380f)) }
+
         // Hugs the bottom-right; the bottom-right corner is fixed and the
         // top-left grip grows it out to the left / upward.
         Box(
@@ -173,22 +178,28 @@ fun NotificationsPanel(
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 62.dp)
                 .fillMaxWidth(wFrac)
-                .fillMaxHeight(hFrac),
+                .fillMaxHeight(hFrac)
+                .graphicsLayer {
+                    val p = reveal.value
+                    alpha = p
+                    scaleX = 0.95f + 0.05f * p
+                    scaleY = 0.95f + 0.05f * p
+                    translationY = (1f - p) * 60f
+                    transformOrigin = TransformOrigin(1f, 1f)
+                },
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .then(
                         if (theme.glass) {
-                            Modifier.background(
-                                Brush.verticalGradient(listOf(Color(0xE61C2334), Color(0xE6121723))),
-                            )
+                            Modifier.background(neverSoftGlass)
                         } else {
                             Modifier.background(theme.panel)
                         },
                     )
-                    .border(1.dp, c.copy(alpha = 0.30f), RoundedCornerShape(24.dp))
+                    .border(1.dp, c.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
                     .clickable(enabled = false) {}
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
@@ -253,9 +264,9 @@ private fun WidgetCard(content: Color, body: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(content.copy(alpha = 0.08f))
-            .border(1.dp, content.copy(alpha = 0.16f), RoundedCornerShape(18.dp))
+            .border(1.dp, content.copy(alpha = 0.16f), RoundedCornerShape(8.dp))
             .padding(16.dp),
     ) { body() }
 }
@@ -373,7 +384,7 @@ private fun CalendarWidget(year: Int, monthIndex0: Int, today: Int, monthName: S
                                     modifier = Modifier
                                         .size(28.dp)
                                         .clip(RoundedCornerShape(50))
-                                        .background(if (isToday) Color(0xFF3B82F6) else Color.Transparent),
+                                        .background(if (isToday) NeverSoftAccent else Color.Transparent),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
@@ -415,7 +426,7 @@ private fun NoteWidget(settings: AppSettings, c: Color) {
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedTextColor = c,
                     unfocusedTextColor = c,
-                    cursorColor = Color(0xFF6AA9FF),
+                    cursorColor = NeverSoftAccent,
                 ),
             )
         }
