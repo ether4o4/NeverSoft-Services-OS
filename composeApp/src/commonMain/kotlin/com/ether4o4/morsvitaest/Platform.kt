@@ -95,6 +95,16 @@ enum class SystemSetting {
 /** Opens the given system settings screen. Returns false if unavailable. */
 expect fun openSystemSetting(setting: SystemSetting): Boolean
 
+/** A built-in device app the taskbar's glass icons can launch. */
+enum class SystemApp {
+    Phone,
+    Messages,
+    Camera,
+}
+
+/** Opens the device's default app for [app] (dialer / SMS / camera). Returns false if unavailable. */
+expect fun openSystemApp(app: SystemApp): Boolean
+
 /**
  * Persist a picked image's [bytes] into app storage under [name] and return its
  * absolute path (or null on failure / unsupported platform). Used for the

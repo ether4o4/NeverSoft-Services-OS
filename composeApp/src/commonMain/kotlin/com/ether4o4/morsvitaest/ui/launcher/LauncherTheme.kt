@@ -1,7 +1,13 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 /**
  * The NeverSoft OS system accent (cyan) — used for the Start-orb glow, active
@@ -10,13 +16,28 @@ import androidx.compose.ui.graphics.Color
 internal val NeverSoftAccent = Color(0xFF00D4FF)
 
 /**
- * The single NeverSoft OS frosted-glass fill shared by the Start menu and the
- * widgets/notifications window so every translucent surface reads as the same
- * material: a bright top reflection fading to a fainter base (Vista-Aero glass).
+ * Dark translucent fallback for glass surfaces where there is no shared Haze
+ * source to blur (e.g. the cyberdeck shell's Start drawer).
  */
-internal val neverSoftGlass: Brush = Brush.verticalGradient(
-    listOf(Color.White.copy(alpha = 0.24f), Color.White.copy(alpha = 0.12f)),
+internal val neverSoftGlassBrush: Brush = Brush.verticalGradient(
+    listOf(Color(0xCC0E1726), Color(0xCC0A1018)),
 )
+
+/**
+ * Real glassmorphism. When a shared [haze] state is supplied, this surface
+ * blurs the wallpaper behind it and darkens it (Vista / Windows-11 glass);
+ * otherwise it falls back to the dark translucent gradient.
+ */
+internal fun Modifier.neverSoftGlass(haze: HazeState?): Modifier =
+    if (haze != null) {
+        hazeEffect(state = haze) {
+            blurRadius = 28.dp
+            tints = listOf(HazeTint(Color(0xFF0A1018).copy(alpha = 0.55f)))
+            noiseFactor = 0.04f
+        }
+    } else {
+        background(neverSoftGlassBrush)
+    }
 
 /**
  * A launcher theme tints the three system surfaces — taskbar, Start menu, and

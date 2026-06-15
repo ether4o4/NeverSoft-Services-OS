@@ -46,6 +46,7 @@ import com.ether4o4.morsvitaest.SystemStats
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getSystemStats
 import com.ether4o4.morsvitaest.weatherNow
+import dev.chrisbanes.haze.HazeState
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.delay
@@ -92,7 +93,7 @@ fun WidgetsContent() {
             .fillMaxSize()
             .then(
                 if (theme.glass) {
-                    Modifier.background(neverSoftGlass)
+                    Modifier.neverSoftGlass(null)
                 } else {
                     Modifier.background(theme.panel)
                 },
@@ -133,6 +134,7 @@ fun WidgetsContent() {
 fun NotificationsPanel(
     onClose: () -> Unit,
     onOpenAssistant: () -> Unit,
+    haze: HazeState? = null,
 ) {
     val settings = koinInject<AppSettings>()
     val theme = resolveLauncherTheme(settings.getLauncherTheme())
@@ -194,7 +196,7 @@ fun NotificationsPanel(
                     .clip(RoundedCornerShape(8.dp))
                     .then(
                         if (theme.glass) {
-                            Modifier.background(neverSoftGlass)
+                            Modifier.neverSoftGlass(haze)
                         } else {
                             Modifier.background(theme.panel)
                         },

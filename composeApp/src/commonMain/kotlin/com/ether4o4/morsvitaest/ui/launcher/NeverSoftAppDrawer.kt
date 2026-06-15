@@ -22,8 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -49,10 +51,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.data.AppSettings
+import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -90,8 +94,8 @@ internal fun StartDrawer(
     onToggleDockPin: (String) -> Unit,
     onLaunchPackage: (String) -> Unit,
     onClose: () -> Unit,
+    haze: HazeState? = null,
 ) {
-    var tab by remember { mutableStateOf(0) }
     var query by remember { mutableStateOf("") }
     var pinDialogFor by remember { mutableStateOf<LauncherApp?>(null) }
     val theme = resolveLauncherTheme(koinInject<AppSettings>().getLauncherTheme())
@@ -140,7 +144,7 @@ internal fun StartDrawer(
                     .clip(RoundedCornerShape(8.dp))
                     .then(
                         if (theme.glass) {
-                            Modifier.background(neverSoftGlass)
+                            Modifier.neverSoftGlass(haze)
                         } else {
                             Modifier.background(theme.panel)
                         },
@@ -149,32 +153,37 @@ internal fun StartDrawer(
                     .clickable(enabled = false) {}
                     .padding(14.dp),
             ) {
-                // Header — close on the left, resize grip lives at the top-right.
+                // Compact top row — close (left); the resize grip overlays top-right.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(RoundedCornerShape(50))
                             .background(c.copy(alpha = 0.12f))
                             .clickable { onClose() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("✕", color = c, fontSize = 14.sp)
+                        Text("✕", color = c, fontSize = 13.sp)
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Text("Start", color = c, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                 }
 
                 Spacer(Modifier.height(12.dp))
 
-                // Search
+                // Search bar — Windows 11 style, full width, frosted, pill-rounded.
                 TextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)),
                     singleLine = true,
-                    placeholder = { Text("Search apps…", color = c.copy(alpha = 0.4f)) },
+                    leadingIcon = { Text("🔍", fontSize = 14.sp) },
+                    placeholder = {
+                        Text(
+                            "Search for apps, settings, and documents",
+                            color = c.copy(alpha = 0.4f),
+                            fontSize = 13.sp,
+                        )
+                    },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = c.copy(alpha = 0.08f),
                         unfocusedContainerColor = c.copy(alpha = 0.08f),
@@ -186,98 +195,101 @@ internal fun StartDrawer(
                     ),
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(14.dp))
 
-                // Tabs
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(c.copy(alpha = 0.08f))
-                        .padding(3.dp),
+                // Pinned grid + All-apps grid in one scroll — Windows 11 layout.
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 76.dp),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    listOf("ALL APPS", "PINNED").forEachIndexed { i, label ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (tab == i) c.copy(alpha = 0.16f) else Color.Transparent)
-                                .clickable { tab = i }
-                                .padding(horizontal = 16.dp, vertical = 7.dp),
-                        ) {
-                            Text(
-                                label,
-                                color = c,
-                                fontSize = 12.sp,
-                                fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
+                    if (pinnedShown.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) { DrawerSectionLabel("Pinned", c) }
+                        items(pinnedShown, key = { "pin_" + it.id }) { app ->
+                            AppGridTile(
+                                label = app.label,
+                                color = app.color,
+                                icon = app.icon,
+                                image = app.image,
+                                content = c,
+                                onClick = {
+                                    onClose()
+                                    app.onOpen()
+                                },
+                                onLongClick = { pinDialogFor = app },
                             )
+                        }
+                    }
+
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            DrawerSectionLabel("All apps", c)
+                            Spacer(Modifier.weight(1f))
+                            Text("View: Category", color = c.copy(alpha = 0.45f), fontSize = 11.sp)
+                        }
+                    }
+                    items(builtInShown, key = { "ns_" + it.id }) { app ->
+                        AppGridTile(
+                            label = app.label,
+                            color = app.color,
+                            icon = app.icon,
+                            image = app.image,
+                            content = c,
+                            onClick = {
+                                onClose()
+                                app.onOpen()
+                            },
+                            onLongClick = { pinDialogFor = app },
+                        )
+                    }
+                    if (installedApps.isEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Text(
+                                "Loading installed apps…",
+                                color = c.copy(alpha = 0.4f),
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(12.dp),
+                            )
+                        }
+                    } else {
+                        items(installedShown, key = { it.packageName }) { app ->
+                            InstalledAppGridTile(app, c) {
+                                onClose()
+                                onLaunchPackage(app.packageName)
+                            }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
-
-                if (tab == 0) {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        if (builtInShown.isNotEmpty()) {
-                            item { DrawerSectionLabel("NEVERSOFT", c) }
-                            items(builtInShown, key = { "ns_" + it.id }) { app ->
-                                AppRow(
-                                    label = app.label,
-                                    color = app.color,
-                                    icon = app.icon,
-                                    image = app.image,
-                                    content = c,
-                                    onClick = {
-                                        onClose()
-                                        app.onOpen()
-                                    },
-                                    onLongClick = { pinDialogFor = app },
-                                )
-                            }
-                        }
-                        item { DrawerSectionLabel("ALL APPS", c) }
-                        if (installedApps.isEmpty()) {
-                            item {
-                                Text(
-                                    "Loading installed apps…",
-                                    color = c.copy(alpha = 0.4f),
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(12.dp),
-                                )
-                            }
-                        } else {
-                            items(installedShown, key = { it.packageName }) { app ->
-                                InstalledAppRow(app, c) {
-                                    onClose()
-                                    onLaunchPackage(app.packageName)
-                                }
-                            }
-                        }
+                // Account + power row pinned to the bottom (Windows 11 style).
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(c.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("N", color = c, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
-                } else {
-                    if (pinnedShown.isEmpty()) {
-                        Text(
-                            "Nothing pinned — long-press a NeverSoft app in ALL APPS.",
-                            color = c.copy(alpha = 0.5f),
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(top = 30.dp),
-                        )
-                    } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(pinnedShown, key = { "pin_" + it.id }) { app ->
-                                AppRow(
-                                    label = app.label,
-                                    color = app.color,
-                                    icon = app.icon,
-                                    image = app.image,
-                                    content = c,
-                                    onClick = {
-                                        onClose()
-                                        app.onOpen()
-                                    },
-                                    onLongClick = { pinDialogFor = app },
-                                )
-                            }
-                        }
+                    Spacer(Modifier.width(10.dp))
+                    Text("NeverSoft", color = c, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.weight(1f))
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(50))
+                            .clickable { onClose() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("⏻", color = c.copy(alpha = 0.8f), fontSize = 16.sp)
                     }
                 }
             }
@@ -344,7 +356,7 @@ private fun DrawerSectionLabel(text: String, content: Color) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AppRow(
+private fun AppGridTile(
     label: String,
     color: Color,
     icon: ImageVector?,
@@ -353,18 +365,17 @@ private fun AppRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(vertical = 7.dp, horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .size(44.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(Brush.verticalGradient(listOf(color.copy(alpha = 0.92f), color))),
             contentAlignment = Alignment.Center,
         ) {
@@ -376,28 +387,33 @@ private fun AppRow(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else if (icon != null) {
-                Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp))
+                Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
             }
         }
-        Spacer(Modifier.size(14.dp))
-        Text(label, color = content, fontSize = 15.sp)
+        Spacer(Modifier.height(5.dp))
+        Text(
+            label,
+            color = content,
+            fontSize = 11.sp,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
 @Composable
-private fun InstalledAppRow(app: InstalledApp, content: Color, onClick: () -> Unit) {
-    Row(
+private fun InstalledAppGridTile(app: InstalledApp, content: Color, onClick: () -> Unit) {
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
-            .padding(vertical = 7.dp, horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .size(44.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(Color.White.copy(alpha = 0.06f)),
             contentAlignment = Alignment.Center,
         ) {
@@ -406,13 +422,19 @@ private fun InstalledAppRow(app: InstalledApp, content: Color, onClick: () -> Un
                 Image(
                     bitmap = ic,
                     contentDescription = app.label,
-                    modifier = Modifier.size(34.dp),
+                    modifier = Modifier.size(38.dp),
                 )
             } else {
                 Text(app.label.take(1).uppercase(), color = content, fontSize = 16.sp)
             }
         }
-        Spacer(Modifier.size(14.dp))
-        Text(app.label, color = content, fontSize = 15.sp, maxLines = 1)
+        Spacer(Modifier.height(5.dp))
+        Text(
+            app.label,
+            color = content,
+            fontSize = 11.sp,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
     }
 }

@@ -603,6 +603,7 @@ private fun LauncherAppWindowContent(
                     sandboxState = sandboxState,
                     onSetupSandbox = { sandboxViewModel.onSetupSandbox() },
                     onCancelSandbox = { sandboxViewModel.onCancelSandbox() },
+                    modifier = Modifier.fillMaxSize(),
                 )
                 // The NS guy hangs around the top of the shell, switching poses.
                 HangingMascot(

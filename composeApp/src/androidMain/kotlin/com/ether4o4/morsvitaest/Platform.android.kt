@@ -503,6 +503,19 @@ actual fun openSystemSetting(setting: SystemSetting): Boolean = try {
     }
 }
 
+actual fun openSystemApp(app: SystemApp): Boolean = try {
+    val context: Context by inject(Context::class.java)
+    val intent = when (app) {
+        SystemApp.Phone -> Intent(Intent.ACTION_DIAL)
+        SystemApp.Messages -> Intent(Intent.ACTION_VIEW, "sms:".toUri())
+        SystemApp.Camera -> Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+    }.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    context.startActivity(intent)
+    true
+} catch (_: Exception) {
+    false
+}
+
 actual suspend fun getSystemStats(): SystemStats =
     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
         try {

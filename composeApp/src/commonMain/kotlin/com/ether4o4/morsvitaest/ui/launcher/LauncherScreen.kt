@@ -71,10 +71,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ether4o4.morsvitaest.InstalledApp
+import com.ether4o4.morsvitaest.SystemApp
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getInstalledApps
 import com.ether4o4.morsvitaest.launchApp
+import com.ether4o4.morsvitaest.openSystemApp
 import com.ether4o4.morsvitaest.openUrl
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -85,6 +89,10 @@ import morsvitaest.composeapp.generated.resources.ic_desk_folder
 import morsvitaest.composeapp.generated.resources.ic_desk_search
 import morsvitaest.composeapp.generated.resources.ic_desk_security
 import morsvitaest.composeapp.generated.resources.ic_desk_settings
+import morsvitaest.composeapp.generated.resources.ic_glass_camera
+import morsvitaest.composeapp.generated.resources.ic_glass_messages
+import morsvitaest.composeapp.generated.resources.ic_glass_phone
+import morsvitaest.composeapp.generated.resources.ic_glass_terminal
 import morsvitaest.composeapp.generated.resources.logo
 import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
@@ -139,8 +147,11 @@ fun LauncherScreen(
     val orbImage = remember { settings.getLauncherOrbImage() }
     val theme = remember { resolveLauncherTheme(settings.getLauncherTheme()) }
     var showDrawer by remember { mutableStateOf(false) }
-    var showFileChooser by remember { mutableStateOf(false) }
-    var defaultExplorer by remember { mutableStateOf(settings.getDefaultFileExplorer()) }
+    var showWidgets by remember { mutableStateOf(false) }
+
+    // Shared Haze source so the Start menu + widgets panel really blur the
+    // wallpaper behind them (glassmorphism).
+    val hazeState = remember { HazeState() }
 
     // ---- Window manager: apps open as floating windows over the desktop. ----
     val windows = remember { mutableStateListOf<WinState>() }
@@ -279,12 +290,13 @@ fun LauncherScreen(
                 model = "file://$wallpaperImage",
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().hazeSource(hazeState),
             )
         } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .hazeSource(hazeState)
                     .background(
                         Brush.linearGradient(
                             colors = wallpaperColors,
@@ -395,24 +407,15 @@ fun LauncherScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
+                Spacer(Modifier.width(8.dp))
+                // A small, clean set of hollow-glass app icons — not the whole bar.
+                GlassDockIcon(Res.drawable.ic_glass_phone, "Phone") { openSystemApp(SystemApp.Phone) }
                 Spacer(Modifier.width(6.dp))
-                TaskbarButton(
-                    icon = Icons.Filled.Search,
-                    label = "Spotlight",
-                    tint = theme.content,
-                    onClick = { openWindow(DesktopApp.Spotlight) },
-                )
+                GlassDockIcon(Res.drawable.ic_glass_messages, "Messages") { openSystemApp(SystemApp.Messages) }
                 Spacer(Modifier.width(6.dp))
-                TaskbarButton(
-                    icon = Icons.Filled.FolderOpen,
-                    label = "Files",
-                    tint = theme.content,
-                    onClick = {
-                        if (defaultExplorer.isNotBlank()) launchApp(defaultExplorer)
-                        else showFileChooser = true
-                    },
-                    onLongClick = { showFileChooser = true },
-                )
+                GlassDockIcon(Res.drawable.ic_glass_camera, "Camera") { openSystemApp(SystemApp.Camera) }
+                Spacer(Modifier.width(6.dp))
+                GlassDockIcon(Res.drawable.ic_glass_terminal, "Terminal") { openWindow(DesktopApp.Terminal) }
                 // User-pinned apps (open as windows).
                 dockPins.mapNotNull { byId[it] }.forEach {
                     Spacer(Modifier.width(6.dp))
@@ -431,7 +434,7 @@ fun LauncherScreen(
                 }
                 Spacer(Modifier.weight(1f))
                 DesktopClock(
-                    onClick = { openWindow(DesktopApp.Widgets) },
+                    onClick = { showWidgets = true },
                     content = theme.content,
                     modifier = Modifier.padding(end = 6.dp),
                 )
@@ -448,19 +451,15 @@ fun LauncherScreen(
                 onToggleDockPin = ::toggleDockPin,
                 onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
+                haze = hazeState,
             )
         }
 
-        if (showFileChooser) {
-            FileExplorerChooser(
-                installedApps = installedApps,
-                onPick = { pkg ->
-                    settings.setDefaultFileExplorer(pkg)
-                    defaultExplorer = pkg
-                    showFileChooser = false
-                    launchApp(pkg)
-                },
-                onClose = { showFileChooser = false },
+        if (showWidgets) {
+            NotificationsPanel(
+                onClose = { showWidgets = false },
+                onOpenAssistant = { openWindow(DesktopApp.Assistant) },
+                haze = hazeState,
             )
         }
 
@@ -894,6 +893,31 @@ private fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
                     ),
             )
         }
+    }
+}
+
+/**
+ * A taskbar tile for a hollow-glass icon — the icon image (rendered on pure
+ * black, as the pack requires) sits in a small black tile so it floats the way
+ * the reference renders do.
+ */
+@Composable
+private fun GlassDockIcon(image: DrawableResource, label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(Color.Black)
+            .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(9.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painter = painterResource(image),
+            contentDescription = label,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(9.dp)),
+        )
     }
 }
 
