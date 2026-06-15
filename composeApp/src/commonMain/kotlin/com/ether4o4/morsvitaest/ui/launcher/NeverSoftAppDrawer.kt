@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.data.AppSettings
-import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -94,14 +93,14 @@ internal fun StartDrawer(
     onToggleDockPin: (String) -> Unit,
     onLaunchPackage: (String) -> Unit,
     onClose: () -> Unit,
-    haze: HazeState? = null,
 ) {
+    val settings = koinInject<AppSettings>()
     var query by remember { mutableStateOf("") }
     var pinDialogFor by remember { mutableStateOf<LauncherApp?>(null) }
-    val theme = resolveLauncherTheme(koinInject<AppSettings>().getLauncherTheme())
+    val theme = resolveLauncherTheme(settings.getLauncherTheme())
     val c = theme.content
 
-    // Spring open: slide up + fade + scale from the bottom-left corner it hugs.
+    // Spring open: fade + scale up about the screen center it opens at.
     val reveal = remember { Animatable(0f) }
     LaunchedEffect(Unit) { reveal.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 380f)) }
 
@@ -118,24 +117,23 @@ internal fun StartDrawer(
     ) {
         val maxWpx = constraints.maxWidth.toFloat()
         val maxHpx = constraints.maxHeight.toFloat()
-        var wFrac by remember { mutableFloatStateOf(0.66f) }
-        var hFrac by remember { mutableFloatStateOf(0.74f) }
+        val savedSize = remember { settings.getStartMenuSize(0.66f, 0.74f) }
+        var wFrac by remember { mutableFloatStateOf(savedSize.first) }
+        var hFrac by remember { mutableFloatStateOf(savedSize.second) }
 
-        // Hugs the bottom-left; the bottom-left corner is fixed and the
-        // top-right grip grows it out to the right / upward.
+        // Opens centered on screen; the top-right grip resizes it about the
+        // center and the chosen size is persisted.
         Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(bottom = 62.dp)
+                .align(Alignment.Center)
                 .fillMaxWidth(wFrac)
                 .fillMaxHeight(hFrac)
                 .graphicsLayer {
                     val p = reveal.value
                     alpha = p
-                    scaleX = 0.95f + 0.05f * p
-                    scaleY = 0.95f + 0.05f * p
-                    translationY = (1f - p) * 60f
-                    transformOrigin = TransformOrigin(0f, 1f)
+                    scaleX = 0.96f + 0.04f * p
+                    scaleY = 0.96f + 0.04f * p
+                    transformOrigin = TransformOrigin(0.5f, 0.5f)
                 },
         ) {
             Column(
@@ -144,7 +142,7 @@ internal fun StartDrawer(
                     .clip(RoundedCornerShape(8.dp))
                     .then(
                         if (theme.glass) {
-                            Modifier.neverSoftGlass(haze)
+                            Modifier.neverSoftGlassClear()
                         } else {
                             Modifier.background(theme.panel)
                         },
@@ -303,11 +301,13 @@ internal fun StartDrawer(
                     .clip(RoundedCornerShape(10.dp))
                     .background(c.copy(alpha = 0.18f))
                     .pointerInput(Unit) {
-                        detectDragGestures { change, drag ->
+                        detectDragGestures(
+                            onDragEnd = { settings.setStartMenuSize(wFrac, hFrac) },
+                        ) { change, drag ->
                             change.consume()
-                            // Bottom-left is fixed: drag right widens, drag up grows taller.
-                            wFrac = (wFrac + drag.x / maxWpx).coerceIn(0.45f, 1f)
-                            hFrac = (hFrac - drag.y / maxHpx).coerceIn(0.4f, 0.92f)
+                            // Centered: drag right/up grows it about the center.
+                            wFrac = (wFrac + 2f * drag.x / maxWpx).coerceIn(0.45f, 1f)
+                            hFrac = (hFrac - 2f * drag.y / maxHpx).coerceIn(0.4f, 0.95f)
                         }
                     },
                 contentAlignment = Alignment.Center,

@@ -420,6 +420,24 @@ class AppSettings(internal val settings: Settings) {
         settings.putString(KEY_LAUNCHER_START_PINS, ids.joinToString(","))
     }
 
+    // Persisted sizes (as fractions of the screen) for resizable launcher
+    // surfaces, so a resize sticks across opens.
+    fun getStartMenuSize(defaultW: Float, defaultH: Float): Pair<Float, Float> =
+        settings.getFloat(KEY_START_MENU_W, defaultW) to settings.getFloat(KEY_START_MENU_H, defaultH)
+
+    fun setStartMenuSize(w: Float, h: Float) {
+        settings.putFloat(KEY_START_MENU_W, w)
+        settings.putFloat(KEY_START_MENU_H, h)
+    }
+
+    fun getWidgetPanelSize(defaultW: Float, defaultH: Float): Pair<Float, Float> =
+        settings.getFloat(KEY_WIDGET_PANEL_W, defaultW) to settings.getFloat(KEY_WIDGET_PANEL_H, defaultH)
+
+    fun setWidgetPanelSize(w: Float, h: Float) {
+        settings.putFloat(KEY_WIDGET_PANEL_W, w)
+        settings.putFloat(KEY_WIDGET_PANEL_H, h)
+    }
+
     // Per-icon launch links: a URL, a sandbox file path, or an app package name
     // assigned to a desktop icon. Empty = use the icon's built-in action.
     fun getLauncherIconLink(iconId: String): String = settings.getString("$KEY_LAUNCHER_ICON_LINK_PREFIX$iconId", "")
@@ -725,6 +743,10 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_LAUNCHER_ORB_IMAGE = "launcher_orb_image"
         const val KEY_LAUNCHER_DOCK_PINS = "launcher_dock_pins"
         const val KEY_LAUNCHER_START_PINS = "launcher_start_pins"
+        const val KEY_START_MENU_W = "launcher_start_menu_w"
+        const val KEY_START_MENU_H = "launcher_start_menu_h"
+        const val KEY_WIDGET_PANEL_W = "launcher_widget_panel_w"
+        const val KEY_WIDGET_PANEL_H = "launcher_widget_panel_h"
 
         // Basic memory guidance shared by every chat variant. The advanced `## Structured
         // Learning` block lives in `ChatSystemPromptBuilder.DEFAULT_STRUCTURED_LEARNING_SECTION`

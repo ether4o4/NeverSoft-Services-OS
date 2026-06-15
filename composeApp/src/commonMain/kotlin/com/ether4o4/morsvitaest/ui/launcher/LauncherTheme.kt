@@ -24,11 +24,23 @@ internal val neverSoftGlassBrush: Brush = Brush.verticalGradient(
 )
 
 /**
- * Real glassmorphism. When a shared [haze] state is supplied, this surface
- * blurs the wallpaper behind it and darkens it (Vista / Windows-11 glass);
- * otherwise it falls back to the dark translucent gradient.
+ * Clean "see-through" glass: a thin translucent-white pane you can see the
+ * desktop through. Used by the Start menu and the widgets panel.
  */
-internal fun Modifier.neverSoftGlass(haze: HazeState?): Modifier =
+internal fun Modifier.neverSoftGlassClear(): Modifier =
+    background(
+        Brush.verticalGradient(
+            listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
+        ),
+    )
+
+/**
+ * Real glassmorphism. When a shared [haze] state is supplied, this surface
+ * blurs the wallpaper behind it and darkens it (Vista / Windows-11 frosted
+ * glass); otherwise it falls back to the dark translucent gradient. Used by the
+ * floating app windows (sandbox / terminal).
+ */
+internal fun Modifier.neverSoftGlassBlur(haze: HazeState?): Modifier =
     if (haze != null) {
         hazeEffect(state = haze) {
             blurRadius = 28.dp

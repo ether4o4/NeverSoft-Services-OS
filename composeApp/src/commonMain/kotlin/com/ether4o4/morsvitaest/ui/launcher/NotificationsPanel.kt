@@ -46,7 +46,6 @@ import com.ether4o4.morsvitaest.SystemStats
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getSystemStats
 import com.ether4o4.morsvitaest.weatherNow
-import dev.chrisbanes.haze.HazeState
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.delay
@@ -93,7 +92,7 @@ fun WidgetsContent() {
             .fillMaxSize()
             .then(
                 if (theme.glass) {
-                    Modifier.neverSoftGlass(null)
+                    Modifier.neverSoftGlassClear()
                 } else {
                     Modifier.background(theme.panel)
                 },
@@ -134,7 +133,6 @@ fun WidgetsContent() {
 fun NotificationsPanel(
     onClose: () -> Unit,
     onOpenAssistant: () -> Unit,
-    haze: HazeState? = null,
 ) {
     val settings = koinInject<AppSettings>()
     val theme = resolveLauncherTheme(settings.getLauncherTheme())
@@ -166,8 +164,9 @@ fun NotificationsPanel(
     ) {
         val maxWpx = constraints.maxWidth.toFloat()
         val maxHpx = constraints.maxHeight.toFloat()
-        var wFrac by remember { mutableFloatStateOf(0.66f) }
-        var hFrac by remember { mutableFloatStateOf(0.74f) }
+        val savedSize = remember { settings.getWidgetPanelSize(0.66f, 0.74f) }
+        var wFrac by remember { mutableFloatStateOf(savedSize.first) }
+        var hFrac by remember { mutableFloatStateOf(savedSize.second) }
 
         // Spring open: slide in + fade + scale from the bottom-right corner it hugs.
         val reveal = remember { Animatable(0f) }
@@ -196,7 +195,7 @@ fun NotificationsPanel(
                     .clip(RoundedCornerShape(8.dp))
                     .then(
                         if (theme.glass) {
-                            Modifier.neverSoftGlass(haze)
+                            Modifier.neverSoftGlassClear()
                         } else {
                             Modifier.background(theme.panel)
                         },
@@ -246,7 +245,9 @@ fun NotificationsPanel(
                     .clip(RoundedCornerShape(10.dp))
                     .background(c.copy(alpha = 0.18f))
                     .pointerInput(Unit) {
-                        detectDragGestures { change, drag ->
+                        detectDragGestures(
+                            onDragEnd = { settings.setWidgetPanelSize(wFrac, hFrac) },
+                        ) { change, drag ->
                             change.consume()
                             // Bottom-right is fixed: drag left widens, drag up grows taller.
                             wFrac = (wFrac - drag.x / maxWpx).coerceIn(0.45f, 1f)

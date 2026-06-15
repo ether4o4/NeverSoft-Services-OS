@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.chrisbanes.haze.HazeState
 
 /**
  * The set of apps that open as floating NeverSoft OS windows (over the desktop)
@@ -89,6 +90,7 @@ fun WindowFrame(
     onFocus: () -> Unit,
     onMinimize: () -> Unit,
     onClose: () -> Unit,
+    haze: HazeState? = null,
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
@@ -119,12 +121,8 @@ fun WindowFrame(
             .then(offsetModifier)
             .then(sizeModifier)
             .clip(shape)
-            // Glass frame: translucent white fill + thin white border.
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
-                ),
-            )
+            // Frosted-glass frame: blurs the wallpaper behind it + thin white border.
+            .neverSoftGlassBlur(haze)
             .border(1.dp, Color.White.copy(alpha = 0.30f), shape)
             .pointerInput(win) { detectTapGestures(onPress = { onFocus() }) },
     ) {

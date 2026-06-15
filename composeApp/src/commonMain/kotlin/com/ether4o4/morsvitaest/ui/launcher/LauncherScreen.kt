@@ -89,10 +89,8 @@ import morsvitaest.composeapp.generated.resources.ic_desk_folder
 import morsvitaest.composeapp.generated.resources.ic_desk_search
 import morsvitaest.composeapp.generated.resources.ic_desk_security
 import morsvitaest.composeapp.generated.resources.ic_desk_settings
-import morsvitaest.composeapp.generated.resources.ic_glass_camera
 import morsvitaest.composeapp.generated.resources.ic_glass_messages
 import morsvitaest.composeapp.generated.resources.ic_glass_phone
-import morsvitaest.composeapp.generated.resources.ic_glass_terminal
 import morsvitaest.composeapp.generated.resources.logo
 import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
@@ -358,6 +356,7 @@ fun LauncherScreen(
                                         onFocus = { raise(win) },
                                         onMinimize = { win.minimized = true },
                                         onClose = { windows.remove(win) },
+                                        haze = hazeState,
                                     ) {
                                         appContent(win.app) { windows.remove(win) }
                                     }
@@ -374,9 +373,9 @@ fun LauncherScreen(
                 )
             }
 
-            // Edge-to-edge glass taskbar (48dp): Start orb, kept Spotlight +
-            // Files buttons, a button per open window, then the 2-line clock.
-            Row(
+            // Edge-to-edge glass taskbar (48dp): open-window buttons + pins on the
+            // left, the Start orb + Phone + Messages centered, the clock on the right.
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -404,39 +403,43 @@ fun LauncherScreen(
                         )
                     }
                     .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
-                Spacer(Modifier.width(8.dp))
-                // A small, clean set of hollow-glass app icons — not the whole bar.
-                GlassDockIcon(Res.drawable.ic_glass_phone, "Phone") { openSystemApp(SystemApp.Phone) }
-                Spacer(Modifier.width(6.dp))
-                GlassDockIcon(Res.drawable.ic_glass_messages, "Messages") { openSystemApp(SystemApp.Messages) }
-                Spacer(Modifier.width(6.dp))
-                GlassDockIcon(Res.drawable.ic_glass_camera, "Camera") { openSystemApp(SystemApp.Camera) }
-                Spacer(Modifier.width(6.dp))
-                GlassDockIcon(Res.drawable.ic_glass_terminal, "Terminal") { openWindow(DesktopApp.Terminal) }
-                // User-pinned apps (open as windows).
-                dockPins.mapNotNull { byId[it] }.forEach {
-                    Spacer(Modifier.width(6.dp))
-                    DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
+                // Left: user-pinned apps + a button per open window.
+                Row(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    dockPins.mapNotNull { byId[it] }.forEach {
+                        DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
+                    }
+                    val topZ = windows.maxOfOrNull { it.z } ?: 0
+                    windows.forEach { win ->
+                        TaskbarWindowButton(
+                            label = win.app.title,
+                            active = !win.minimized && win.z == topZ,
+                            tint = theme.content,
+                            onClick = { toggleTaskbar(win) },
+                        )
+                    }
                 }
-                // One button per open window.
-                val topZ = windows.maxOfOrNull { it.z } ?: 0
-                windows.forEach { win ->
-                    Spacer(Modifier.width(6.dp))
-                    TaskbarWindowButton(
-                        label = win.app.title,
-                        active = !win.minimized && win.z == topZ,
-                        tint = theme.content,
-                        onClick = { toggleTaskbar(win) },
-                    )
+
+                // Center: Start orb + the Phone & Messages hollow-glass icons.
+                Row(
+                    modifier = Modifier.align(Alignment.Center),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
+                    GlassDockIcon(Res.drawable.ic_glass_phone, "Phone") { openSystemApp(SystemApp.Phone) }
+                    GlassDockIcon(Res.drawable.ic_glass_messages, "Messages") { openSystemApp(SystemApp.Messages) }
                 }
-                Spacer(Modifier.weight(1f))
+
+                // Right: the two-line clock opens the widgets panel.
                 DesktopClock(
                     onClick = { showWidgets = true },
                     content = theme.content,
-                    modifier = Modifier.padding(end = 6.dp),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp),
                 )
             }
         }
@@ -451,7 +454,6 @@ fun LauncherScreen(
                 onToggleDockPin = ::toggleDockPin,
                 onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
-                haze = hazeState,
             )
         }
 
@@ -459,7 +461,6 @@ fun LauncherScreen(
             NotificationsPanel(
                 onClose = { showWidgets = false },
                 onOpenAssistant = { openWindow(DesktopApp.Assistant) },
-                haze = hazeState,
             )
         }
 
