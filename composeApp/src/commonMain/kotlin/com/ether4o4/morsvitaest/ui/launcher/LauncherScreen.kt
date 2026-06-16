@@ -473,6 +473,18 @@ fun LauncherScreen(
                     showGuide = true
                 },
                 showGuideButton = true,
+                onOpenLauncherCustomize = {
+                    showDrawer = false
+                    openWindow(DesktopApp.LauncherSettings)
+                },
+                onOpenAgentSettings = {
+                    showDrawer = false
+                    openWindow(DesktopApp.Settings)
+                },
+                onLaunchChat = {
+                    showDrawer = false
+                    openWindow(DesktopApp.Assistant)
+                },
             )
         }
 

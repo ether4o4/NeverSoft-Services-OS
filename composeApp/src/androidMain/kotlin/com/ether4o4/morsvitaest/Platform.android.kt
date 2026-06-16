@@ -563,7 +563,9 @@ actual suspend fun getInstalledApps(): List<InstalledApp> = kotlinx.coroutines.w
                 } catch (_: Exception) {
                     null
                 }
-                InstalledApp(label, pkg, icon)
+                // ApplicationInfo.category (API 26+) drives the Start menu's auto-sort.
+                val category = ri.activityInfo?.applicationInfo?.category ?: -1
+                InstalledApp(label, pkg, icon, category)
             }
             .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase() }

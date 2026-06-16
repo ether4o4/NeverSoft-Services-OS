@@ -456,6 +456,30 @@ class AppSettings(internal val settings: Settings) {
         }
     }
 
+    // Start-menu quick-launch slots: the app package the user chose for a fixed
+    // slot (photos / music / files / settings). Empty = not yet chosen.
+    fun getQuickLaunchApp(slot: String): String = settings.getString("$KEY_LAUNCHER_QUICK_LAUNCH_PREFIX$slot", "")
+
+    fun setQuickLaunchApp(slot: String, pkg: String) {
+        if (pkg.isBlank()) {
+            settings.remove("$KEY_LAUNCHER_QUICK_LAUNCH_PREFIX$slot")
+        } else {
+            settings.putString("$KEY_LAUNCHER_QUICK_LAUNCH_PREFIX$slot", pkg)
+        }
+    }
+
+    // Per-app Start-menu category override. Empty = auto-sort by the OS category;
+    // a category id pins it there; "none" keeps it out of every named box.
+    fun getAppCategoryOverride(pkg: String): String = settings.getString("$KEY_LAUNCHER_APP_CATEGORY_PREFIX$pkg", "")
+
+    fun setAppCategoryOverride(pkg: String, category: String) {
+        if (category.isBlank()) {
+            settings.remove("$KEY_LAUNCHER_APP_CATEGORY_PREFIX$pkg")
+        } else {
+            settings.putString("$KEY_LAUNCHER_APP_CATEGORY_PREFIX$pkg", category)
+        }
+    }
+
     fun getScheduledTasksJson(): String = settings.getString(KEY_SCHEDULED_TASKS, "[]")
 
     fun setScheduledTasksJson(json: String) {
@@ -744,6 +768,8 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_LAUNCHER_NOTE = "launcher_note"
         const val KEY_DEFAULT_FILE_EXPLORER = "default_file_explorer"
         const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
+        const val KEY_LAUNCHER_QUICK_LAUNCH_PREFIX = "launcher_quick_launch_"
+        const val KEY_LAUNCHER_APP_CATEGORY_PREFIX = "launcher_app_category_"
         const val KEY_LAUNCHER_ORB_STYLE = "launcher_orb_style"
         const val KEY_LAUNCHER_THEME = "launcher_theme"
         const val KEY_LAUNCHER_WALLPAPER_IMAGE = "launcher_wallpaper_image"
