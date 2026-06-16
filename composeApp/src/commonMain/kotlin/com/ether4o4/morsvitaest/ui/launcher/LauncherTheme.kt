@@ -77,3 +77,23 @@ internal val launcherThemes = listOf(
 )
 
 internal fun resolveLauncherTheme(id: String): LauncherTheme = launcherThemes.firstOrNull { it.id == id } ?: launcherThemes.first()
+
+/**
+ * The themed surface fill shared by the taskbar, Start menu and widgets window.
+ * "Glass" stays a clean translucent-white pane; every colored theme becomes a
+ * color + glass gradient — a translucent white sheen easing into the theme color
+ * so the wallpaper still shows through.
+ */
+internal fun LauncherTheme.surfaceBrush(): Brush = if (glass) {
+    Brush.verticalGradient(
+        listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
+    )
+} else {
+    Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = 0.20f),
+            panel.copy(alpha = 0.82f),
+            panel.copy(alpha = 0.92f),
+        ),
+    )
+}

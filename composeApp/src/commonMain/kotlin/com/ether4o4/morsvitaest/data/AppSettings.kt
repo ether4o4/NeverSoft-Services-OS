@@ -480,6 +480,13 @@ class AppSettings(internal val settings: Settings) {
         }
     }
 
+    // Desktop items (user-created icons + folders), stored as a JSON array.
+    fun getDesktopItemsJson(): String = settings.getString(KEY_LAUNCHER_DESKTOP_ITEMS, "[]")
+
+    fun setDesktopItemsJson(json: String) {
+        settings.putString(KEY_LAUNCHER_DESKTOP_ITEMS, json)
+    }
+
     fun getScheduledTasksJson(): String = settings.getString(KEY_SCHEDULED_TASKS, "[]")
 
     fun setScheduledTasksJson(json: String) {
@@ -770,6 +777,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
         const val KEY_LAUNCHER_QUICK_LAUNCH_PREFIX = "launcher_quick_launch_"
         const val KEY_LAUNCHER_APP_CATEGORY_PREFIX = "launcher_app_category_"
+        const val KEY_LAUNCHER_DESKTOP_ITEMS = "launcher_desktop_items"
         const val KEY_LAUNCHER_ORB_STYLE = "launcher_orb_style"
         const val KEY_LAUNCHER_THEME = "launcher_theme"
         const val KEY_LAUNCHER_WALLPAPER_IMAGE = "launcher_wallpaper_image"

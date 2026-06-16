@@ -88,13 +88,13 @@ private val quickSlots = listOf(
 )
 
 /**
- * The NeverSoft OS Start menu, top to bottom: a two-card Control Panel (launcher
- * customization + the full agent/system settings), the user's pinned apps, an
+ * The NeverSoft OS Start menu, top to bottom: the user's pinned apps, an
  * "All apps" section split into auto-sorted category boxes (Connect / Discover /
- * Utilities / Create / Media / All), and a fixed quick-launch bar (multi-LLM
- * chat plus four user-assignable app slots). Typing in the search box collapses
- * everything into a flat results grid. Shared by the desktop Start orb and the
- * shell's Start button so both are identical.
+ * Utilities / Create / Media / All), and a fixed quick-launch bar — multi-LLM
+ * chat, four user-assignable app slots, and a Control Panel icon (tap → launcher
+ * customization, long-press → agent/system settings). Typing in the search box
+ * collapses everything into a flat results grid. Shared by the desktop Start orb
+ * and the shell's Start button so both are identical.
  */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -175,13 +175,7 @@ internal fun StartDrawer(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(8.dp))
-                    .then(
-                        if (theme.glass) {
-                            Modifier.neverSoftGlassClear()
-                        } else {
-                            Modifier.background(theme.panel)
-                        },
-                    )
+                    .background(theme.surfaceBrush())
                     .border(1.dp, c.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
                     .clickable(enabled = false) {}
                     .padding(14.dp),
@@ -329,33 +323,6 @@ internal fun StartDrawer(
                         }
 
                         else -> {
-                            DrawerSectionLabel("Control Panel", c)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                ControlPanelCard(
-                                    title = "Customize",
-                                    lines = listOf("Themes", "Wallpaper", "Start button", "Launcher settings"),
-                                    content = c,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        onClose()
-                                        onOpenLauncherCustomize()
-                                    },
-                                )
-                                ControlPanelCard(
-                                    title = "Agent & System",
-                                    lines = listOf("AI models & API keys", "Linux shell & engine", "Heartbeat 24/7 & config"),
-                                    content = c,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        onClose()
-                                        onOpenAgentSettings()
-                                    },
-                                )
-                            }
-
                             if (pinnedShown.isNotEmpty()) {
                                 DrawerSectionLabel("Pinned", c)
                                 FlowRow(modifier = Modifier.fillMaxWidth()) {
@@ -481,6 +448,21 @@ internal fun StartDrawer(
                                 onLongClick = { pickerForSlot = slot.id },
                             )
                         }
+                        // Control Panel: tap → launcher customization, long-press → agent/system settings.
+                        QuickLaunchSlot(
+                            label = "Control Panel",
+                            glyph = "🎛️",
+                            iconApp = null,
+                            content = c,
+                            onClick = {
+                                onClose()
+                                onOpenLauncherCustomize()
+                            },
+                            onLongClick = {
+                                onClose()
+                                onOpenAgentSettings()
+                            },
+                        )
                     }
                 }
             }
@@ -622,34 +604,6 @@ private fun DrawerSectionLabel(text: String, content: Color) {
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(top = 12.dp, bottom = 6.dp, start = 4.dp),
     )
-}
-
-/**
- * One Control-Panel card — a titled glass tile listing what it opens; tapping
- * anywhere opens the matching full screen.
- */
-@Composable
-private fun ControlPanelCard(
-    title: String,
-    lines: List<String>,
-    content: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(content.copy(alpha = 0.07f))
-            .border(1.dp, content.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
-            .clickable { onClick() }
-            .padding(10.dp),
-    ) {
-        Text(title, color = content, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
-        lines.forEach { line ->
-            Text("• $line", color = content.copy(alpha = 0.6f), fontSize = 11.sp, maxLines = 1)
-        }
-    }
 }
 
 /**

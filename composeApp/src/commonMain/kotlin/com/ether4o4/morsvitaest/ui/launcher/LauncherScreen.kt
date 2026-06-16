@@ -108,19 +108,6 @@ import kotlin.time.ExperimentalTime
  * desktop. Each tile opens a real Mors Vita Est engine screen, so the shell
  * runs on the actual local-GGUF / sandbox / settings stack rather than a mock.
  */
-private data class DesktopShortcut(
-    val label: String,
-    val image: DrawableResource,
-    val onOpen: () -> Unit,
-    val onConfigure: () -> Unit = {},
-)
-
-// Stable ids for the desktop icons' persisted launch links.
-private val desktopIconIds = listOf(
-    "Internet", "Computer", "Documents", "Files", "Apps",
-    "Security", "Search", "Settings", "Recycle Bin",
-)
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LauncherScreen(
@@ -255,45 +242,14 @@ fun LauncherScreen(
         settings.setLauncherStartPins(startPins.toList())
     }
 
-    // Per-icon launch links (URL / sandbox path / app package), persisted.
-    // Long-press an icon to set; tap then launches the linked target.
-    val iconLinks = remember {
-        mutableStateMapOf<String, String>().apply {
-            desktopIconIds.forEach { id ->
-                settings.getLauncherIconLink(id).takeIf { it.isNotBlank() }?.let { put(id, it) }
-            }
-        }
-    }
-    var linkDialogFor by remember { mutableStateOf<String?>(null) }
-
+    // Launches a desktop item's target: a URL, a sandbox path, or an app package.
     fun openLink(target: String) {
         when {
             target.startsWith("http://") || target.startsWith("https://") -> openUrl(target)
             target.startsWith("/") -> onOpenFilesAt(target)
-            else -> if (!launchApp(target)) openUrl(target)
+            else -> if (target.isNotBlank() && !launchApp(target)) openUrl(target)
         }
     }
-
-    // Wraps a built-in action so a user-assigned link wins when present.
-    fun shortcut(label: String, image: DrawableResource, builtIn: () -> Unit) = DesktopShortcut(
-        label = label,
-        image = image,
-        onOpen = {
-            val link = iconLinks[label]
-            if (link.isNullOrBlank()) builtIn() else openLink(link)
-        },
-        onConfigure = { linkDialogFor = label },
-    )
-
-    // Desktop tiles — each opens its app as a window over the desktop.
-    val shortcuts = listOf(
-        shortcut("Assistant", Res.drawable.ic_desk_apps) { openWindow(DesktopApp.Assistant) },
-        shortcut("Files", Res.drawable.ic_desk_folder) { openWindow(DesktopApp.Files) },
-        shortcut("Sandbox", Res.drawable.ic_desk_security) { openWindow(DesktopApp.Sandbox) },
-        shortcut("Terminal", Res.drawable.ic_desk_computer) { openWindow(DesktopApp.Terminal) },
-        shortcut("Settings", Res.drawable.ic_desk_settings) { openWindow(DesktopApp.LauncherSettings) },
-        shortcut("Search", Res.drawable.ic_desk_search) { openWindow(DesktopApp.Spotlight) },
-    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Wallpaper: a chosen photo, else the preset diagonal (top-left →
@@ -321,11 +277,9 @@ fun LauncherScreen(
         }
 
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-            MacMenuBar(onMascotClick = { openWindow(DesktopApp.Assistant) })
-
-            // The desktop area: wrapping grid of frosted-glass app tiles at the
-            // top-left, with floating app windows layered above. The news feed
-            // and widgets pages flank it.
+            // The desktop area: an empty canvas of user-created icons/folders,
+            // with floating app windows layered above. The news feed and widgets
+            // pages flank it.
             val pagerState = rememberPagerState(initialPage = 1) { 3 }
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 var areaSize by remember { mutableStateOf(IntSize.Zero) }
@@ -342,25 +296,15 @@ fun LauncherScreen(
                                 .fillMaxSize()
                                 .onSizeChanged { areaSize = it },
                         ) {
-                            // Top-left wrapping grid of desktop icons.
-                            FlowRow(
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .padding(12.dp)
-                                    .widthIn(max = 360.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                shortcuts.forEach { sc ->
-                                    DesktopIcon(
-                                        image = sc.image,
-                                        label = sc.label,
-                                        showLabel = showLabels,
-                                        onClick = sc.onOpen,
-                                        onLongPress = sc.onConfigure,
-                                    )
-                                }
-                            }
+                            // Empty desktop canvas: user-created icons + folders;
+                            // long-press for New icon / New folder / Change wallpaper.
+                            DesktopCanvas(
+                                installedApps = installedApps,
+                                showLabels = showLabels,
+                                onLaunchTarget = { openLink(it) },
+                                onChangeWallpaper = { openWindow(DesktopApp.LauncherSettings) },
+                                modifier = Modifier.fillMaxSize(),
+                            )
 
                             // Floating windows (sorted by z), above icons.
                             windows.sortedBy { it.z }.forEach { win ->
@@ -402,20 +346,8 @@ fun LauncherScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .then(
-                        if (theme.glass) {
-                            Modifier.background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color(0xFF1E4C7E).copy(alpha = 0.55f),
-                                        Color(0xFF0C2238).copy(alpha = 0.60f),
-                                    ),
-                                ),
-                            )
-                        } else {
-                            Modifier.background(theme.panel)
-                        },
-                    )
+                    // Taskbar follows the launcher theme (color + glass gradient).
+                    .background(theme.surfaceBrush())
                     .drawBehind {
                         // 1px white top-edge highlight line.
                         drawLine(
@@ -512,50 +444,6 @@ fun LauncherScreen(
                 onFinish = {
                     showGuide = false
                     settings.setGuideSeen()
-                },
-            )
-        }
-
-        linkDialogFor?.let { iconId ->
-            var text by remember(iconId) { mutableStateOf(iconLinks[iconId] ?: "") }
-            AlertDialog(
-                onDismissRequest = { linkDialogFor = null },
-                title = { Text("Link “$iconId”") },
-                text = {
-                    Column {
-                        Text(
-                            "Paste what this icon should launch:\n" +
-                                "• https:// web link\n" +
-                                "• /path — opens Files at that sandbox path\n" +
-                                "• app package (e.g. com.android.chrome)",
-                            fontSize = 13.sp,
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        OutlinedTextField(
-                            value = text,
-                            onValueChange = { text = it },
-                            singleLine = true,
-                            placeholder = { Text("https://…  /root/…  com.app…") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        settings.setLauncherIconLink(iconId, text)
-                        if (text.isBlank()) iconLinks.remove(iconId) else iconLinks[iconId] = text
-                        linkDialogFor = null
-                    }) { Text("Save") }
-                },
-                dismissButton = {
-                    Row {
-                        TextButton(onClick = {
-                            settings.setLauncherIconLink(iconId, "")
-                            iconLinks.remove(iconId)
-                            linkDialogFor = null
-                        }) { Text("Clear") }
-                        TextButton(onClick = { linkDialogFor = null }) { Text("Cancel") }
-                    }
                 },
             )
         }
@@ -718,58 +606,6 @@ private fun DesktopClock(onClick: () -> Unit, content: Color, modifier: Modifier
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun DesktopIcon(
-    image: DrawableResource,
-    label: String,
-    showLabel: Boolean,
-    onClick: () -> Unit,
-    onLongPress: () -> Unit = {},
-) {
-    Column(
-        modifier = Modifier
-            .padding(vertical = 6.dp)
-            .width(72.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Frosted-glass tile holding the icon.
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.15f))
-                .border(1.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painter = painterResource(image),
-                contentDescription = label,
-                modifier = Modifier.size(30.dp),
-            )
-        }
-        if (showLabel) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                label,
-                color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                style = TextStyle(
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.6f),
-                        offset = Offset(0f, 1f),
-                        blurRadius = 2f,
-                    ),
-                ),
-            )
-        }
-    }
-}
-
 /**
  * Chrome wrapper for an opened app — a floating, glass-framed window (not full
  * screen, so the desktop shows behind the dim scrim) with minimize / maximize /
@@ -853,31 +689,6 @@ private fun WindowButton(glyph: String, color: Color, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text(glyph, color = Color(0xFF20140A), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun MacMenuBar(onMascotClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xCC141418))
-            .padding(horizontal = 12.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("NeverSoft", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.weight(1f))
-        Text("🔍   🔋   📶", color = Color.White, fontSize = 12.sp)
-        Spacer(Modifier.width(10.dp))
-        // The NS guy lives at the top right of the bar; tap to summon him.
-        Image(
-            painter = painterResource(Res.drawable.ns_mascot_face),
-            contentDescription = "NeverSoft assistant",
-            modifier = Modifier
-                .size(20.dp)
-                .clip(RoundedCornerShape(5.dp))
-                .clickable { onMascotClick() },
-        )
     }
 }
 
