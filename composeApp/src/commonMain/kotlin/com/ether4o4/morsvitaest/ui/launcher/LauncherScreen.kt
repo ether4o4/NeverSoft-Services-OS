@@ -447,7 +447,6 @@ fun LauncherScreen(
                 },
             )
         }
-
     }
 }
 

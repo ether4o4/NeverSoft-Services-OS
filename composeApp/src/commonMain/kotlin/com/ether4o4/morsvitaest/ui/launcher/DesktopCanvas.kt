@@ -58,8 +58,6 @@ import com.ether4o4.morsvitaest.saveLauncherImage
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.readBytes
-import kotlin.math.roundToInt
-import kotlin.random.Random
 import kotlinx.coroutines.launch
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_desk_apps
@@ -71,6 +69,8 @@ import morsvitaest.composeapp.generated.resources.ic_desk_settings
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
+import kotlin.math.roundToInt
+import kotlin.random.Random
 
 // The built-in icons offered when creating/editing a custom icon.
 private val builtInDesktopIcons: List<Pair<String, DrawableResource>> = listOf(
