@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<title>MorsVitaEst — Start Menu</title>
+<style>
+/* ============================================================
+   MorsVitaEst — Start-menu popup prototype.
+
+   Layout (top -> bottom):
+     • Window chrome + global search
+     • CONTROL PANEL — 4 permanent MVE tiles
+         (Linux Shell · Settings · Agent Chat · Agent status)
+     • PINNED APPS — user's pinned app grid
+     • ALL APPS — category boxes (View: Category / Grid)
+     • Account bar — user · launcher settings wheel · power
+   All app icons are coloured placeholders; no external images.
+   ============================================================ */
+:root {
+  --bg: #0A0A0A;
+  --panel: #0E0E10;
+  --panel-2: #141417;
+  --tile: #121215;
+  --tile-hover: #1A1A1F;
+  --line: rgba(255,255,255,0.08);
+  --line-strong: rgba(255,255,255,0.16);
+  --label: #F3F3F4;
+  --label-2: #A9A9B0;
+  --label-3: #6E6E76;
+  --red: #E53935;
+  --red-glow: rgba(229,57,53,0.55);
+  --radius: 16px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: var(--label);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #15151a 0%, #0A0A0A 55%, #050505 100%);
+}
+
+/* faint starfield so the menu reads as a desktop popup */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.35), transparent),
+    radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 85% 60%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1.5px 1.5px at 12% 80%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,0.35), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.desktop {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 16px 96px;
+}
+
+/* ============================================================
+   The popup
+   ============================================================ */
+.menu {
+  width: 100%;
+  max-width: 680px;
+  background: linear-gradient(180deg, var(--panel) 0%, #0B0B0D 100%);
+  border: 1px solid var(--line-strong);
+  border-radius: 22px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.6),
+    0 30px 80px rgba(0,0,0,0.7),
+    0 0 60px rgba(229,57,53,0.10);
+  padding: 14px 16px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* window chrome + search */
+.chrome {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 2px 12px;
+}
+.dots { display: flex; gap: 8px; flex-shrink: 0; }
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot.r { background: #FF5F57; }
+.dot.y { background: #FEBC2E; }
+.dot.g { background: #28C840; }
+
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--label-3);
+  font-size: 13px;
+}
+.search svg { flex-shrink: 0; opacity: 0.7; }
+
+/* section headers */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 2px 10px;
+}
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--label-2);
+}
+.view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--label-2);
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.view-toggle:hover { border-color: var(--line); background: var(--panel-2); }
+
+/* ============================================================
+   CONTROL PANEL — 4 permanent tiles
+   ============================================================ */
+.control-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.ctl-tile {
+  position: relative;
+  aspect-ratio: 1.35 / 1;
+  border-radius: var(--radius);
+  background: var(--tile);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .15s, background .15s, box-shadow .15s, transform .1s;
+}
+.ctl-tile:hover {
+  background: var(--tile-hover);
+  border-color: var(--red);
+  box-shadow: 0 0 18px var(--red-glow);
+}
+.ctl-tile:active { transform: translateY(1px); }
+.ctl-tile .glyph { font-size: 26px; line-height: 1; }
+.ctl-tile .cmd {
+  font-family: "SF Mono", "Courier New", monospace;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--label);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.ctl-name {
+  position: absolute;
+  bottom: -18px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: .4px;
+  color: var(--label-3);
+}
+/* leave room for the labels under the tiles */
+.control-panel { margin-bottom: 22px; }
+
+/* agent-status tile (the 4th, "permanent") — idle mascot puck */
+.ctl-tile.status { cursor: default; }
+.ctl-tile.status:hover { border-color: var(--line); background: var(--tile); box-shadow: none; }
+.agent-puck {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #2a2a30 0%, #131316 70%);
+  border: 1px solid var(--line-strong);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; letter-spacing: .5px;
+  color: var(--red);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.zzz { position: absolute; top: 8px; right: 12px; font-size: 11px; color: var(--label-3); }
+
+/* divider */
+.divider { height: 1px; background: var(--line); margin: 0 2px; }
+
+/* ============================================================
+   PINNED APPS
+   ============================================================ */
+.pinned-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px 6px;
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 2px;
+  border-radius: 12px;
+  transition: background .12s;
+}
+.app:hover { background: var(--panel-2); }
+.app-icon {
+  width: 42px; height: 42px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 800; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 5px rgba(0,0,0,0.4);
+}
+.app-name {
+  font-size: 10.5px;
+  color: var(--label-2);
+  text-align: center;
+  max-width: 70px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ============================================================
+   ALL APPS — category boxes
+   ============================================================ */
+.cats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.cat-box {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px 14px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.cat-box:hover { border-color: var(--line-strong); box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+.cat-title {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label);
+  margin-bottom: 12px;
+}
+.cat-icons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.cat-icons .app-icon { width: 34px; height: 34px; border-radius: 9px; font-size: 14px; }
+
+/* flat (Grid) view — hidden until toggled */
+.all-grid { display: none; }
+.all-grid.active { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px 6px; }
+.cats.hidden { display: none; }
+
+/* ============================================================
+   Account bar
+   ============================================================ */
+.account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px -16px 0;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+}
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #2a2a30, #131316);
+  border: 1px solid var(--line-strong);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--label-2);
+}
+.user-name { font-size: 13px; color: var(--label); font-weight: 500; }
+.account .spacer { flex: 1; }
+.icon-btn {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--label-2);
+  border: 1px solid transparent;
+  transition: border-color .15s, background .15s, color .15s, box-shadow .15s;
+}
+.icon-btn:hover { background: var(--panel-2); border-color: var(--line); color: var(--label); }
+.icon-btn.power:hover { color: var(--red); border-color: var(--red); box-shadow: 0 0 14px var(--red-glow); }
+.icon-btn .gear { display: inline-block; transition: transform .4s ease; }
+.icon-btn:hover .gear { transform: rotate(90deg); }
+
+/* ============================================================
+   Taskbar (context — this is a start-menu popup)
+   ============================================================ */
+.taskbar {
+  position: fixed;
+  z-index: 2;
+  left: 0; right: 0; bottom: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: rgba(8,8,10,0.82);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+}
+.taskbar .center { flex: 1; display: flex; justify-content: center; gap: 18px; }
+.task-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer;
+}
+.task-start {
+  background: linear-gradient(135deg, #FF6B6B, #E53935);
+  box-shadow: 0 0 16px var(--red-glow);
+}
+.tray { display: flex; align-items: center; gap: 14px; color: var(--label-2); font-size: 12px; }
+
+@media (max-width: 560px) {
+  .pinned-grid, .all-grid.active { grid-template-columns: repeat(4, 1fr); }
+  .cats { grid-template-columns: 1fr; }
+  .menu { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="desktop">
+  <div class="menu" role="dialog" aria-label="Start menu">
+
+    <!-- window chrome + global search -->
+    <div class="chrome">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Search apps, settings, documents…
+      </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="section-head"><span class="section-title">CONTROL PANEL</span></div>
+    <div class="control-panel">
+      <div class="ctl-tile" title="Linux Shell" onclick="alert('Linux Shell')">
+        <span class="cmd">C:\&gt;</span>
+        <span class="ctl-name">Linux Shell</span>
+      </div>
+      <div class="ctl-tile" title="MVE & Shell Settings" onclick="alert('Settings — MVE agent + Linux shell')">
+        <span class="glyph">⚙️</span>
+        <span class="ctl-name">Settings</span>
+      </div>
+      <div class="ctl-tile" title="MVE Agent Chat" onclick="alert('MVE Agent Chat')">
+        <span class="glyph">💬</span>
+        <span class="ctl-name">Agent Chat</span>
+      </div>
+      <div class="ctl-tile status" title="Agent status: idle">
+        <span class="zzz">z<sup>z</sup></span>
+        <span class="agent-puck">NS</span>
+        <span class="ctl-name">Agent · idle</span>
+      </div>
+    </div>
+
+    <!-- PINNED APPS -->
+    <div class="section-head"><span class="section-title">PINNED APPS</span></div>
+    <div class="pinned-grid" id="pinned"></div>
+
+    <div class="divider" style="margin-top:18px"></div>
+
+    <!-- ALL APPS -->
+    <div class="section-head">
+      <span class="section-title">ALL APPS</span>
+      <span class="view-toggle" id="viewToggle" onclick="toggleView()">
+        View: <strong id="viewLabel">Category</strong>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </div>
+    <div class="cats" id="cats"></div>
+    <div class="all-grid" id="allGrid"></div>
+
+    <!-- account bar -->
+    <div class="account">
+      <div class="avatar">👤</div>
+      <span class="user-name">NS User</span>
+      <span class="spacer"></span>
+      <div class="icon-btn" title="Customize launcher" onclick="alert('Launcher customization')">
+        <span class="gear">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </span>
+      </div>
+      <div class="icon-btn power" title="Power" onclick="alert('Power')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- taskbar -->
+<div class="taskbar">
+  <div class="center">
+    <div class="task-icon task-start" title="Start">⊞</div>
+    <div class="task-icon" title="Phone">📞</div>
+    <div class="task-icon" title="Messages">💬</div>
+  </div>
+  <div class="tray">
+    <span>📶</span><span>🔋</span><span id="clock">11:45 PM</span>
+  </div>
+</div>
+
+<script>
+/* ----- placeholder data (all icons are placeholders) ----- */
+const PINNED = [
+  { n: "Chrome",     c: "#4285F4", g: "◐" },
+  { n: "Spotify",    c: "#1DB954", g: "♫" },
+  { n: "Photos",     c: "#7E57C2", g: "❖" },
+  { n: "Calculator", c: "#455A64", g: "=" },
+  { n: "Word",       c: "#2B579A", g: "W" },
+  { n: "Excel",      c: "#217346", g: "X" },
+  { n: "Notepad",    c: "#5C6BC0", g: "≣" },
+  { n: "Maps",       c: "#34A853", g: "◍" },
+  { n: "YouTube",    c: "#FF0000", g: "▶" },
+  { n: "Settings",   c: "#546E7A", g: "⚙" },
+  { n: "WhatsApp",   c: "#25D366", g: "✆" },
+  { n: "Discord",    c: "#5865F2", g: "◎" },
+];
+
+const CATEGORIES = [
+  { t: "Productivity", apps: [["W","#2B579A"],["X","#217346"],["P","#B7472A"],["N","#7E3F8F"]] },
+  { t: "Creativity",   apps: [["Ps","#31A8FF"],["Ai","#FF9A00"],["Pr","#9999FF"],["Fg","#A259FF"]] },
+  { t: "Entertainment",apps: [["N","#E50914"],["D+","#1A3B8C"],["▶","#FF0000"],["♫","#1DB954"]] },
+  { t: "Other",        apps: [["▤","#F2B705"],["O","#0072C6"],["▦","#4CAF50"],["♺","#42A5F5"]] },
+];
+
+function iconEl(letter, color, big) {
+  const d = document.createElement('div');
+  d.className = 'app-icon';
+  d.style.background = color;
+  d.textContent = letter;
+  if (big) { d.style.width = d.style.height = '42px'; }
+  return d;
+}
+
+/* pinned */
+const pinned = document.getElementById('pinned');
+PINNED.forEach(a => {
+  const wrap = document.createElement('div');
+  wrap.className = 'app';
+  wrap.title = a.n;
+  wrap.appendChild(iconEl(a.g, a.c, true));
+  const name = document.createElement('div');
+  name.className = 'app-name';
+  name.textContent = a.n;
+  wrap.appendChild(name);
+  wrap.onclick = () => alert(a.n);
+  pinned.appendChild(wrap);
+});
+
+/* category boxes */
+const cats = document.getElementById('cats');
+CATEGORIES.forEach(cat => {
+  const box = document.createElement('div');
+  box.className = 'cat-box';
+  box.onclick = () => alert(cat.t);
+  const title = document.createElement('div');
+  title.className = 'cat-title';
+  title.textContent = cat.t;
+  box.appendChild(title);
+  const row = document.createElement('div');
+  row.className = 'cat-icons';
+  cat.apps.forEach(([l, c]) => row.appendChild(iconEl(l, c)));
+  box.appendChild(row);
+  cats.appendChild(box);
+});
+
+/* flat grid view (all apps from every category) */
+const allGrid = document.getElementById('allGrid');
+CATEGORIES.flatMap(c => c.apps.map(a => [...a, c.t])).forEach(([l, c, t]) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'app';
+  wrap.appendChild(iconEl(l, c, true));
+  const name = document.createElement('div');
+  name.className = 'app-name';
+  name.textContent = t;
+  wrap.appendChild(name);
+  allGrid.appendChild(wrap);
+});
+
+let gridView = false;
+function toggleView() {
+  gridView = !gridView;
+  document.getElementById('viewLabel').textContent = gridView ? 'Grid' : 'Category';
+  cats.classList.toggle('hidden', gridView);
+  allGrid.classList.toggle('active', gridView);
+}
+
+/* live clock */
+function tick() {
+  const d = new Date();
+  let h = d.getHours(), m = String(d.getMinutes()).padStart(2, '0');
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  document.getElementById('clock').textContent = `${h}:${m} ${ap}`;
+}
+tick(); setInterval(tick, 10000);
+</script>
+
+</body>
+</html>
