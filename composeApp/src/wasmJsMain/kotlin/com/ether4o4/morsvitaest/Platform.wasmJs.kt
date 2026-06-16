@@ -85,6 +85,18 @@ actual fun getAvailableTools(): List<Tool> = buildList {
     addAll(WebKoinHelper.mcpServerManager.getEnabledMcpTools())
 }
 
+actual fun openSystemSetting(setting: SystemSetting): Boolean = false
+
+actual fun openSystemApp(app: SystemApp): Boolean = false
+
+actual suspend fun getSystemStats(): SystemStats = SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
+
+actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
+
+actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = null
+
+actual fun launchApp(appId: String): Boolean = false
+
 actual fun openUrl(url: String): Boolean = try {
     kotlinx.browser.window.open(url, "_blank")
     true

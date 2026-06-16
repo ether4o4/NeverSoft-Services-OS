@@ -337,11 +337,20 @@ cmd_provision() {
     if [ -d "$src/tools/server" ] && [ ! -f "$src/tools/server/ui.h" ]; then
         cat > "$src/tools/server/ui.h" <<'UI_H_EOF'
 #pragma once
+#include <string>
+#include <vector>
+// Stub matching current llama.cpp master: server-http.cpp iterates
+// llama_ui_get_assets() and reads a.name / a->type, so the struct needs
+// those fields and the vector accessor. MVE never serves the web UI, so
+// every accessor returns empty / nullptr (UI routes just 404).
 struct llama_ui_asset {
+    std::string name;
     const unsigned char * data;
     unsigned int size;
-    const char * etag;
+    std::string type;
+    std::string etag;
 };
+inline std::vector<llama_ui_asset> llama_ui_get_assets() { return {}; }
 inline const llama_ui_asset * llama_ui_find_asset(const char *) { return nullptr; }
 UI_H_EOF
     fi

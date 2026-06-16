@@ -9,6 +9,7 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.scale
 import androidx.core.net.toUri
 import com.ether4o4.morsvitaest.data.AppSettings
@@ -470,6 +471,130 @@ actual fun getAvailableTools(): List<Tool> {
         val mcpServerManager: McpServerManager by inject(McpServerManager::class.java)
         addAll(mcpServerManager.getEnabledMcpTools())
     }
+}
+
+actual fun openSystemSetting(setting: SystemSetting): Boolean = try {
+    val context: Context by inject(Context::class.java)
+    val pkgUri = "package:${context.packageName}".toUri()
+    val intent = when (setting) {
+        SystemSetting.HomeLauncher ->
+            Intent(android.provider.Settings.ACTION_HOME_SETTINGS)
+
+        SystemSetting.AppDetails ->
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+
+        SystemSetting.AppNotifications ->
+            Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+    }.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    context.startActivity(intent)
+    true
+} catch (_: Exception) {
+    // Fall back to the app details page, which always exists.
+    try {
+        val context: Context by inject(Context::class.java)
+        context.startActivity(
+            Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                "package:${context.packageName}".toUri(),
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        true
+    } catch (_: Exception) {
+        false
+    }
+}
+
+actual fun openSystemApp(app: SystemApp): Boolean = try {
+    val context: Context by inject(Context::class.java)
+    val intent = when (app) {
+        SystemApp.Phone -> Intent(Intent.ACTION_DIAL)
+        SystemApp.Messages -> Intent(Intent.ACTION_VIEW, "sms:".toUri())
+        SystemApp.Camera -> Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+    }.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    context.startActivity(intent)
+    true
+} catch (_: Exception) {
+    false
+}
+
+actual suspend fun getSystemStats(): SystemStats = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+    try {
+        val context: Context by inject(Context::class.java)
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val mem = android.app.ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }
+        val totalMb = mem.totalMem / (1024 * 1024)
+        val usedMb = (mem.totalMem - mem.availMem) / (1024 * 1024)
+        val stat = android.os.StatFs(android.os.Environment.getDataDirectory().path)
+        val totalGb = stat.totalBytes.toDouble() / 1_000_000_000.0
+        val freeGb = stat.availableBytes.toDouble() / 1_000_000_000.0
+        val chip = if (android.os.Build.VERSION.SDK_INT >= 31) {
+            android.os.Build.SOC_MODEL.takeIf { it.isNotBlank() && it != "unknown" }
+                ?: android.os.Build.HARDWARE
+        } else {
+            android.os.Build.HARDWARE
+        }
+        SystemStats(
+            cpu = chip,
+            cores = Runtime.getRuntime().availableProcessors(),
+            gpu = android.os.Build.MANUFACTURER,
+            ramUsedMb = usedMb,
+            ramTotalMb = totalMb,
+            storageFreeGb = freeGb,
+            storageTotalGb = totalGb,
+        )
+    } catch (_: Exception) {
+        SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
+    }
+}
+
+actual suspend fun getInstalledApps(): List<InstalledApp> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+    try {
+        val context: Context by inject(Context::class.java)
+        val pm = context.packageManager
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        pm.queryIntentActivities(intent, 0)
+            .mapNotNull { ri ->
+                val pkg = ri.activityInfo?.packageName ?: return@mapNotNull null
+                if (pkg == context.packageName) return@mapNotNull null
+                val label = ri.loadLabel(pm).toString()
+                val icon = try {
+                    ri.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
+                } catch (_: Exception) {
+                    null
+                }
+                InstalledApp(label, pkg, icon)
+            }
+            .distinctBy { it.packageName }
+            .sortedBy { it.label.lowercase() }
+    } catch (_: Exception) {
+        emptyList()
+    }
+}
+
+actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = try {
+    val dir = java.io.File(getAppFilesDirectory(), "launcher")
+    dir.mkdirs()
+    val f = java.io.File(dir, name)
+    f.writeBytes(bytes)
+    f.absolutePath
+} catch (_: Exception) {
+    null
+}
+
+actual fun launchApp(appId: String): Boolean = try {
+    val context: Context by inject(Context::class.java)
+    val intent = context.packageManager.getLaunchIntentForPackage(appId)?.apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    if (intent != null) {
+        context.startActivity(intent)
+        true
+    } else {
+        false
+    }
+} catch (_: Exception) {
+    false
 }
 
 actual fun openUrl(url: String): Boolean = try {

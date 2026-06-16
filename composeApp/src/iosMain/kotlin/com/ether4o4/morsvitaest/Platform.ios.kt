@@ -153,6 +153,18 @@ actual fun getAvailableTools(): List<Tool> = buildList {
 }
 
 @Suppress("CAST_NEVER_SUCCEEDS")
+actual fun openSystemSetting(setting: SystemSetting): Boolean = false
+
+actual fun openSystemApp(app: SystemApp): Boolean = false
+
+actual suspend fun getSystemStats(): SystemStats = SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
+
+actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
+
+actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = null
+
+actual fun launchApp(appId: String): Boolean = false
+
 actual fun openUrl(url: String): Boolean = try {
     val nsUrl = platform.Foundation.NSURL.URLWithString(url)
     if (nsUrl != null) {

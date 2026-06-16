@@ -189,6 +189,21 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_WELCOME_SEEN, seen)
     }
 
+    // First-run setup wizard (home launcher / restricted settings / permissions).
+    fun hasSeenSetup(): Boolean = settings.getBoolean(KEY_SETUP_SEEN, false)
+
+    fun setSetupSeen(seen: Boolean = true) {
+        settings.putBoolean(KEY_SETUP_SEEN, seen)
+    }
+
+    // Guided settings tour (setup recap + appearance + system/AI settings).
+    // Shown once after setup; re-launchable from the Start menu any time.
+    fun hasSeenGuide(): Boolean = settings.getBoolean(KEY_GUIDE_SEEN, false)
+
+    fun setGuideSeen(seen: Boolean = true) {
+        settings.putBoolean(KEY_GUIDE_SEEN, seen)
+    }
+
     // Tool enable/disable settings
     fun isToolEnabled(toolId: String, defaultEnabled: Boolean = true): Boolean = settings.getBoolean("$KEY_TOOL_PREFIX$toolId", defaultEnabled)
 
@@ -329,6 +344,116 @@ class AppSettings(internal val settings: Settings) {
 
     fun setSandboxEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_SANDBOX_ENABLED, enabled)
+    }
+
+    // Launcher (NeverSoft OS shell)
+    fun getLauncherWallpaper(): String = settings.getString(KEY_LAUNCHER_WALLPAPER, "aurora")
+
+    fun setLauncherWallpaper(value: String) {
+        settings.putString(KEY_LAUNCHER_WALLPAPER, value)
+    }
+
+    fun isLauncherLabelsShown(): Boolean = settings.getBoolean(KEY_LAUNCHER_LABELS, true)
+
+    fun setLauncherLabelsShown(shown: Boolean) {
+        settings.putBoolean(KEY_LAUNCHER_LABELS, shown)
+    }
+
+    // Sticky-note widget text.
+    fun getLauncherNote(): String = settings.getString(KEY_LAUNCHER_NOTE, "")
+
+    fun setLauncherNote(text: String) {
+        settings.putString(KEY_LAUNCHER_NOTE, text)
+    }
+
+    // The app package the taskbar's file-explorer button launches.
+    fun getDefaultFileExplorer(): String = settings.getString(KEY_DEFAULT_FILE_EXPLORER, "")
+
+    fun setDefaultFileExplorer(pkg: String) {
+        settings.putString(KEY_DEFAULT_FILE_EXPLORER, pkg)
+    }
+
+    // Start orb + app pins. Dock pins and Start-menu pins are independent
+    // lists of launcher app ids, fully user-curated.
+    fun getLauncherOrbStyle(): String = settings.getString(KEY_LAUNCHER_ORB_STYLE, "orb")
+
+    fun setLauncherOrbStyle(style: String) {
+        settings.putString(KEY_LAUNCHER_ORB_STYLE, style)
+    }
+
+    // Theme that tints the taskbar, Start menu, and widgets window.
+    fun getLauncherTheme(): String = settings.getString(KEY_LAUNCHER_THEME, "glass")
+
+    fun setLauncherTheme(id: String) {
+        settings.putString(KEY_LAUNCHER_THEME, id)
+    }
+
+    // Custom photos for the wallpaper and the Start orb (absolute file paths).
+    // Empty = use the built-in gradient / orb style.
+    fun getLauncherWallpaperImage(): String = settings.getString(KEY_LAUNCHER_WALLPAPER_IMAGE, "")
+
+    fun setLauncherWallpaperImage(path: String) {
+        if (path.isBlank()) {
+            settings.remove(KEY_LAUNCHER_WALLPAPER_IMAGE)
+        } else {
+            settings.putString(KEY_LAUNCHER_WALLPAPER_IMAGE, path)
+        }
+    }
+
+    fun getLauncherOrbImage(): String = settings.getString(KEY_LAUNCHER_ORB_IMAGE, "")
+
+    fun setLauncherOrbImage(path: String) {
+        if (path.isBlank()) {
+            settings.remove(KEY_LAUNCHER_ORB_IMAGE)
+        } else {
+            settings.putString(KEY_LAUNCHER_ORB_IMAGE, path)
+        }
+    }
+
+    fun getLauncherDockPins(default: List<String>): List<String> {
+        val raw = settings.getString(KEY_LAUNCHER_DOCK_PINS, "")
+        return if (raw.isBlank()) default else raw.split(",").filter { it.isNotBlank() }
+    }
+
+    fun setLauncherDockPins(ids: List<String>) {
+        settings.putString(KEY_LAUNCHER_DOCK_PINS, ids.joinToString(","))
+    }
+
+    fun getLauncherStartPins(default: List<String>): List<String> {
+        val raw = settings.getString(KEY_LAUNCHER_START_PINS, "")
+        return if (raw.isBlank()) default else raw.split(",").filter { it.isNotBlank() }
+    }
+
+    fun setLauncherStartPins(ids: List<String>) {
+        settings.putString(KEY_LAUNCHER_START_PINS, ids.joinToString(","))
+    }
+
+    // Persisted sizes (as fractions of the screen) for resizable launcher
+    // surfaces, so a resize sticks across opens.
+    fun getStartMenuSize(defaultW: Float, defaultH: Float): Pair<Float, Float> = settings.getFloat(KEY_START_MENU_W, defaultW) to settings.getFloat(KEY_START_MENU_H, defaultH)
+
+    fun setStartMenuSize(w: Float, h: Float) {
+        settings.putFloat(KEY_START_MENU_W, w)
+        settings.putFloat(KEY_START_MENU_H, h)
+    }
+
+    fun getWidgetPanelSize(defaultW: Float, defaultH: Float): Pair<Float, Float> = settings.getFloat(KEY_WIDGET_PANEL_W, defaultW) to settings.getFloat(KEY_WIDGET_PANEL_H, defaultH)
+
+    fun setWidgetPanelSize(w: Float, h: Float) {
+        settings.putFloat(KEY_WIDGET_PANEL_W, w)
+        settings.putFloat(KEY_WIDGET_PANEL_H, h)
+    }
+
+    // Per-icon launch links: a URL, a sandbox file path, or an app package name
+    // assigned to a desktop icon. Empty = use the icon's built-in action.
+    fun getLauncherIconLink(iconId: String): String = settings.getString("$KEY_LAUNCHER_ICON_LINK_PREFIX$iconId", "")
+
+    fun setLauncherIconLink(iconId: String, target: String) {
+        if (target.isBlank()) {
+            settings.remove("$KEY_LAUNCHER_ICON_LINK_PREFIX$iconId")
+        } else {
+            settings.putString("$KEY_LAUNCHER_ICON_LINK_PREFIX$iconId", target)
+        }
     }
 
     fun getScheduledTasksJson(): String = settings.getString(KEY_SCHEDULED_TASKS, "[]")
@@ -546,6 +671,8 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_CURRENT_SERVICE_ID = "current_service_id"
         const val KEY_APP_OPENS = "app_opens"
         const val KEY_WELCOME_SEEN = "welcome_seen"
+        const val KEY_SETUP_SEEN = "setup_wizard_seen"
+        const val KEY_GUIDE_SEEN = "settings_guide_seen"
 
         const val KEY_CONVERSATIONS = "conversations_json"
         const val KEY_CURRENT_CONVERSATION_ID = "current_conversation_id"
@@ -611,6 +738,22 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_MODEL_CONTEXT_PREFIX = "model_context_"
 
         const val KEY_SANDBOX_ENABLED = "sandbox_enabled"
+
+        const val KEY_LAUNCHER_WALLPAPER = "launcher_wallpaper"
+        const val KEY_LAUNCHER_LABELS = "launcher_labels"
+        const val KEY_LAUNCHER_NOTE = "launcher_note"
+        const val KEY_DEFAULT_FILE_EXPLORER = "default_file_explorer"
+        const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
+        const val KEY_LAUNCHER_ORB_STYLE = "launcher_orb_style"
+        const val KEY_LAUNCHER_THEME = "launcher_theme"
+        const val KEY_LAUNCHER_WALLPAPER_IMAGE = "launcher_wallpaper_image"
+        const val KEY_LAUNCHER_ORB_IMAGE = "launcher_orb_image"
+        const val KEY_LAUNCHER_DOCK_PINS = "launcher_dock_pins"
+        const val KEY_LAUNCHER_START_PINS = "launcher_start_pins"
+        const val KEY_START_MENU_W = "launcher_start_menu_w"
+        const val KEY_START_MENU_H = "launcher_start_menu_h"
+        const val KEY_WIDGET_PANEL_W = "launcher_widget_panel_w"
+        const val KEY_WIDGET_PANEL_H = "launcher_widget_panel_h"
 
         // Basic memory guidance shared by every chat variant. The advanced `## Structured
         // Learning` block lives in `ChatSystemPromptBuilder.DEFAULT_STRUCTURED_LEARNING_SECTION`

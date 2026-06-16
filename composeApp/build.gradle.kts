@@ -143,6 +143,8 @@ kotlin {
             implementation(libs.coil.network.ktor3)
 
             implementation(libs.reorderable)
+
+            implementation(libs.haze)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)

@@ -9,6 +9,14 @@
    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
+    <!-- See and launch other installed apps in the NeverSoft OS app drawer. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name="com.ether4o4.morsvitaest.MorsVitaEstApplication"
         android:allowBackup="true"

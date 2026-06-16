@@ -55,6 +55,7 @@ import com.ether4o4.morsvitaest.tools.SmsSendPermissionController
 import com.ether4o4.morsvitaest.ui.DarkColorScheme
 import com.ether4o4.morsvitaest.ui.LightColorScheme
 import com.ether4o4.morsvitaest.ui.Theme
+import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.ui.components.FullScreenImageHost
 import com.ether4o4.morsvitaest.ui.foundry.FoundryDestination
@@ -64,7 +65,23 @@ import com.ether4o4.morsvitaest.ui.foundry.FoundryPlaceholderScreen
 import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.help.HelpAssistantSheet
 import com.ether4o4.morsvitaest.ui.help.HelpBubble
+import com.ether4o4.morsvitaest.ui.launcher.DesktopApp
+import com.ether4o4.morsvitaest.ui.launcher.HangingMascot
+import com.ether4o4.morsvitaest.ui.launcher.HudShellScreen
+import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
+import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
+import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsContent
+import com.ether4o4.morsvitaest.ui.launcher.LauncherSettingsScreen
+import com.ether4o4.morsvitaest.ui.launcher.NotificationsPanel
+import com.ether4o4.morsvitaest.ui.launcher.SpotlightContent
+import com.ether4o4.morsvitaest.ui.launcher.SpotlightScreen
+import com.ether4o4.morsvitaest.ui.launcher.WidgetsContent
+import com.ether4o4.morsvitaest.ui.onboarding.SetupWizard
 import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
+import com.ether4o4.morsvitaest.ui.sandbox.SandboxFilesContent
+import com.ether4o4.morsvitaest.ui.sandbox.SandboxPackagesContent
+import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
+import com.ether4o4.morsvitaest.ui.settings.SandboxViewModel
 import com.ether4o4.morsvitaest.ui.settings.SettingsScreen
 import com.ether4o4.morsvitaest.ui.settings.SettingsTab
 import com.ether4o4.morsvitaest.ui.withBlackBackground
@@ -82,6 +99,43 @@ import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.dsl.koinConfiguration
+
+// NeverSoft OS desktop — the macOS-style shell (menu bar + Dock + Launchpad)
+// that boots the app. Its tiles open the real engine routes below.
+@Serializable
+@SerialName("launcher")
+object Launcher
+
+// Optional [path] deep-links the sandbox file browser to a directory (used by
+// desktop icons linked to a file path).
+@Serializable
+@SerialName("files")
+data class Files(val path: String? = null)
+
+@Serializable
+@SerialName("packages")
+object Packages
+
+// Launcher Settings — the NeverSoft OS shell's own settings (wallpaper, desktop
+// icons). Distinct from the MVE engine's AI settings, which live under Settings.
+@Serializable
+@SerialName("launcher.settings")
+object LauncherSettings
+
+// The sci-fi HUD shell — the Alpine terminal in a glowing console frame.
+@Serializable
+@SerialName("hud.shell")
+object Shell
+
+// Clock / notifications / widgets panel; the assistant sits in its top corner.
+@Serializable
+@SerialName("notifications")
+object Notifications
+
+// Spotlight search — apps, files, web.
+@Serializable
+@SerialName("spotlight")
+object Spotlight
 
 @Serializable
 @SerialName("home")
@@ -154,8 +208,10 @@ private fun AppContent(
     // First-run welcome tour + the always-available help bubble/sheet.
     var showTour by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
+    var showSetup by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!appSettings.hasSeenWelcome()) showTour = true
+        if (!appSettings.hasSeenSetup()) showSetup = true
     }
 
     // Set up permission handlers
@@ -243,9 +299,134 @@ private fun AppContent(
 
                     NavHost(
                         navController,
-                        startDestination = Home,
+                        startDestination = Launcher,
                         modifier = Modifier.background(MaterialTheme.colorScheme.background),
                     ) {
+                        composable<Launcher> {
+                            // NeverSoft OS desktop. Desktop icons, taskbar buttons,
+                            // the Start menu, and the clock open apps as floating
+                            // windows over the wallpaper (see appContent below).
+                            // The left page is the live Foundry news feed.
+                            val homeViewModel = koinViewModel<FoundryHomeViewModel>()
+                            val homeState by homeViewModel.state.collectAsStateWithLifecycle()
+                            LauncherScreen(
+                                onOpenChat = {
+                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+                                },
+                                onOpenShell = { navController.navigate(Shell) },
+                                onOpenFiles = { navController.navigate(Files()) },
+                                onOpenFilesAt = { path -> navController.navigate(Files(path)) },
+                                onOpenSandbox = { navController.navigate(Packages) },
+                                onOpenModels = {
+                                    navController.navigate(Settings(SettingsTab.Services.name))
+                                },
+                                onOpenLauncherSettings = {
+                                    navController.navigate(LauncherSettings)
+                                },
+                                onOpenNotifications = {
+                                    navController.navigate(Notifications)
+                                },
+                                onOpenSpotlight = { navController.navigate(Spotlight) },
+                                onOpenStub = { title, desc ->
+                                    navController.navigate(FoundryStub(title, desc))
+                                },
+                                appContent = { app, onRequestClose ->
+                                    LauncherAppWindowContent(
+                                        app = app,
+                                        onRequestClose = onRequestClose,
+                                        textToSpeech = textToSpeech,
+                                    )
+                                },
+                                newsPage = {
+                                    FoundryHome(
+                                        onNavigate = { dest ->
+                                            when (dest) {
+                                                FoundryDestination.Chat ->
+                                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+
+                                                FoundryDestination.Shell ->
+                                                    navController.navigate(FoundryChat(WorkspaceTab.Shell.name))
+
+                                                FoundryDestination.Compare ->
+                                                    navController.navigate(FoundryChat(WorkspaceTab.MultiChat.name))
+
+                                                FoundryDestination.Mcp ->
+                                                    navController.navigate(Settings(SettingsTab.Tools.name))
+
+                                                FoundryDestination.Projects ->
+                                                    navController.navigate(Settings(SettingsTab.Projects.name))
+
+                                                FoundryDestination.Services,
+                                                FoundryDestination.Ollama,
+                                                FoundryDestination.HuggingFace,
+                                                FoundryDestination.LlmChooser,
+                                                -> navController.navigate(Settings(SettingsTab.Services.name))
+
+                                                else -> navController.navigate(Settings())
+                                            }
+                                        },
+                                        onRefreshFeed = homeViewModel::refresh,
+                                        isRefreshing = homeState.isRefreshing,
+                                        feedItems = homeState.feed,
+                                    )
+                                },
+                            )
+                        }
+                        composable<LauncherSettings> {
+                            LauncherSettingsScreen(
+                                onClose = { navController.navigateUp() },
+                                onOpenAiSettings = {
+                                    navController.navigate(Settings(SettingsTab.Services.name))
+                                },
+                            )
+                        }
+                        composable<Shell> {
+                            HudShellScreen(
+                                onClose = { navController.navigateUp() },
+                                onOpenChat = {
+                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+                                },
+                                onOpenFiles = { navController.navigate(Files()) },
+                                onOpenSandbox = { navController.navigate(Packages) },
+                                onOpenModels = {
+                                    navController.navigate(Settings(SettingsTab.Services.name))
+                                },
+                                onOpenSettings = { navController.navigate(LauncherSettings) },
+                                onOpenNotifications = { navController.navigate(Notifications) },
+                            )
+                        }
+                        composable<Notifications> {
+                            NotificationsPanel(
+                                onClose = { navController.navigateUp() },
+                                onOpenAssistant = {
+                                    navController.navigate(FoundryChat(WorkspaceTab.Chat.name))
+                                },
+                            )
+                        }
+                        composable<Spotlight> {
+                            SpotlightScreen(onClose = { navController.navigateUp() })
+                        }
+                        composable<Files> { entry ->
+                            val filesPath = entry.toRoute<Files>().path
+                            LauncherAppShell(
+                                title = "Files",
+                                onClose = { navController.navigateUp() },
+                            ) {
+                                if (filesPath != null) {
+                                    SandboxFilesContent(initialPath = filesPath)
+                                } else {
+                                    SandboxFilesContent()
+                                }
+                            }
+                        }
+                        composable<Packages> {
+                            LauncherAppShell(
+                                title = "Sandbox",
+                                onClose = { navController.navigateUp() },
+                            ) {
+                                SandboxPackagesContent()
+                            }
+                        }
                         composable<Home> {
                             // Foundry brushed-metal home (Page 1): a live newsfeed (Heartbeat
                             // updates, pull-to-refresh) + integration boxes whose gears open the
@@ -368,8 +549,76 @@ private fun AppContent(
                             },
                         )
                     }
+
+                    // First-run setup wizard sits on top: opens the real Android
+                    // settings screens for launcher / restricted-settings / perms.
+                    if (showSetup) {
+                        SetupWizard(
+                            onFinish = {
+                                appSettings.setSetupSeen()
+                                showSetup = false
+                            },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * Renders the body of a NeverSoft OS floating window for [app] by reusing the
+ * existing engine screens, hosted without their own full-screen chrome.
+ * [onRequestClose] lets a screen dismiss its window (e.g. Settings' back arrow).
+ */
+@Composable
+private fun LauncherAppWindowContent(
+    app: DesktopApp,
+    onRequestClose: () -> Unit,
+    textToSpeech: TextToSpeechInstance?,
+) {
+    when (app) {
+        DesktopApp.Assistant -> ChatScreen(
+            textToSpeech = textToSpeech,
+            onNavigateToSettings = { /* Settings opens from its own desktop tile. */ },
+            isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
+            showSettingsButton = false,
+        )
+
+        DesktopApp.Files -> SandboxFilesContent()
+
+        DesktopApp.Sandbox -> SandboxPackagesContent()
+
+        DesktopApp.Settings -> SettingsScreen(
+            onNavigateBack = onRequestClose,
+            navigationTabBar = null,
+            initialTab = SettingsTab.Services,
+        )
+
+        DesktopApp.Terminal -> {
+            val sandboxViewModel = koinViewModel<SandboxViewModel>()
+            val sandboxState by sandboxViewModel.state.collectAsStateWithLifecycle()
+            Box(Modifier.fillMaxSize()) {
+                SandboxTabsContent(
+                    sandboxState = sandboxState,
+                    onSetupSandbox = { sandboxViewModel.onSetupSandbox() },
+                    onCancelSandbox = { sandboxViewModel.onCancelSandbox() },
+                    modifier = Modifier.fillMaxSize(),
+                )
+                // The NS guy hangs around the top of the shell, switching poses.
+                HangingMascot(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(end = 6.dp),
+                    sizeDp = 92,
+                )
+            }
+        }
+
+        DesktopApp.Spotlight -> SpotlightContent(onRequestClose = onRequestClose)
+
+        DesktopApp.Widgets -> WidgetsContent()
+
+        DesktopApp.LauncherSettings -> LauncherSettingsContent(
+            onOpenAiSettings = { /* AI settings opens from the Settings desktop tile. */ },
+        )
     }
 }

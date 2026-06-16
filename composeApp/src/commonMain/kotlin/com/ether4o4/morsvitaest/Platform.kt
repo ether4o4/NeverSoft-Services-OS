@@ -76,6 +76,65 @@ expect suspend fun compressImageBytes(bytes: ByteArray, mimeType: String): ByteA
 
 expect fun openUrl(url: String): Boolean
 
+/** Launch an installed app by its platform identifier (Android package name). */
+expect fun launchApp(appId: String): Boolean
+
+/** A specific system settings screen the first-run setup wizard can open. */
+enum class SystemSetting {
+    /** Default home-app / launcher chooser. */
+    HomeLauncher,
+
+    /** This app's "App info" page — where "Allow restricted settings" + the
+     *  Permissions list live. */
+    AppDetails,
+
+    /** This app's notification settings. */
+    AppNotifications,
+}
+
+/** Opens the given system settings screen. Returns false if unavailable. */
+expect fun openSystemSetting(setting: SystemSetting): Boolean
+
+/** A built-in device app the taskbar's glass icons can launch. */
+enum class SystemApp {
+    Phone,
+    Messages,
+    Camera,
+}
+
+/** Opens the device's default app for [app] (dialer / SMS / camera). Returns false if unavailable. */
+expect fun openSystemApp(app: SystemApp): Boolean
+
+/**
+ * Persist a picked image's [bytes] into app storage under [name] and return its
+ * absolute path (or null on failure / unsupported platform). Used for the
+ * customizable launcher wallpaper and Start orb.
+ */
+expect fun saveLauncherImage(name: String, bytes: ByteArray): String?
+
+/** A launchable app installed on the device. */
+data class InstalledApp(
+    val label: String,
+    val packageName: String,
+    val icon: ImageBitmap?,
+)
+
+/** Every launchable app installed on the device, sorted by label. */
+expect suspend fun getInstalledApps(): List<InstalledApp>
+
+/** Live system stats for the widgets panel. */
+data class SystemStats(
+    val cpu: String,
+    val cores: Int,
+    val gpu: String,
+    val ramUsedMb: Long,
+    val ramTotalMb: Long,
+    val storageFreeGb: Double,
+    val storageTotalGb: Double,
+)
+
+expect suspend fun getSystemStats(): SystemStats
+
 @androidx.compose.runtime.Composable
 expect fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit)
 

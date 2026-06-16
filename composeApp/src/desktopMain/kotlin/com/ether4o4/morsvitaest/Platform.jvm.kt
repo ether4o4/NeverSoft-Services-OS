@@ -170,6 +170,26 @@ actual fun getAvailableTools(): List<Tool> {
     }
 }
 
+actual fun openSystemSetting(setting: SystemSetting): Boolean = false
+
+actual fun openSystemApp(app: SystemApp): Boolean = false
+
+actual suspend fun getSystemStats(): SystemStats = SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
+
+actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()
+
+actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = try {
+    val dir = java.io.File(getAppFilesDirectory(), "launcher")
+    dir.mkdirs()
+    val f = java.io.File(dir, name)
+    f.writeBytes(bytes)
+    f.absolutePath
+} catch (_: Exception) {
+    null
+}
+
+actual fun launchApp(appId: String): Boolean = false
+
 actual fun openUrl(url: String): Boolean = try {
     java.awt.Desktop.getDesktop().browse(URI(url))
     true

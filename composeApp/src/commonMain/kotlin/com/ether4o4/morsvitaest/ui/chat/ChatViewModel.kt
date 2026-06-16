@@ -326,7 +326,11 @@ class ChatViewModel(
     private fun updateAvailableServices() {
         val configuredEntries = dataRepository.getServiceEntries()
         val currentFreeMode = dataRepository.getFreeMode()
-        val freeIsPrimary = dataRepository.isFreeServicePrimary() || configuredEntries.isEmpty()
+        // Default to the hosted Free model unless the user has configured a real
+        // cloud (API-key) service. On-device-only or fresh setups prefer Free, so
+        // the chat works out of the box instead of warning "no AI downloaded".
+        val hasCloudService = configuredEntries.any { Service.fromId(it.serviceId)?.isOnDevice == false }
+        val freeIsPrimary = dataRepository.isFreeServicePrimary() || !hasCloudService
 
         val freeModes = (listOf(currentFreeMode) + FreeMode.entries.filter { it != currentFreeMode }).map { mode ->
             ServiceEntry(
