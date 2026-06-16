@@ -265,6 +265,11 @@ cmd_provision() {
         } || true
         find /usr -name ".apk.*" -type f -delete 2>/dev/null || true
         find /lib -name ".apk.*" -type f -delete 2>/dev/null || true
+        # A truncated/corrupt download makes apk report "package not parseable",
+        # and the bad archive persists in the cache across retries — wipe it so
+        # the next attempt re-fetches the package cleanly.
+        rm -rf /var/cache/apk/* 2>/dev/null || true
+        apk cache clean >>"$apk_log" 2>&1 || true
         # Also try `apk fix` between retries in case the failure left the db
         # in a state where the next install can't proceed.
         apk fix --quiet >>"$apk_log" 2>&1 || true
