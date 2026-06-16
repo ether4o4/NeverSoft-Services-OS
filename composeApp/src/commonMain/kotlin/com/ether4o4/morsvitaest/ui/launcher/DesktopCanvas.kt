@@ -100,7 +100,15 @@ private val builtInDesktopIcons: List<Pair<String, DrawableResource>> = listOf(
     "mascot" to Res.drawable.ns_mascot_face,
 )
 
-private fun iconResFor(id: String): DrawableResource? = builtInDesktopIcons.firstOrNull { it.first == id }?.second
+// The user's bundled custom icon pack — every drawable named ic_pack_*.
+private val customIconPack: List<Pair<String, DrawableResource>> =
+    Res.allDrawableResources
+        .filterKeys { it.startsWith("ic_pack_") }
+        .toSortedMap()
+        .map { it.key to it.value }
+
+private fun iconResFor(id: String): DrawableResource? =
+    builtInDesktopIcons.firstOrNull { it.first == id }?.second ?: Res.allDrawableResources[id]
 
 /**
  * The desktop: a blank canvas of user-created icons and folders. Long-press an
@@ -526,8 +534,8 @@ private fun NewIconDialog(
                     }
                 }
                 Text("…or a built-in icon:", fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    builtInDesktopIcons.forEach { (id, res) ->
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    (builtInDesktopIcons + customIconPack).forEach { (id, res) ->
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
