@@ -50,6 +50,11 @@ require_jq() {
 # (apk add success, tar fallback, preflight) so cmake can find `ar`,
 # `as`, `ld`, etc. regardless of how the binaries got there.
 ensure_binutils_shortcuts() {
+    # All loop vars are function-local so this never clobbers a caller's
+    # variable — notably `src`, the llama.cpp source dir used by the cmake
+    # step. A leaked `src` here pointed `cmake -S` at a readelf binary and
+    # failed configure with "source directory ... is a file, not a directory".
+    local triplet_bin base short s cand tool
     # Pass 1: walk triplet-prefixed binaries in /usr/bin and create the
     # short shortcut (e.g. /usr/bin/ar -> aarch64-alpine-linux-musl-ar).
     for triplet_bin in /usr/bin/*-alpine-linux-musl-*; do
@@ -71,9 +76,9 @@ ensure_binutils_shortcuts() {
     # (both names ship as hardlinks in the apk and both can fail).
     for s in ar as ld ld.bfd nm objcopy objdump ranlib strip readelf addr2line; do
         [ -e "/usr/bin/$s" ] && continue
-        for src in /usr/*-alpine-linux-musl/bin/$s; do
-            if [ -e "$src" ]; then
-                ln -sf "$src" "/usr/bin/$s" 2>/dev/null
+        for cand in /usr/*-alpine-linux-musl/bin/$s; do
+            if [ -e "$cand" ]; then
+                ln -sf "$cand" "/usr/bin/$s" 2>/dev/null
                 break
             fi
         done
