@@ -46,8 +46,6 @@ import com.ether4o4.morsvitaest.SystemStats
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getSystemStats
 import com.ether4o4.morsvitaest.weatherNow
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -56,6 +54,8 @@ import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * The live widgets surface (clock, weather, system, calendar, sticky note)

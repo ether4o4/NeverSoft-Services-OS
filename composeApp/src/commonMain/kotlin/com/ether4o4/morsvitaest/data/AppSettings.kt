@@ -430,16 +430,14 @@ class AppSettings(internal val settings: Settings) {
 
     // Persisted sizes (as fractions of the screen) for resizable launcher
     // surfaces, so a resize sticks across opens.
-    fun getStartMenuSize(defaultW: Float, defaultH: Float): Pair<Float, Float> =
-        settings.getFloat(KEY_START_MENU_W, defaultW) to settings.getFloat(KEY_START_MENU_H, defaultH)
+    fun getStartMenuSize(defaultW: Float, defaultH: Float): Pair<Float, Float> = settings.getFloat(KEY_START_MENU_W, defaultW) to settings.getFloat(KEY_START_MENU_H, defaultH)
 
     fun setStartMenuSize(w: Float, h: Float) {
         settings.putFloat(KEY_START_MENU_W, w)
         settings.putFloat(KEY_START_MENU_H, h)
     }
 
-    fun getWidgetPanelSize(defaultW: Float, defaultH: Float): Pair<Float, Float> =
-        settings.getFloat(KEY_WIDGET_PANEL_W, defaultW) to settings.getFloat(KEY_WIDGET_PANEL_H, defaultH)
+    fun getWidgetPanelSize(defaultW: Float, defaultH: Float): Pair<Float, Float> = settings.getFloat(KEY_WIDGET_PANEL_W, defaultW) to settings.getFloat(KEY_WIDGET_PANEL_H, defaultH)
 
     fun setWidgetPanelSize(w: Float, h: Float) {
         settings.putFloat(KEY_WIDGET_PANEL_W, w)

@@ -1,5 +1,6 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,12 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,7 +40,6 @@ import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.getInstalledApps
 import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openUrl
-import androidx.compose.foundation.Image
 
 /**
  * Spotlight — a glass search surface. Type to filter the apps installed on the
@@ -68,8 +68,11 @@ fun SpotlightContent(onRequestClose: () -> Unit) {
     LaunchedEffect(Unit) { installedApps = getInstalledApps() }
 
     val q = query.trim()
-    val appMatches = if (q.isBlank()) emptyList()
-    else installedApps.filter { it.label.contains(q, ignoreCase = true) }.take(20)
+    val appMatches = if (q.isBlank()) {
+        emptyList()
+    } else {
+        installedApps.filter { it.label.contains(q, ignoreCase = true) }.take(20)
+    }
 
     Column(
         modifier = Modifier

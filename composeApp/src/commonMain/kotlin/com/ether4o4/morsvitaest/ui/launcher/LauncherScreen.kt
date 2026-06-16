@@ -194,7 +194,9 @@ fun LauncherScreen(
                 win.minimized = false
                 raise(win)
             }
+
             isTop -> win.minimized = true
+
             else -> raise(win)
         }
     }
@@ -331,6 +333,7 @@ fun LauncherScreen(
                 ) { page ->
                     when (page) {
                         0 -> newsPage()
+
                         1 -> Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -373,6 +376,7 @@ fun LauncherScreen(
                                 }
                             }
                         }
+
                         else -> EmptyDesktopPage()
                     }
                 }

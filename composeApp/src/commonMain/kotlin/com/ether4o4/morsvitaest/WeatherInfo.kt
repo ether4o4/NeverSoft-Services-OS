@@ -2,13 +2,13 @@ package com.ether4o4.morsvitaest
 
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import kotlin.math.roundToInt
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlin.math.roundToInt
 
 /** Current weather for the Widgets panel. */
 data class WeatherInfo(

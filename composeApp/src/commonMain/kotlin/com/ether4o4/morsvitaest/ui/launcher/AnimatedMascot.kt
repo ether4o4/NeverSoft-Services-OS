@@ -2,9 +2,9 @@ package com.ether4o4.morsvitaest.ui.launcher
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlin.random.Random
 import kotlinx.coroutines.delay
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ns_mascot_alive
@@ -29,6 +28,7 @@ import morsvitaest.composeapp.generated.resources.ns_pose_run
 import morsvitaest.composeapp.generated.resources.ns_pose_shrug
 import morsvitaest.composeapp.generated.resources.ns_pose_wrench
 import org.jetbrains.compose.resources.painterResource
+import kotlin.random.Random
 
 private val mascotPoses = listOf(
     Res.drawable.ns_mascot_alive,

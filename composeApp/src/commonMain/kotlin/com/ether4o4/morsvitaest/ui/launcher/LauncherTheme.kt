@@ -27,12 +27,11 @@ internal val neverSoftGlassBrush: Brush = Brush.verticalGradient(
  * Clean "see-through" glass: a thin translucent-white pane you can see the
  * desktop through. Used by the Start menu and the widgets panel.
  */
-internal fun Modifier.neverSoftGlassClear(): Modifier =
-    background(
-        Brush.verticalGradient(
-            listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
-        ),
-    )
+internal fun Modifier.neverSoftGlassClear(): Modifier = background(
+    Brush.verticalGradient(
+        listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f)),
+    ),
+)
 
 /**
  * Real glassmorphism. When a shared [haze] state is supplied, this surface
@@ -40,16 +39,15 @@ internal fun Modifier.neverSoftGlassClear(): Modifier =
  * glass); otherwise it falls back to the dark translucent gradient. Used by the
  * floating app windows (sandbox / terminal).
  */
-internal fun Modifier.neverSoftGlassBlur(haze: HazeState?): Modifier =
-    if (haze != null) {
-        hazeEffect(state = haze) {
-            blurRadius = 28.dp
-            tints = listOf(HazeTint(Color(0xFF0A1018).copy(alpha = 0.55f)))
-            noiseFactor = 0.04f
-        }
-    } else {
-        background(neverSoftGlassBrush)
+internal fun Modifier.neverSoftGlassBlur(haze: HazeState?): Modifier = if (haze != null) {
+    hazeEffect(state = haze) {
+        blurRadius = 28.dp
+        tints = listOf(HazeTint(Color(0xFF0A1018).copy(alpha = 0.55f)))
+        noiseFactor = 0.04f
     }
+} else {
+    background(neverSoftGlassBrush)
+}
 
 /**
  * A launcher theme tints the three system surfaces — taskbar, Start menu, and
@@ -78,5 +76,4 @@ internal val launcherThemes = listOf(
     LauncherTheme("white", "White", Color(0xF2F0F2F6), Color(0xFF14171C), glass = false),
 )
 
-internal fun resolveLauncherTheme(id: String): LauncherTheme =
-    launcherThemes.firstOrNull { it.id == id } ?: launcherThemes.first()
+internal fun resolveLauncherTheme(id: String): LauncherTheme = launcherThemes.firstOrNull { it.id == id } ?: launcherThemes.first()
