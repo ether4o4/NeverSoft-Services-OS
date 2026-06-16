@@ -138,15 +138,18 @@ fun LauncherScreen(
     appContent: @Composable (DesktopApp, onRequestClose: () -> Unit) -> Unit,
 ) {
     val settings = koinInject<AppSettings>()
-    val wallpaperColors = remember {
+    // Bumped when the Launcher Settings window closes so a freshly picked
+    // wallpaper / Start-orb photo (and theme/label changes) apply live.
+    var appearanceVersion by remember { mutableStateOf(0) }
+    val wallpaperColors = remember(appearanceVersion) {
         launcherWallpapers.firstOrNull { it.first == settings.getLauncherWallpaper() }
             ?.second ?: launcherWallpapers.first().second
     }
-    val showLabels = remember { settings.isLauncherLabelsShown() }
-    val orbStyle = remember { settings.getLauncherOrbStyle() }
-    val wallpaperImage = remember { settings.getLauncherWallpaperImage() }
-    val orbImage = remember { settings.getLauncherOrbImage() }
-    val theme = remember { resolveLauncherTheme(settings.getLauncherTheme()) }
+    val showLabels = remember(appearanceVersion) { settings.isLauncherLabelsShown() }
+    val orbStyle = remember(appearanceVersion) { settings.getLauncherOrbStyle() }
+    val wallpaperImage = remember(appearanceVersion) { settings.getLauncherWallpaperImage() }
+    val orbImage = remember(appearanceVersion) { settings.getLauncherOrbImage() }
+    val theme = remember(appearanceVersion) { resolveLauncherTheme(settings.getLauncherTheme()) }
     var showDrawer by remember { mutableStateOf(false) }
     var showWidgets by remember { mutableStateOf(false) }
     var showGuide by remember { mutableStateOf(false) }
@@ -368,10 +371,16 @@ fun LauncherScreen(
                                         areaHeightPx = areaSize.height,
                                         onFocus = { raise(win) },
                                         onMinimize = { win.minimized = true },
-                                        onClose = { windows.remove(win) },
+                                        onClose = {
+                                            windows.remove(win)
+                                            if (win.app == DesktopApp.LauncherSettings) appearanceVersion++
+                                        },
                                         haze = hazeState,
                                     ) {
-                                        appContent(win.app) { windows.remove(win) }
+                                        appContent(win.app) {
+                                            windows.remove(win)
+                                            if (win.app == DesktopApp.LauncherSettings) appearanceVersion++
+                                        }
                                     }
                                 }
                             }

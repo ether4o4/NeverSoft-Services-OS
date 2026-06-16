@@ -39,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -122,7 +121,8 @@ internal fun StartDrawer(
     // Bumped after a category override or quick-launch pick so derived groupings
     // recompose against the freshly saved settings.
     var dataVersion by remember { mutableStateOf(0) }
-    val expanded = remember { mutableStateMapOf<String, Boolean>() }
+    // Non-null = the "All apps" box the user opened into its full-screen view.
+    var openCategory by remember { mutableStateOf<String?>(null) }
     val theme = resolveLauncherTheme(settings.getLauncherTheme())
     val c = theme.content
 
@@ -235,38 +235,68 @@ internal fun StartDrawer(
                 Column(
                     modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                 ) {
-                    if (q.isBlank()) {
-                        DrawerSectionLabel("Control Panel", c)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            ControlPanelCard(
-                                title = "Customize",
-                                lines = listOf("Themes", "Wallpaper", "Start button", "Launcher settings"),
-                                content = c,
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    onClose()
-                                    onOpenLauncherCustomize()
-                                },
-                            )
-                            ControlPanelCard(
-                                title = "Agent & System",
-                                lines = listOf("AI models & API keys", "Linux shell & engine", "Heartbeat 24/7 & config"),
-                                content = c,
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    onClose()
-                                    onOpenAgentSettings()
-                                },
-                            )
+                    val openCat = openCategory
+                    when {
+                        openCat != null -> {
+                            val catApps = if (openCat == "all") {
+                                installedApps
+                            } else {
+                                grouped[AppCategory.fromId(openCat)].orEmpty()
+                            }
+                            val catTitle = if (openCat == "all") "All" else AppCategory.fromId(openCat)?.label ?: "Apps"
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(c.copy(alpha = 0.12f))
+                                        .clickable { openCategory = null },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text("‹", color = c, fontSize = 18.sp)
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    "$catTitle · ${catApps.size}",
+                                    color = c,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                            if (catApps.isEmpty()) {
+                                Text(
+                                    "No apps here yet. Long-press an app and pick this box to sort it here.",
+                                    color = c.copy(alpha = 0.4f),
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(8.dp),
+                                )
+                            } else {
+                                FlowRow(modifier = Modifier.fillMaxWidth()) {
+                                    catApps.forEach { app ->
+                                        AppGridTile(
+                                            label = app.label,
+                                            color = Color.White.copy(alpha = 0.06f),
+                                            icon = null,
+                                            image = null,
+                                            content = c,
+                                            bitmapApp = app,
+                                            onClick = {
+                                                onClose()
+                                                onLaunchPackage(app.packageName)
+                                            },
+                                            onLongClick = { moveDialogFor = app },
+                                        )
+                                    }
+                                }
+                            }
                         }
 
-                        if (pinnedShown.isNotEmpty()) {
-                            DrawerSectionLabel("Pinned", c)
+                        q.isNotBlank() -> {
                             FlowRow(modifier = Modifier.fillMaxWidth()) {
-                                pinnedShown.forEach { app ->
+                                builtInShown.forEach { app ->
                                     AppGridTile(
                                         label = app.label,
                                         color = app.color,
@@ -280,91 +310,112 @@ internal fun StartDrawer(
                                         onLongClick = { pinDialogFor = app },
                                     )
                                 }
+                                installedShown.forEach { app ->
+                                    AppGridTile(
+                                        label = app.label,
+                                        color = Color.White.copy(alpha = 0.06f),
+                                        icon = null,
+                                        image = null,
+                                        content = c,
+                                        bitmapApp = app,
+                                        onClick = {
+                                            onClose()
+                                            onLaunchPackage(app.packageName)
+                                        },
+                                        onLongClick = { moveDialogFor = app },
+                                    )
+                                }
                             }
                         }
 
-                        DrawerSectionLabel("All apps", c)
-                        if (installedApps.isEmpty()) {
-                            Text(
-                                "Loading installed apps…",
-                                color = c.copy(alpha = 0.4f),
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(8.dp),
-                            )
-                        } else {
-                            // Five named boxes in two rows, then a full-width "All".
-                            val rows = listOf(
-                                listOf(AppCategory.Connect, AppCategory.Discover, AppCategory.Utilities),
-                                listOf(AppCategory.Create, AppCategory.Media),
-                            )
-                            rows.forEach { row ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    row.forEach { cat ->
-                                        CategoryBox(
-                                            title = cat.label,
-                                            apps = grouped[cat].orEmpty(),
+                        else -> {
+                            DrawerSectionLabel("Control Panel", c)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                ControlPanelCard(
+                                    title = "Customize",
+                                    lines = listOf("Themes", "Wallpaper", "Start button", "Launcher settings"),
+                                    content = c,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        onClose()
+                                        onOpenLauncherCustomize()
+                                    },
+                                )
+                                ControlPanelCard(
+                                    title = "Agent & System",
+                                    lines = listOf("AI models & API keys", "Linux shell & engine", "Heartbeat 24/7 & config"),
+                                    content = c,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        onClose()
+                                        onOpenAgentSettings()
+                                    },
+                                )
+                            }
+
+                            if (pinnedShown.isNotEmpty()) {
+                                DrawerSectionLabel("Pinned", c)
+                                FlowRow(modifier = Modifier.fillMaxWidth()) {
+                                    pinnedShown.forEach { app ->
+                                        AppGridTile(
+                                            label = app.label,
+                                            color = app.color,
+                                            icon = app.icon,
+                                            image = app.image,
                                             content = c,
-                                            expanded = expanded[cat.id] == true,
-                                            modifier = Modifier.weight(1f),
-                                            onToggle = { expanded[cat.id] = expanded[cat.id] != true },
-                                            onLaunch = {
+                                            onClick = {
                                                 onClose()
-                                                onLaunchPackage(it.packageName)
+                                                app.onOpen()
                                             },
-                                            onMove = { moveDialogFor = it },
+                                            onLongClick = { pinDialogFor = app },
                                         )
                                     }
-                                    // Pad the short second row so its boxes match width.
-                                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                                 }
                             }
-                            CategoryBox(
-                                title = "All",
-                                apps = installedApps,
-                                content = c,
-                                expanded = expanded["all"] == true,
-                                modifier = Modifier.fillMaxWidth(),
-                                onToggle = { expanded["all"] = expanded["all"] != true },
-                                onLaunch = {
-                                    onClose()
-                                    onLaunchPackage(it.packageName)
-                                },
-                                onMove = { moveDialogFor = it },
-                            )
-                        }
-                    } else {
-                        FlowRow(modifier = Modifier.fillMaxWidth()) {
-                            builtInShown.forEach { app ->
-                                AppGridTile(
-                                    label = app.label,
-                                    color = app.color,
-                                    icon = app.icon,
-                                    image = app.image,
-                                    content = c,
-                                    onClick = {
-                                        onClose()
-                                        app.onOpen()
-                                    },
-                                    onLongClick = { pinDialogFor = app },
+
+                            DrawerSectionLabel("All apps", c)
+                            if (installedApps.isEmpty()) {
+                                Text(
+                                    "Loading installed apps…",
+                                    color = c.copy(alpha = 0.4f),
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(8.dp),
                                 )
-                            }
-                            installedShown.forEach { app ->
-                                AppGridTile(
-                                    label = app.label,
-                                    color = Color.White.copy(alpha = 0.06f),
-                                    icon = null,
-                                    image = null,
-                                    content = c,
-                                    bitmapApp = app,
-                                    onClick = {
-                                        onClose()
-                                        onLaunchPackage(app.packageName)
-                                    },
-                                    onLongClick = { moveDialogFor = app },
+                            } else {
+                                // Six uniform boxes (2 rows × 3): tap one to open its
+                                // full view. Row 2's third cell is the catch-all "All".
+                                val tileRows = listOf(
+                                    listOf(AppCategory.Connect, AppCategory.Discover, AppCategory.Utilities),
+                                    listOf(AppCategory.Create, AppCategory.Media),
                                 )
+                                tileRows.forEachIndexed { index, row ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        row.forEach { cat ->
+                                            CategoryTile(
+                                                title = cat.label,
+                                                apps = grouped[cat].orEmpty(),
+                                                content = c,
+                                                modifier = Modifier.weight(1f),
+                                                onOpen = { openCategory = cat.id },
+                                            )
+                                        }
+                                        if (index == 1) {
+                                            CategoryTile(
+                                                title = "All",
+                                                apps = installedApps,
+                                                content = c,
+                                                modifier = Modifier.weight(1f),
+                                                onOpen = { openCategory = "all" },
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -602,89 +653,52 @@ private fun ControlPanelCard(
 }
 
 /**
- * One "All apps" category box — a titled card whose installed apps wrap below.
- * Collapsed shows the first few with a “+N” chip; tapping the header expands to
- * the full set. Long-press an app to move it to a different box.
+ * A uniform "All apps" box — a fixed-height tile with a title, app count, and a
+ * small preview of its apps. Tapping anywhere (the tile or a preview icon) opens
+ * the box's full-screen category view inside the Start menu.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CategoryBox(
+private fun CategoryTile(
     title: String,
     apps: List<InstalledApp>,
     content: Color,
-    expanded: Boolean,
     modifier: Modifier = Modifier,
-    onToggle: () -> Unit,
-    onLaunch: (InstalledApp) -> Unit,
-    onMove: (InstalledApp) -> Unit,
+    onOpen: () -> Unit,
 ) {
-    val cap = 8
-    val shown = if (expanded) apps else apps.take(cap)
     Column(
         modifier = modifier
+            .height(104.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(content.copy(alpha = 0.05f))
             .border(1.dp, content.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+            .clickable { onOpen() }
             .padding(8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable { onToggle() }.padding(bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Text(title, color = content, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text("${apps.size} apps", color = content.copy(alpha = 0.4f), fontSize = 10.sp)
+        Spacer(Modifier.height(4.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            Text(title, color = content, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(6.dp))
-            Text("${apps.size}", color = content.copy(alpha = 0.4f), fontSize = 11.sp)
-            Spacer(Modifier.weight(1f))
-            if (apps.size > cap) {
-                Text(if (expanded) "▴" else "▾", color = content.copy(alpha = 0.5f), fontSize = 12.sp)
-            }
-        }
-        if (apps.isEmpty()) {
-            Text("Empty", color = content.copy(alpha = 0.3f), fontSize = 11.sp)
-        } else {
-            FlowRow(modifier = Modifier.fillMaxWidth()) {
-                shown.forEach { app ->
-                    AppMiniTile(app, content, onClick = { onLaunch(app) }, onLongClick = { onMove(app) })
-                }
-                if (!expanded && apps.size > cap) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable { onToggle() },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("+${apps.size - cap}", color = content.copy(alpha = 0.7f), fontSize = 12.sp)
+            apps.take(6).forEach { app ->
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color.White.copy(alpha = 0.06f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val ic = app.icon
+                    if (ic != null) {
+                        Image(bitmap = ic, contentDescription = null, modifier = Modifier.size(18.dp))
+                    } else {
+                        Text(app.label.take(1).uppercase(), color = content, fontSize = 9.sp)
                     }
                 }
             }
-        }
-    }
-}
-
-/** A compact, icon-only installed-app tile used inside the category boxes. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun AppMiniTile(
-    app: InstalledApp,
-    content: Color,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(4.dp)
-            .background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        val ic = app.icon
-        if (ic != null) {
-            Image(bitmap = ic, contentDescription = app.label, modifier = Modifier.size(30.dp))
-        } else {
-            Text(app.label.take(1).uppercase(), color = content, fontSize = 14.sp)
         }
     }
 }
