@@ -35,11 +35,21 @@ internal const val UNCATEGORIZED_ID = "none"
  * so the app lives only under "All" until the user sorts it by hand.
  */
 internal fun autoCategoryFor(androidCategory: Int): AppCategory? = when (androidCategory) {
-    4, 5 -> AppCategory.Connect // SOCIAL, NEWS
-    6 -> AppCategory.Discover // MAPS
-    7, 8 -> AppCategory.Utilities // PRODUCTIVITY, ACCESSIBILITY
-    3 -> AppCategory.Create // IMAGE
-    0, 1, 2 -> AppCategory.Media // GAME, AUDIO, VIDEO
+    4, 5 -> AppCategory.Connect
+
+    // SOCIAL, NEWS
+    6 -> AppCategory.Discover
+
+    // MAPS
+    7, 8 -> AppCategory.Utilities
+
+    // PRODUCTIVITY, ACCESSIBILITY
+    3 -> AppCategory.Create
+
+    // IMAGE
+    0, 1, 2 -> AppCategory.Media
+
+    // GAME, AUDIO, VIDEO
     else -> null
 }
 
@@ -47,9 +57,8 @@ internal fun autoCategoryFor(androidCategory: Int): AppCategory? = when (android
  * The bucket an app currently belongs to: a user override wins, then the
  * auto-sort from the OS category, otherwise null (only under "All").
  */
-internal fun effectiveCategory(app: InstalledApp, settings: AppSettings): AppCategory? =
-    when (val override = settings.getAppCategoryOverride(app.packageName)) {
-        "" -> autoCategoryFor(app.category)
-        UNCATEGORIZED_ID -> null
-        else -> AppCategory.fromId(override)
-    }
+internal fun effectiveCategory(app: InstalledApp, settings: AppSettings): AppCategory? = when (val override = settings.getAppCategoryOverride(app.packageName)) {
+    "" -> autoCategoryFor(app.category)
+    UNCATEGORIZED_ID -> null
+    else -> AppCategory.fromId(override)
+}
