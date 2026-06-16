@@ -74,7 +74,6 @@ import morsvitaest.composeapp.generated.resources.ic_glass_camera
 import morsvitaest.composeapp.generated.resources.ic_glass_messages
 import morsvitaest.composeapp.generated.resources.ic_glass_phone
 import morsvitaest.composeapp.generated.resources.ic_glass_terminal
-import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import morsvitaest.composeapp.generated.resources.ic_pack_01
 import morsvitaest.composeapp.generated.resources.ic_pack_02
 import morsvitaest.composeapp.generated.resources.ic_pack_03
@@ -161,6 +160,7 @@ import morsvitaest.composeapp.generated.resources.ic_pack_83
 import morsvitaest.composeapp.generated.resources.ic_pack_84
 import morsvitaest.composeapp.generated.resources.ic_pack_85
 import morsvitaest.composeapp.generated.resources.ic_pack_86
+import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -276,9 +276,8 @@ private val customIconPack: List<Pair<String, DrawableResource>> = listOf(
     "ic_pack_86" to Res.drawable.ic_pack_86,
 )
 
-private fun iconResFor(id: String): DrawableResource? =
-    builtInDesktopIcons.firstOrNull { it.first == id }?.second
-        ?: customIconPack.firstOrNull { it.first == id }?.second
+private fun iconResFor(id: String): DrawableResource? = builtInDesktopIcons.firstOrNull { it.first == id }?.second
+    ?: customIconPack.firstOrNull { it.first == id }?.second
 
 /**
  * The desktop: a blank canvas of user-created icons and folders. Long-press an
