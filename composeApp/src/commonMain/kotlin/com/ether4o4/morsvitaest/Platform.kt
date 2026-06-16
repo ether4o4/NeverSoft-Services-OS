@@ -112,11 +112,16 @@ expect fun openSystemApp(app: SystemApp): Boolean
  */
 expect fun saveLauncherImage(name: String, bytes: ByteArray): String?
 
-/** A launchable app installed on the device. */
+/**
+ * A launchable app installed on the device. [category] mirrors Android's
+ * `ApplicationInfo.category` (API 26+; -1 = undefined) so the Start menu can
+ * auto-sort apps into its "All apps" boxes without the Android SDK in common code.
+ */
 data class InstalledApp(
     val label: String,
     val packageName: String,
     val icon: ImageBitmap?,
+    val category: Int = -1,
 )
 
 /** Every launchable app installed on the device, sorted by label. */

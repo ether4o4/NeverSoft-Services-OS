@@ -364,6 +364,18 @@ fun HudShellScreen(
                 onToggleDockPin = ::toggleDockPin,
                 onLaunchPackage = { launchApp(it) },
                 onClose = { showDrawer = false },
+                onOpenLauncherCustomize = {
+                    showDrawer = false
+                    onOpenSettings()
+                },
+                onOpenAgentSettings = {
+                    showDrawer = false
+                    onOpenModels()
+                },
+                onLaunchChat = {
+                    showDrawer = false
+                    onOpenChat()
+                },
             )
         }
     }
