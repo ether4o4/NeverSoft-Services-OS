@@ -60,7 +60,9 @@ class ChatViewModelLiteRTTest {
 
     @Test
     fun `warning shown when LiteRT is primary service with no downloaded models`() = runTest {
-        fakeRepository.fakeServiceEntries = listOf(litertServiceEntry())
+        // A cloud service must also be configured; otherwise the hosted Free model is
+        // forced primary and the chat works out of the box without a warning.
+        fakeRepository.fakeServiceEntries = listOf(litertServiceEntry(), geminiServiceEntry())
         fakeRepository.fakeLocalDownloadedModels = emptyList()
 
         val viewModel = createViewModel()
@@ -68,6 +70,21 @@ class ChatViewModelLiteRTTest {
         viewModel.state.test {
             val state = awaitItem()
             assertNotNull(state.warning)
+        }
+    }
+
+    @Test
+    fun `no warning when on-device-only setup has no models (Free becomes primary)`() = runTest {
+        // With no cloud service configured, the hosted Free model is made primary so
+        // chat works out of the box instead of warning about no downloaded models.
+        fakeRepository.fakeServiceEntries = listOf(litertServiceEntry())
+        fakeRepository.fakeLocalDownloadedModels = emptyList()
+
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            val state = awaitItem()
+            assertNull(state.warning)
         }
     }
 
@@ -118,7 +135,9 @@ class ChatViewModelLiteRTTest {
 
     @Test
     fun `warning cleared after switching to non-on-device service`() = runTest {
-        fakeRepository.fakeServiceEntries = listOf(litertServiceEntry())
+        // LiteRT first alongside a cloud service keeps the on-device service primary so
+        // the warning appears; switching to Gemini should then clear it.
+        fakeRepository.fakeServiceEntries = listOf(litertServiceEntry(), geminiServiceEntry())
         fakeRepository.fakeLocalDownloadedModels = emptyList()
 
         val viewModel = createViewModel()
