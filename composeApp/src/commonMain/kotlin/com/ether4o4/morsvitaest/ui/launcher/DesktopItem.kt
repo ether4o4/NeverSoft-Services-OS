@@ -1,11 +1,11 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
 import com.ether4o4.morsvitaest.data.AppSettings
-import kotlin.random.Random
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.random.Random
 
 /**
  * A user-created desktop item — a folder or a launchable shortcut. The whole set
