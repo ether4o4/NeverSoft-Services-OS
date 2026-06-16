@@ -128,6 +128,8 @@ fun LauncherScreen(
     // Bumped when the Launcher Settings window closes so a freshly picked
     // wallpaper / Start-orb photo (and theme/label changes) apply live.
     var appearanceVersion by remember { mutableStateOf(0) }
+    // Bumped when a desktop shortcut is created from the Start menu so the canvas reloads.
+    var desktopVersion by remember { mutableStateOf(0) }
     val wallpaperColors = remember(appearanceVersion) {
         launcherWallpapers.firstOrNull { it.first == settings.getLauncherWallpaper() }
             ?.second ?: launcherWallpapers.first().second
@@ -304,6 +306,7 @@ fun LauncherScreen(
                                 onLaunchTarget = { openLink(it) },
                                 onChangeWallpaper = { openWindow(DesktopApp.LauncherSettings) },
                                 modifier = Modifier.fillMaxSize(),
+                                reloadKey = desktopVersion,
                             )
 
                             // Floating windows (sorted by z), above icons.
@@ -426,6 +429,8 @@ fun LauncherScreen(
                     showDrawer = false
                     openWindow(DesktopApp.Assistant)
                 },
+                allowDesktopShortcut = true,
+                onDesktopChanged = { desktopVersion++ },
             )
         }
 

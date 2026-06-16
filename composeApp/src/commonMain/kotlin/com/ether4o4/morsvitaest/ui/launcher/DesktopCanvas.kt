@@ -62,10 +62,105 @@ import kotlinx.coroutines.launch
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_desk_apps
 import morsvitaest.composeapp.generated.resources.ic_desk_computer
+import morsvitaest.composeapp.generated.resources.ic_desk_documents
 import morsvitaest.composeapp.generated.resources.ic_desk_folder
+import morsvitaest.composeapp.generated.resources.ic_desk_internet
 import morsvitaest.composeapp.generated.resources.ic_desk_search
 import morsvitaest.composeapp.generated.resources.ic_desk_security
 import morsvitaest.composeapp.generated.resources.ic_desk_settings
+import morsvitaest.composeapp.generated.resources.ic_desk_trash
+import morsvitaest.composeapp.generated.resources.ic_desk_wifi
+import morsvitaest.composeapp.generated.resources.ic_glass_camera
+import morsvitaest.composeapp.generated.resources.ic_glass_messages
+import morsvitaest.composeapp.generated.resources.ic_glass_phone
+import morsvitaest.composeapp.generated.resources.ic_glass_terminal
+import morsvitaest.composeapp.generated.resources.ic_pack_01
+import morsvitaest.composeapp.generated.resources.ic_pack_02
+import morsvitaest.composeapp.generated.resources.ic_pack_03
+import morsvitaest.composeapp.generated.resources.ic_pack_04
+import morsvitaest.composeapp.generated.resources.ic_pack_05
+import morsvitaest.composeapp.generated.resources.ic_pack_06
+import morsvitaest.composeapp.generated.resources.ic_pack_07
+import morsvitaest.composeapp.generated.resources.ic_pack_08
+import morsvitaest.composeapp.generated.resources.ic_pack_09
+import morsvitaest.composeapp.generated.resources.ic_pack_10
+import morsvitaest.composeapp.generated.resources.ic_pack_11
+import morsvitaest.composeapp.generated.resources.ic_pack_12
+import morsvitaest.composeapp.generated.resources.ic_pack_13
+import morsvitaest.composeapp.generated.resources.ic_pack_14
+import morsvitaest.composeapp.generated.resources.ic_pack_15
+import morsvitaest.composeapp.generated.resources.ic_pack_16
+import morsvitaest.composeapp.generated.resources.ic_pack_17
+import morsvitaest.composeapp.generated.resources.ic_pack_18
+import morsvitaest.composeapp.generated.resources.ic_pack_19
+import morsvitaest.composeapp.generated.resources.ic_pack_20
+import morsvitaest.composeapp.generated.resources.ic_pack_21
+import morsvitaest.composeapp.generated.resources.ic_pack_22
+import morsvitaest.composeapp.generated.resources.ic_pack_23
+import morsvitaest.composeapp.generated.resources.ic_pack_24
+import morsvitaest.composeapp.generated.resources.ic_pack_25
+import morsvitaest.composeapp.generated.resources.ic_pack_26
+import morsvitaest.composeapp.generated.resources.ic_pack_27
+import morsvitaest.composeapp.generated.resources.ic_pack_28
+import morsvitaest.composeapp.generated.resources.ic_pack_29
+import morsvitaest.composeapp.generated.resources.ic_pack_30
+import morsvitaest.composeapp.generated.resources.ic_pack_31
+import morsvitaest.composeapp.generated.resources.ic_pack_32
+import morsvitaest.composeapp.generated.resources.ic_pack_33
+import morsvitaest.composeapp.generated.resources.ic_pack_34
+import morsvitaest.composeapp.generated.resources.ic_pack_35
+import morsvitaest.composeapp.generated.resources.ic_pack_36
+import morsvitaest.composeapp.generated.resources.ic_pack_37
+import morsvitaest.composeapp.generated.resources.ic_pack_38
+import morsvitaest.composeapp.generated.resources.ic_pack_39
+import morsvitaest.composeapp.generated.resources.ic_pack_40
+import morsvitaest.composeapp.generated.resources.ic_pack_41
+import morsvitaest.composeapp.generated.resources.ic_pack_42
+import morsvitaest.composeapp.generated.resources.ic_pack_43
+import morsvitaest.composeapp.generated.resources.ic_pack_44
+import morsvitaest.composeapp.generated.resources.ic_pack_45
+import morsvitaest.composeapp.generated.resources.ic_pack_46
+import morsvitaest.composeapp.generated.resources.ic_pack_47
+import morsvitaest.composeapp.generated.resources.ic_pack_48
+import morsvitaest.composeapp.generated.resources.ic_pack_49
+import morsvitaest.composeapp.generated.resources.ic_pack_50
+import morsvitaest.composeapp.generated.resources.ic_pack_51
+import morsvitaest.composeapp.generated.resources.ic_pack_52
+import morsvitaest.composeapp.generated.resources.ic_pack_53
+import morsvitaest.composeapp.generated.resources.ic_pack_54
+import morsvitaest.composeapp.generated.resources.ic_pack_55
+import morsvitaest.composeapp.generated.resources.ic_pack_56
+import morsvitaest.composeapp.generated.resources.ic_pack_57
+import morsvitaest.composeapp.generated.resources.ic_pack_58
+import morsvitaest.composeapp.generated.resources.ic_pack_59
+import morsvitaest.composeapp.generated.resources.ic_pack_60
+import morsvitaest.composeapp.generated.resources.ic_pack_61
+import morsvitaest.composeapp.generated.resources.ic_pack_62
+import morsvitaest.composeapp.generated.resources.ic_pack_63
+import morsvitaest.composeapp.generated.resources.ic_pack_64
+import morsvitaest.composeapp.generated.resources.ic_pack_65
+import morsvitaest.composeapp.generated.resources.ic_pack_66
+import morsvitaest.composeapp.generated.resources.ic_pack_67
+import morsvitaest.composeapp.generated.resources.ic_pack_68
+import morsvitaest.composeapp.generated.resources.ic_pack_69
+import morsvitaest.composeapp.generated.resources.ic_pack_70
+import morsvitaest.composeapp.generated.resources.ic_pack_71
+import morsvitaest.composeapp.generated.resources.ic_pack_72
+import morsvitaest.composeapp.generated.resources.ic_pack_73
+import morsvitaest.composeapp.generated.resources.ic_pack_74
+import morsvitaest.composeapp.generated.resources.ic_pack_75
+import morsvitaest.composeapp.generated.resources.ic_pack_76
+import morsvitaest.composeapp.generated.resources.ic_pack_77
+import morsvitaest.composeapp.generated.resources.ic_pack_78
+import morsvitaest.composeapp.generated.resources.ic_pack_79
+import morsvitaest.composeapp.generated.resources.ic_pack_80
+import morsvitaest.composeapp.generated.resources.ic_pack_81
+import morsvitaest.composeapp.generated.resources.ic_pack_82
+import morsvitaest.composeapp.generated.resources.ic_pack_83
+import morsvitaest.composeapp.generated.resources.ic_pack_84
+import morsvitaest.composeapp.generated.resources.ic_pack_85
+import morsvitaest.composeapp.generated.resources.ic_pack_86
+import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -77,12 +172,112 @@ private val builtInDesktopIcons: List<Pair<String, DrawableResource>> = listOf(
     "folder" to Res.drawable.ic_desk_folder,
     "apps" to Res.drawable.ic_desk_apps,
     "computer" to Res.drawable.ic_desk_computer,
+    "documents" to Res.drawable.ic_desk_documents,
+    "internet" to Res.drawable.ic_desk_internet,
     "search" to Res.drawable.ic_desk_search,
     "security" to Res.drawable.ic_desk_security,
     "settings" to Res.drawable.ic_desk_settings,
+    "trash" to Res.drawable.ic_desk_trash,
+    "wifi" to Res.drawable.ic_desk_wifi,
+    "camera" to Res.drawable.ic_glass_camera,
+    "messages" to Res.drawable.ic_glass_messages,
+    "phone" to Res.drawable.ic_glass_phone,
+    "terminal" to Res.drawable.ic_glass_terminal,
+    "mascot" to Res.drawable.ns_mascot_face,
+)
+
+// The user's bundled custom icon pack (drawables named ic_pack_*).
+private val customIconPack: List<Pair<String, DrawableResource>> = listOf(
+    "ic_pack_01" to Res.drawable.ic_pack_01,
+    "ic_pack_02" to Res.drawable.ic_pack_02,
+    "ic_pack_03" to Res.drawable.ic_pack_03,
+    "ic_pack_04" to Res.drawable.ic_pack_04,
+    "ic_pack_05" to Res.drawable.ic_pack_05,
+    "ic_pack_06" to Res.drawable.ic_pack_06,
+    "ic_pack_07" to Res.drawable.ic_pack_07,
+    "ic_pack_08" to Res.drawable.ic_pack_08,
+    "ic_pack_09" to Res.drawable.ic_pack_09,
+    "ic_pack_10" to Res.drawable.ic_pack_10,
+    "ic_pack_11" to Res.drawable.ic_pack_11,
+    "ic_pack_12" to Res.drawable.ic_pack_12,
+    "ic_pack_13" to Res.drawable.ic_pack_13,
+    "ic_pack_14" to Res.drawable.ic_pack_14,
+    "ic_pack_15" to Res.drawable.ic_pack_15,
+    "ic_pack_16" to Res.drawable.ic_pack_16,
+    "ic_pack_17" to Res.drawable.ic_pack_17,
+    "ic_pack_18" to Res.drawable.ic_pack_18,
+    "ic_pack_19" to Res.drawable.ic_pack_19,
+    "ic_pack_20" to Res.drawable.ic_pack_20,
+    "ic_pack_21" to Res.drawable.ic_pack_21,
+    "ic_pack_22" to Res.drawable.ic_pack_22,
+    "ic_pack_23" to Res.drawable.ic_pack_23,
+    "ic_pack_24" to Res.drawable.ic_pack_24,
+    "ic_pack_25" to Res.drawable.ic_pack_25,
+    "ic_pack_26" to Res.drawable.ic_pack_26,
+    "ic_pack_27" to Res.drawable.ic_pack_27,
+    "ic_pack_28" to Res.drawable.ic_pack_28,
+    "ic_pack_29" to Res.drawable.ic_pack_29,
+    "ic_pack_30" to Res.drawable.ic_pack_30,
+    "ic_pack_31" to Res.drawable.ic_pack_31,
+    "ic_pack_32" to Res.drawable.ic_pack_32,
+    "ic_pack_33" to Res.drawable.ic_pack_33,
+    "ic_pack_34" to Res.drawable.ic_pack_34,
+    "ic_pack_35" to Res.drawable.ic_pack_35,
+    "ic_pack_36" to Res.drawable.ic_pack_36,
+    "ic_pack_37" to Res.drawable.ic_pack_37,
+    "ic_pack_38" to Res.drawable.ic_pack_38,
+    "ic_pack_39" to Res.drawable.ic_pack_39,
+    "ic_pack_40" to Res.drawable.ic_pack_40,
+    "ic_pack_41" to Res.drawable.ic_pack_41,
+    "ic_pack_42" to Res.drawable.ic_pack_42,
+    "ic_pack_43" to Res.drawable.ic_pack_43,
+    "ic_pack_44" to Res.drawable.ic_pack_44,
+    "ic_pack_45" to Res.drawable.ic_pack_45,
+    "ic_pack_46" to Res.drawable.ic_pack_46,
+    "ic_pack_47" to Res.drawable.ic_pack_47,
+    "ic_pack_48" to Res.drawable.ic_pack_48,
+    "ic_pack_49" to Res.drawable.ic_pack_49,
+    "ic_pack_50" to Res.drawable.ic_pack_50,
+    "ic_pack_51" to Res.drawable.ic_pack_51,
+    "ic_pack_52" to Res.drawable.ic_pack_52,
+    "ic_pack_53" to Res.drawable.ic_pack_53,
+    "ic_pack_54" to Res.drawable.ic_pack_54,
+    "ic_pack_55" to Res.drawable.ic_pack_55,
+    "ic_pack_56" to Res.drawable.ic_pack_56,
+    "ic_pack_57" to Res.drawable.ic_pack_57,
+    "ic_pack_58" to Res.drawable.ic_pack_58,
+    "ic_pack_59" to Res.drawable.ic_pack_59,
+    "ic_pack_60" to Res.drawable.ic_pack_60,
+    "ic_pack_61" to Res.drawable.ic_pack_61,
+    "ic_pack_62" to Res.drawable.ic_pack_62,
+    "ic_pack_63" to Res.drawable.ic_pack_63,
+    "ic_pack_64" to Res.drawable.ic_pack_64,
+    "ic_pack_65" to Res.drawable.ic_pack_65,
+    "ic_pack_66" to Res.drawable.ic_pack_66,
+    "ic_pack_67" to Res.drawable.ic_pack_67,
+    "ic_pack_68" to Res.drawable.ic_pack_68,
+    "ic_pack_69" to Res.drawable.ic_pack_69,
+    "ic_pack_70" to Res.drawable.ic_pack_70,
+    "ic_pack_71" to Res.drawable.ic_pack_71,
+    "ic_pack_72" to Res.drawable.ic_pack_72,
+    "ic_pack_73" to Res.drawable.ic_pack_73,
+    "ic_pack_74" to Res.drawable.ic_pack_74,
+    "ic_pack_75" to Res.drawable.ic_pack_75,
+    "ic_pack_76" to Res.drawable.ic_pack_76,
+    "ic_pack_77" to Res.drawable.ic_pack_77,
+    "ic_pack_78" to Res.drawable.ic_pack_78,
+    "ic_pack_79" to Res.drawable.ic_pack_79,
+    "ic_pack_80" to Res.drawable.ic_pack_80,
+    "ic_pack_81" to Res.drawable.ic_pack_81,
+    "ic_pack_82" to Res.drawable.ic_pack_82,
+    "ic_pack_83" to Res.drawable.ic_pack_83,
+    "ic_pack_84" to Res.drawable.ic_pack_84,
+    "ic_pack_85" to Res.drawable.ic_pack_85,
+    "ic_pack_86" to Res.drawable.ic_pack_86,
 )
 
 private fun iconResFor(id: String): DrawableResource? = builtInDesktopIcons.firstOrNull { it.first == id }?.second
+    ?: customIconPack.firstOrNull { it.first == id }?.second
 
 /**
  * The desktop: a blank canvas of user-created icons and folders. Long-press an
@@ -98,10 +293,12 @@ internal fun DesktopCanvas(
     onLaunchTarget: (String) -> Unit,
     onChangeWallpaper: () -> Unit,
     modifier: Modifier = Modifier,
+    reloadKey: Int = 0,
 ) {
     val settings = koinInject<AppSettings>()
     val scope = rememberCoroutineScope()
-    val items = remember { mutableStateListOf<DesktopItem>().also { it.addAll(settings.loadDesktopItems()) } }
+    // reloadKey changes (e.g. a shortcut added from the Start menu) reload from storage.
+    val items = remember(reloadKey) { mutableStateListOf<DesktopItem>().also { it.addAll(settings.loadDesktopItems()) } }
     fun persist() = settings.saveDesktopItems(items.toList())
 
     var menuOffset by remember { mutableStateOf<Offset?>(null) }
@@ -446,6 +643,7 @@ private fun NewIconDialog(
     var label by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("") }
     var iconId by remember { mutableStateOf("") }
+    var appQuery by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("New icon") },
@@ -469,22 +667,32 @@ private fun NewIconDialog(
                 )
                 Spacer(Modifier.height(6.dp))
                 Text("…or pick an installed app:", fontSize = 12.sp)
+                OutlinedTextField(
+                    value = appQuery,
+                    onValueChange = { appQuery = it },
+                    singleLine = true,
+                    label = { Text("Search apps") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(4.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    installedApps.take(24).forEach { app ->
-                        Text(
-                            app.label,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .clickable {
-                                    target = app.packageName
-                                    if (label.isBlank()) label = app.label
-                                }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
+                    installedApps
+                        .filter { appQuery.isBlank() || it.label.contains(appQuery, ignoreCase = true) }
+                        .forEach { app ->
+                            Text(
+                                app.label,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .clickable {
+                                        target = app.packageName
+                                        if (label.isBlank()) label = app.label
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text("Image", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -495,8 +703,8 @@ private fun NewIconDialog(
                     }
                 }
                 Text("…or a built-in icon:", fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    builtInDesktopIcons.forEach { (id, res) ->
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    (builtInDesktopIcons + customIconPack).forEach { (id, res) ->
                         Box(
                             modifier = Modifier
                                 .size(40.dp)

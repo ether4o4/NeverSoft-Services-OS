@@ -1,6 +1,6 @@
 # Local GGUF (llama.cpp in the sandbox)
 
-**Last verified:** 2026-06-07
+**Last verified:** 2026-06-16
 
 MorsVitaEst can run GGUF models from Hugging Face fully on-device, without a separate
 Ollama install and without the user typing anything into a terminal. It reuses two pieces
