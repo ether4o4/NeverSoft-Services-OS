@@ -112,6 +112,8 @@ internal fun StartDrawer(
     onOpenLauncherCustomize: () -> Unit = {},
     onOpenAgentSettings: () -> Unit = {},
     onLaunchChat: () -> Unit = {},
+    allowDesktopShortcut: Boolean = false,
+    onDesktopChanged: () -> Unit = {},
 ) {
     val settings = koinInject<AppSettings>()
     var query by remember { mutableStateOf("") }
@@ -522,9 +524,17 @@ internal fun StartDrawer(
         AlertDialog(
             onDismissRequest = { moveDialogFor = null },
             title = { Text(app.label) },
-            text = { Text("Move this app to a different box. ‘Auto’ uses the system category; ‘All only’ keeps it out of every box.") },
+            text = { Text("Put this app on the desktop, or move it to a different box. ‘Auto’ uses the system category; ‘All only’ keeps it out of every box.") },
             confirmButton = {
                 Column {
+                    if (allowDesktopShortcut) {
+                        TextButton(onClick = {
+                            settings.addDesktopShortcut(app.packageName, app.label)
+                            onDesktopChanged()
+                            moveDialogFor = null
+                            onClose()
+                        }) { Text("Create desktop shortcut") }
+                    }
                     AppCategory.entries.forEach { cat ->
                         TextButton(onClick = {
                             settings.setAppCategoryOverride(app.packageName, cat.id)

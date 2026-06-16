@@ -1,6 +1,7 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
 import com.ether4o4.morsvitaest.data.AppSettings
+import kotlin.random.Random
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -37,4 +38,16 @@ internal fun AppSettings.loadDesktopItems(): List<DesktopItem> = try {
 
 internal fun AppSettings.saveDesktopItems(items: List<DesktopItem>) {
     setDesktopItemsJson(desktopItemsJson.encodeToString(items))
+}
+
+/** Appends a launchable shortcut to the desktop (or a folder) and persists it. */
+internal fun AppSettings.addDesktopShortcut(target: String, label: String, parent: String = "") {
+    val item = DesktopItem(
+        id = "item_${Random.nextLong()}",
+        isFolder = false,
+        label = label,
+        target = target,
+        parent = parent,
+    )
+    saveDesktopItems(loadDesktopItems() + item)
 }

@@ -62,10 +62,19 @@ import kotlinx.coroutines.launch
 import morsvitaest.composeapp.generated.resources.Res
 import morsvitaest.composeapp.generated.resources.ic_desk_apps
 import morsvitaest.composeapp.generated.resources.ic_desk_computer
+import morsvitaest.composeapp.generated.resources.ic_desk_documents
 import morsvitaest.composeapp.generated.resources.ic_desk_folder
+import morsvitaest.composeapp.generated.resources.ic_desk_internet
 import morsvitaest.composeapp.generated.resources.ic_desk_search
 import morsvitaest.composeapp.generated.resources.ic_desk_security
 import morsvitaest.composeapp.generated.resources.ic_desk_settings
+import morsvitaest.composeapp.generated.resources.ic_desk_trash
+import morsvitaest.composeapp.generated.resources.ic_desk_wifi
+import morsvitaest.composeapp.generated.resources.ic_glass_camera
+import morsvitaest.composeapp.generated.resources.ic_glass_messages
+import morsvitaest.composeapp.generated.resources.ic_glass_phone
+import morsvitaest.composeapp.generated.resources.ic_glass_terminal
+import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -77,9 +86,18 @@ private val builtInDesktopIcons: List<Pair<String, DrawableResource>> = listOf(
     "folder" to Res.drawable.ic_desk_folder,
     "apps" to Res.drawable.ic_desk_apps,
     "computer" to Res.drawable.ic_desk_computer,
+    "documents" to Res.drawable.ic_desk_documents,
+    "internet" to Res.drawable.ic_desk_internet,
     "search" to Res.drawable.ic_desk_search,
     "security" to Res.drawable.ic_desk_security,
     "settings" to Res.drawable.ic_desk_settings,
+    "trash" to Res.drawable.ic_desk_trash,
+    "wifi" to Res.drawable.ic_desk_wifi,
+    "camera" to Res.drawable.ic_glass_camera,
+    "messages" to Res.drawable.ic_glass_messages,
+    "phone" to Res.drawable.ic_glass_phone,
+    "terminal" to Res.drawable.ic_glass_terminal,
+    "mascot" to Res.drawable.ns_mascot_face,
 )
 
 private fun iconResFor(id: String): DrawableResource? = builtInDesktopIcons.firstOrNull { it.first == id }?.second
@@ -98,10 +116,12 @@ internal fun DesktopCanvas(
     onLaunchTarget: (String) -> Unit,
     onChangeWallpaper: () -> Unit,
     modifier: Modifier = Modifier,
+    reloadKey: Int = 0,
 ) {
     val settings = koinInject<AppSettings>()
     val scope = rememberCoroutineScope()
-    val items = remember { mutableStateListOf<DesktopItem>().also { it.addAll(settings.loadDesktopItems()) } }
+    // reloadKey changes (e.g. a shortcut added from the Start menu) reload from storage.
+    val items = remember(reloadKey) { mutableStateListOf<DesktopItem>().also { it.addAll(settings.loadDesktopItems()) } }
     fun persist() = settings.saveDesktopItems(items.toList())
 
     var menuOffset by remember { mutableStateOf<Offset?>(null) }
@@ -446,6 +466,7 @@ private fun NewIconDialog(
     var label by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("") }
     var iconId by remember { mutableStateOf("") }
+    var appQuery by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("New icon") },
@@ -469,22 +490,32 @@ private fun NewIconDialog(
                 )
                 Spacer(Modifier.height(6.dp))
                 Text("…or pick an installed app:", fontSize = 12.sp)
+                OutlinedTextField(
+                    value = appQuery,
+                    onValueChange = { appQuery = it },
+                    singleLine = true,
+                    label = { Text("Search apps") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(4.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    installedApps.take(24).forEach { app ->
-                        Text(
-                            app.label,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .clickable {
-                                    target = app.packageName
-                                    if (label.isBlank()) label = app.label
-                                }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
+                    installedApps
+                        .filter { appQuery.isBlank() || it.label.contains(appQuery, ignoreCase = true) }
+                        .forEach { app ->
+                            Text(
+                                app.label,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .clickable {
+                                        target = app.packageName
+                                        if (label.isBlank()) label = app.label
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text("Image", fontSize = 12.sp, fontWeight = FontWeight.Bold)
