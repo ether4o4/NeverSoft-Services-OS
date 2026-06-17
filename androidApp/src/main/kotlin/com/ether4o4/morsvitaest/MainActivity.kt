@@ -106,11 +106,9 @@ class MainActivity : ComponentActivity() {
         // close and reopen the app for scheduling to resume. `startForegroundService`
         // is idempotent when the service is already up.
         autoStartDaemon()
-        reconcileTaskbar()
-    }
-
-    override fun onStop() {
-        super.onStop()
+        // Start the permanent overlay taskbar (if enabled). Done from the
+        // foreground, where starting a foreground service is always allowed; the
+        // service then keeps the bar up on its own — no background re-assert needed.
         reconcileTaskbar()
     }
 
