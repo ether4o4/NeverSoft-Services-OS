@@ -64,7 +64,7 @@ import kotlin.time.ExperimentalTime
  */
 @OptIn(ExperimentalTime::class)
 @Composable
-fun WidgetsContent() {
+fun WidgetsContent(onOpenAssistant: () -> Unit = {}) {
     val settings = koinInject<AppSettings>()
     val theme = resolveLauncherTheme(settings.getLauncherTheme())
     val c = theme.content
@@ -220,6 +220,9 @@ fun NotificationsPanel(
                         Text("✕", color = c, fontSize = 14.sp)
                     }
                 }
+
+                // The NS agent hangs at the top of the widgets; tap to open the assistant.
+                HangingMascot(sizeDp = 120, onClick = onOpenAssistant)
 
                 // Clock widget
                 Text(time, color = c, fontSize = 64.sp, fontWeight = FontWeight.Bold)

@@ -619,7 +619,7 @@ private fun LauncherAppWindowContent(
 
         DesktopApp.Spotlight -> SpotlightContent(onRequestClose = onRequestClose)
 
-        DesktopApp.Widgets -> WidgetsContent()
+        DesktopApp.Widgets -> WidgetsContent(onOpenAssistant = onOpenChat)
 
         DesktopApp.LauncherSettings -> LauncherSettingsContent(
             onOpenAiSettings = { /* AI settings opens from the Settings desktop tile. */ },
