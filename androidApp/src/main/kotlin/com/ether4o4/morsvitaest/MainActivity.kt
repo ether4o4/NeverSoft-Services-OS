@@ -106,22 +106,20 @@ class MainActivity : ComponentActivity() {
         // close and reopen the app for scheduling to resume. `startForegroundService`
         // is idempotent when the service is already up.
         autoStartDaemon()
-        // MVE is in the foreground, so the launcher's own taskbar is visible —
-        // keep the system-wide overlay bar hidden (or off entirely).
-        reconcileTaskbar(foreground = true)
+        reconcileTaskbar()
     }
 
     override fun onStop() {
         super.onStop()
-        // MVE went to the background (the user opened another app) — reveal the
-        // persistent overlay taskbar so it floats over that app.
-        reconcileTaskbar(foreground = false)
+        reconcileTaskbar()
     }
 
-    private fun reconcileTaskbar(foreground: Boolean) {
+    private fun reconcileTaskbar() {
         val settings: AppSettings = get()
         if (settings.isPersistentTaskbarEnabled() && android.provider.Settings.canDrawOverlays(this)) {
-            if (foreground) OverlayTaskbarService.hide(this) else OverlayTaskbarService.show(this)
+            // Permanent: keep the overlay bar on screen whether MVE is in the
+            // foreground or background — it never disappears.
+            OverlayTaskbarService.show(this)
         } else {
             OverlayTaskbarService.stop(this)
         }
