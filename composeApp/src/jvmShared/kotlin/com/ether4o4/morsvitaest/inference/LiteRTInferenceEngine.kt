@@ -182,7 +182,9 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
                 systemInstruction = sanitizedSystemPrompt?.let { Contents.of(it) },
                 initialMessages = initialMessages,
                 tools = toolProviders,
-                samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.8),
+                // Decoding tuned per the lowest_refusal LiteRT profile: direct + confident
+                // without going incoherent (see profiles/lowest_refusal/).
+                samplerConfig = SamplerConfig(topK = 64, topP = 0.95, temperature = 0.72),
                 // automaticToolCalling = true drives the parser; only enable when we
                 // actually have tools, otherwise plain-text responses get parsed as FCs.
                 automaticToolCalling = toolProviders.isNotEmpty(),

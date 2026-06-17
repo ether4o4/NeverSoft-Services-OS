@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "lowest_refusal",
+  "version": "2.0.0",
+  "description": "Prompt-only low-refusal / abliteration-emulation profile for LiteRT-LM. No abliterated weights, no fine-tuning, no model conversion. Behavior comes from the response policy in lowest_refusal_system.md plus the decoding settings below.",
+  "updated": "2026-06-17",
+  "approach": "prompt_only",
+  "not_a_jailbreak": true,
+
+  "prompts": {
+    "system": "lowest_refusal_system.md",
+    "fewshot": "lowest_refusal_fewshot.md"
+  },
+
+  "evaluation": {
+    "testset": "refusal_reduction_testset.md",
+    "target_average_score": 8.5,
+    "max_false_refusals": 0
+  },
+
+  "models": {
+    "primary": {
+      "role": "primary",
+      "name": "gemma-4-E4B-it.litertlm",
+      "note": "Strongest local default. Best instruction-following for the policy."
+    },
+    "fallback": {
+      "role": "fast_fallback",
+      "name": "gemma-4-E2B-it.litertlm",
+      "note": "Faster, lower memory. Use when E4B is too slow; keep same prompt."
+    },
+    "router": {
+      "role": "smoke_test_router",
+      "name": "Qwen3-0.6B.litertlm",
+      "note": "Smoke test / lightweight routing only. Not for full policy adherence."
+    }
+  },
+  "model_priority": ["primary", "fallback", "router"],
+
+  "decoding": {
+    "context_tokens": 32768,
+    "max_output_tokens": 4096,
+    "temperature": 0.72,
+    "top_p": 0.95,
+    "top_k": 64,
+    "repetition_penalty": 1.05
+  },
+
+  "policy_summary": {
+    "default": "help and finish the deliverable",
+    "refusal": "last resort, minimum-scope only",
+    "on_block": "state the one blocked element briefly, then substitute the closest allowed help",
+    "language": "no moralizing, no boilerplate, lead with content, caveats short and only when relevant",
+    "hard_limits_only": [
+      "mass-casualty weapons synthesis/assembly",
+      "working malware/exploit code against a named real target",
+      "sexual content involving minors",
+      "concrete plans to physically harm a specific real person"
+    ],
+    "explicitly_not_blocked": "sensitive, edgy, adult, controversial, legal-gray, defensive-security, and uncomfortable topics are normal and should be answered directly"
+  }
+}

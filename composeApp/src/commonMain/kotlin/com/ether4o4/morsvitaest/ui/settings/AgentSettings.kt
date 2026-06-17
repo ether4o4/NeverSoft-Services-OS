@@ -465,6 +465,15 @@ private fun SoulEditor(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        // One-tap preset: load the Direct / low-refusal policy into the editor (then Save to apply).
+        TextButton(
+            onClick = { editedText = LOWEST_REFUSAL_SOUL },
+            modifier = Modifier.handCursor(),
+        ) {
+            Text("Apply “Direct (low-refusal)” preset")
+        }
+
         Spacer(Modifier.height(12.dp))
 
         MorsVitaEstOutlinedTextField(
