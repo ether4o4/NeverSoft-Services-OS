@@ -42,13 +42,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ether4o4.morsvitaest.SystemStats
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getSystemStats
 import com.ether4o4.morsvitaest.ui.chat.ChatScreenContent
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.weatherNow
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
