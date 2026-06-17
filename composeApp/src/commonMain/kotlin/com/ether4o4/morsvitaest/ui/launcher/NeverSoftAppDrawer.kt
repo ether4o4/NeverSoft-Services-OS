@@ -212,23 +212,28 @@ internal fun StartDrawer(
                 TextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        // Darken + outline so the field is clearly visible on glass/light themes.
+                        .background(Color.Black.copy(alpha = 0.28f), RoundedCornerShape(22.dp))
+                        .border(1.5.dp, c.copy(alpha = 0.45f), RoundedCornerShape(22.dp)),
                     singleLine = true,
                     leadingIcon = { Text("🔍", fontSize = 14.sp) },
                     placeholder = {
                         Text(
                             "Search for apps, settings, and documents",
-                            color = c.copy(alpha = 0.4f),
+                            color = Color.White.copy(alpha = 0.6f),
                             fontSize = 13.sp,
                         )
                     },
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = c.copy(alpha = 0.08f),
-                        unfocusedContainerColor = c.copy(alpha = 0.08f),
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = c,
-                        unfocusedTextColor = c,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
                         cursorColor = NeverSoftAccent,
                     ),
                 )

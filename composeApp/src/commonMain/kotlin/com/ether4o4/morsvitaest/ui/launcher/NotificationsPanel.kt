@@ -45,7 +45,10 @@ import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.SystemStats
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getSystemStats
+import com.ether4o4.morsvitaest.ui.chat.ChatScreenContent
+import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.weatherNow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -54,6 +57,7 @@ import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -76,16 +80,11 @@ fun WidgetsContent(onOpenAssistant: () -> Unit = {}) {
         }
     }
     val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
-    val hour = local.hour
-    val h12 = if (hour % 12 == 0) 12 else hour % 12
-    val time = "$h12:${local.minute.toString().padStart(2, '0')}"
     val months = listOf(
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December",
     )
-    val weekdays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
     val monthName = months[local.month.ordinal]
-    val weekdayName = weekdays[local.date.dayOfWeek.ordinal]
 
     Column(
         modifier = Modifier
@@ -97,26 +96,25 @@ fun WidgetsContent(onOpenAssistant: () -> Unit = {}) {
                     Modifier.background(theme.panel)
                 },
             )
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // The NS guy hangs out at the top of the widgets box, swinging and
-        // switching poses. Tap him to open the assistant.
-        HangingMascot(sizeDp = 132, onClick = onOpenAssistant)
-        // Clock widget
-        Text(time, color = c, fontSize = 64.sp, fontWeight = FontWeight.Bold)
-        Text("$weekdayName, $monthName ${local.day}", color = c.copy(alpha = 0.75f), fontSize = 16.sp)
-        Spacer(Modifier.height(18.dp))
-
-        WeatherWidget(c)
-        Spacer(Modifier.height(14.dp))
-        SystemWidget(c)
-        Spacer(Modifier.height(14.dp))
-        CalendarWidget(local.year, local.month.ordinal, local.day, monthName, c)
-        Spacer(Modifier.height(14.dp))
-        NoteWidget(settings, c)
-        Spacer(Modifier.height(8.dp))
+        // The live agent chat takes the top of the widget surface.
+        WidgetAgentChat(modifier = Modifier.fillMaxWidth().weight(0.55f))
+        Spacer(Modifier.height(10.dp))
+        // Widgets scroll below the chat.
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(0.45f).verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            WeatherWidget(c)
+            Spacer(Modifier.height(14.dp))
+            SystemWidget(c)
+            Spacer(Modifier.height(14.dp))
+            CalendarWidget(local.year, local.month.ordinal, local.day, monthName, c)
+            Spacer(Modifier.height(14.dp))
+            NoteWidget(settings, c)
+            Spacer(Modifier.height(8.dp))
+        }
     }
 }
 
@@ -145,16 +143,11 @@ fun NotificationsPanel(
         }
     }
     val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
-    val hour = local.hour
-    val h12 = if (hour % 12 == 0) 12 else hour % 12
-    val time = "$h12:${local.minute.toString().padStart(2, '0')}"
     val months = listOf(
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December",
     )
-    val weekdays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
     val monthName = months[local.month.ordinal]
-    val weekdayName = weekdays[local.date.dayOfWeek.ordinal]
 
     BoxWithConstraints(
         modifier = Modifier
@@ -202,9 +195,7 @@ fun NotificationsPanel(
                     )
                     .border(1.dp, c.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
                     .clickable(enabled = false) {}
-                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Header — resize grip is top-left, so close sits top-right.
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -220,23 +211,26 @@ fun NotificationsPanel(
                         Text("✕", color = c, fontSize = 14.sp)
                     }
                 }
-
-                // The NS agent hangs at the top of the widgets; tap to open the assistant.
-                HangingMascot(sizeDp = 120, onClick = onOpenAssistant)
-
-                // Clock widget
-                Text(time, color = c, fontSize = 64.sp, fontWeight = FontWeight.Bold)
-                Text("$weekdayName, $monthName ${local.day}", color = c.copy(alpha = 0.75f), fontSize = 16.sp)
-                Spacer(Modifier.height(18.dp))
-
-                WeatherWidget(c)
-                Spacer(Modifier.height(14.dp))
-                SystemWidget(c)
-                Spacer(Modifier.height(14.dp))
-                CalendarWidget(local.year, local.month.ordinal, local.day, monthName, c)
-                Spacer(Modifier.height(14.dp))
-                NoteWidget(settings, c)
                 Spacer(Modifier.height(8.dp))
+
+                // The persistent agent chat lives at the top of the widget pop-up.
+                WidgetAgentChat(modifier = Modifier.fillMaxWidth().weight(0.55f))
+                Spacer(Modifier.height(10.dp))
+
+                // Widgets scroll below the chat.
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(0.45f).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    WeatherWidget(c)
+                    Spacer(Modifier.height(14.dp))
+                    SystemWidget(c)
+                    Spacer(Modifier.height(14.dp))
+                    CalendarWidget(local.year, local.month.ordinal, local.day, monthName, c)
+                    Spacer(Modifier.height(14.dp))
+                    NoteWidget(settings, c)
+                    Spacer(Modifier.height(8.dp))
+                }
             }
 
             // Drag the top-left grip to resize; bottom-right corner stays put.
@@ -262,6 +256,21 @@ fun NotificationsPanel(
                 Text("⤢", color = c, fontSize = 16.sp)
             }
         }
+    }
+}
+
+/**
+ * The live agent chat embedded at the top of the widget / notification pop-up —
+ * the real chat surface bound to a [ChatViewModel]. Because that view-model is
+ * backed by the singleton DataRepository, this stays in sync with the assistant
+ * conversation everywhere else.
+ */
+@Composable
+private fun WidgetAgentChat(modifier: Modifier = Modifier) {
+    val viewModel: ChatViewModel = koinViewModel()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    Box(modifier = modifier.clip(RoundedCornerShape(10.dp))) {
+        ChatScreenContent(uiState = uiState, showSettingsButton = false)
     }
 }
 
