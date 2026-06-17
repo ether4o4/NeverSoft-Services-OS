@@ -65,7 +65,9 @@ class OverlayTaskbarService : Service() {
         ensureBar()
         when (intent?.action) {
             ACTION_SHOW -> setBarVisible(true)
+
             ACTION_HIDE -> setBarVisible(false)
+
             ACTION_STOP -> {
                 stopSelf()
                 return START_NOT_STICKY
