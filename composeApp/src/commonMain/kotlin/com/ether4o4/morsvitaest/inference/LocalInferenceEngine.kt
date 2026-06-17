@@ -85,6 +85,35 @@ enum class DownloadError {
     DOWNLOAD_INCOMPLETE,
 }
 
+/**
+ * What the guided "set up on-device AI" flow should recommend for a device with
+ * [totalMemoryBytes] of RAM. [recommendedModelId] null means the device is too weak for
+ * any local model and should use the hosted Free (cloud) model instead.
+ */
+data class OnDeviceRecommendation(
+    val recommendedModelId: String?,
+    val gemmaPerformance: DevicePerformance,
+    val qwenPerformance: DevicePerformance,
+)
+
+/**
+ * Picks the most capable model the device can run acceptably: Gemma E2B (proficient tool
+ * calling) where it's GOOD/OK, otherwise the tiny Qwen for basic chat, otherwise null
+ * ("use cloud"). Tool calling needs a real model, so Gemma is preferred wherever it fits.
+ */
+fun recommendOnDeviceModel(totalMemoryBytes: Long): OnDeviceRecommendation {
+    val gemma = MODEL_CATALOG.first { it.id == "gemma-4-e2b-it" }
+    val qwen = MODEL_CATALOG.first { it.id == "qwen3-0.6b" }
+    val gemmaPerf = calculateDevicePerformance(totalMemoryBytes, estimateGpuMemoryMb(gemma, gemma.defaultContextTokens))
+    val qwenPerf = calculateDevicePerformance(totalMemoryBytes, estimateGpuMemoryMb(qwen, qwen.defaultContextTokens))
+    val recommended = when {
+        gemmaPerf != DevicePerformance.POOR -> gemma.id
+        qwenPerf != DevicePerformance.POOR -> qwen.id
+        else -> null
+    }
+    return OnDeviceRecommendation(recommended, gemmaPerf, qwenPerf)
+}
+
 interface LocalInferenceEngine {
     val engineState: StateFlow<EngineState>
     val downloadingModelId: StateFlow<String?>

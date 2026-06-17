@@ -79,6 +79,7 @@ import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openSystemApp
 import com.ether4o4.morsvitaest.openSystemSetting
 import com.ether4o4.morsvitaest.openUrl
+import com.ether4o4.morsvitaest.ui.onboarding.OnDeviceAiSetup
 import com.ether4o4.morsvitaest.ui.onboarding.SettingsGuide
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -142,6 +143,7 @@ fun LauncherScreen(
     var showDrawer by remember { mutableStateOf(false) }
     var showWidgets by remember { mutableStateOf(false) }
     var showGuide by remember { mutableStateOf(false) }
+    var showOnDeviceAi by remember { mutableStateOf(false) }
 
     // Shared Haze source so the floating windows really blur the wallpaper
     // behind them (glassmorphism).
@@ -150,7 +152,12 @@ fun LauncherScreen(
     // Once setup is done, offer the guided tour a single time; it's always
     // re-launchable from the Start menu afterward.
     LaunchedEffect(Unit) {
-        if (settings.hasSeenSetup() && !settings.hasSeenGuide()) showGuide = true
+        if (settings.hasSeenSetup() && !settings.hasSeenGuide()) {
+            showGuide = true
+        } else if (settings.hasSeenSetup() && settings.hasSeenGuide() && !settings.hasOfferedOnDeviceAi()) {
+            // Guided tour already done; offer the one-tap on-device AI setup once.
+            showOnDeviceAi = true
+        }
     }
 
     // ---- Window manager: apps open as floating windows over the desktop. ----
@@ -449,8 +456,13 @@ fun LauncherScreen(
                 onFinish = {
                     showGuide = false
                     settings.setGuideSeen()
+                    if (!settings.hasOfferedOnDeviceAi()) showOnDeviceAi = true
                 },
             )
+        }
+
+        if (showOnDeviceAi) {
+            OnDeviceAiSetup(onClose = { showOnDeviceAi = false })
         }
     }
 }

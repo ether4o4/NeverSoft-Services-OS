@@ -327,10 +327,14 @@ class ChatViewModel(
         val configuredEntries = dataRepository.getServiceEntries()
         val currentFreeMode = dataRepository.getFreeMode()
         // Default to the hosted Free model unless the user has configured a real
-        // cloud (API-key) service. On-device-only or fresh setups prefer Free, so
-        // the chat works out of the box instead of warning "no AI downloaded".
+        // cloud (API-key) service OR set up an on-device model with an actual model
+        // downloaded. A fresh / no-model setup prefers Free so chat works out of the
+        // box instead of warning "no AI downloaded"; once a local model is ready, the
+        // user's on-device service can be primary.
         val hasCloudService = configuredEntries.any { Service.fromId(it.serviceId)?.isOnDevice == false }
-        val freeIsPrimary = dataRepository.isFreeServicePrimary() || !hasCloudService
+        val hasUsableOnDeviceModel = configuredEntries.any { Service.fromId(it.serviceId)?.isOnDevice == true } &&
+            dataRepository.getLocalDownloadedModels().isNotEmpty()
+        val freeIsPrimary = dataRepository.isFreeServicePrimary() || (!hasCloudService && !hasUsableOnDeviceModel)
 
         val freeModes = (listOf(currentFreeMode) + FreeMode.entries.filter { it != currentFreeMode }).map { mode ->
             ServiceEntry(
