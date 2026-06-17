@@ -14,10 +14,10 @@ hosts the **downloadable app** only — the source code is private.
 
 **Latest preview APK (always current):**
 
-[`MorsVitaEst-android-preview.apk`](https://github.com/ether4o4/NeverSoft-Services-OS/releases/download/android-preview-latest/MorsVitaEst-android-preview.apk)
+[`MorsVitaEst-android-preview.apk`](https://github.com/ether4o4/NeverSoft-Services-OS-PR/releases/download/android-preview-latest/MorsVitaEst-android-preview.apk)
 
 The link is stable — the file behind it refreshes with every new build. Browse the
-[Releases tab](https://github.com/ether4o4/NeverSoft-Services-OS/releases) for dated builds.
+[Releases tab](https://github.com/ether4o4/NeverSoft-Services-OS-PR/releases) for dated builds.
 
 ## Install
 

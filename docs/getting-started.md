@@ -10,8 +10,8 @@ Try MorsVitaEst directly in your browser at [ether4o4.github.io/MorsVitaEst](htt
 
 | Platform | Format | Download |
 |----------|--------|----------|
-| Android preview | APK | [Latest rolling preview APK](https://github.com/ether4o4/NeverSoft-Services-OS/releases/download/android-preview-latest/MorsVitaEst-android-preview.apk) plus dated previews on [GitHub Releases](https://github.com/ether4o4/NeverSoft-Services-OS/releases) |
-| Android release | APK | [GitHub Releases](https://github.com/ether4o4/NeverSoft-Services-OS/releases) |
+| Android preview | APK | [Latest rolling preview APK](https://github.com/ether4o4/NeverSoft-Services-OS-PR/releases/download/android-preview-latest/MorsVitaEst-android-preview.apk) plus dated previews on [GitHub Releases](https://github.com/ether4o4/NeverSoft-Services-OS-PR/releases) |
+| Android release | APK | [GitHub Releases](https://github.com/ether4o4/NeverSoft-Services-OS-PR/releases) |
 | iOS | Xcode source build only | No IPA/TestFlight preview is published by CI yet |
 | macOS | DMG | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
 | Windows | MSI | [GitHub Releases](https://github.com/ether4o4/MorsVitaEst/releases) |
