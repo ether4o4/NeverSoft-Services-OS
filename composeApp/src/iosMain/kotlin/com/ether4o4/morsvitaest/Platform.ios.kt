@@ -157,6 +157,14 @@ actual fun openSystemSetting(setting: SystemSetting): Boolean = false
 
 actual fun openSystemApp(app: SystemApp): Boolean = false
 
+actual fun persistentTaskbarSupported(): Boolean = false
+
+actual fun persistentTaskbarHasPermission(): Boolean = false
+
+actual fun requestPersistentTaskbarPermission() {}
+
+actual fun applyPersistentTaskbar(enabled: Boolean) {}
+
 actual suspend fun getSystemStats(): SystemStats = SystemStats("—", 0, "—", 0, 0, 0.0, 0.0)
 
 actual suspend fun getInstalledApps(): List<InstalledApp> = emptyList()

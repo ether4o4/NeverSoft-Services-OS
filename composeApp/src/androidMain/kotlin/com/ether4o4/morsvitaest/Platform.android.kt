@@ -518,6 +518,38 @@ actual fun openSystemApp(app: SystemApp): Boolean = try {
     false
 }
 
+actual fun persistentTaskbarSupported(): Boolean = true
+
+actual fun persistentTaskbarHasPermission(): Boolean = try {
+    val context: Context by inject(Context::class.java)
+    android.provider.Settings.canDrawOverlays(context)
+} catch (_: Exception) {
+    false
+}
+
+actual fun requestPersistentTaskbarPermission() {
+    try {
+        val context: Context by inject(Context::class.java)
+        val intent = Intent(
+            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            "package:${context.packageName}".toUri(),
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    } catch (_: Exception) {
+    }
+}
+
+actual fun applyPersistentTaskbar(enabled: Boolean) {
+    val context: Context by inject(Context::class.java)
+    if (enabled && android.provider.Settings.canDrawOverlays(context)) {
+        // Start the service kept hidden; the activity reveals it when MVE goes to
+        // the background. (If toggled while MVE is foreground, that's correct.)
+        OverlayTaskbarService.hide(context)
+    } else {
+        OverlayTaskbarService.stop(context)
+    }
+}
+
 actual suspend fun getSystemStats(): SystemStats = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
     try {
         val context: Context by inject(Context::class.java)
