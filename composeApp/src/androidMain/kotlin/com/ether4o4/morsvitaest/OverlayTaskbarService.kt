@@ -21,6 +21,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -117,7 +118,7 @@ class OverlayTaskbarService :
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Taskbar",
-            NotificationManager.IMPORTANCE_MIN,
+            NotificationManager.IMPORTANCE_LOW,
         ).apply { description = "Keeps the MorsVitaEst taskbar on screen." }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
 
@@ -145,6 +146,14 @@ class OverlayTaskbarService :
                 startForeground(NOTIFICATION_ID, notification)
             }
         } catch (_: Exception) {
+            // If the typed foreground start is rejected on this OS, fall back to an
+            // untyped one so the service still runs foreground and survives the app
+            // going to the background (otherwise the bar is killed when you leave MVE).
+            try {
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (e2: Exception) {
+                Toast.makeText(this, "Taskbar: foreground start failed (${e2.message})", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -156,7 +165,10 @@ class OverlayTaskbarService :
 
     private fun ensureBar() {
         if (barView != null) return
-        if (!Settings.canDrawOverlays(this)) return
+        if (!Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "Taskbar needs the “Display over other apps” permission", Toast.LENGTH_LONG).show()
+            return
+        }
 
         val bar = buildBar()
         barView = bar
@@ -175,8 +187,10 @@ class OverlayTaskbarService :
         }
         try {
             wm().addView(bar, params)
-        } catch (_: Exception) {
+            Toast.makeText(this, "MVE taskbar active", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
             barView = null
+            Toast.makeText(this, "Taskbar couldn't draw (${e.message})", Toast.LENGTH_LONG).show()
         }
         updateClock()
         handler.removeCallbacks(clockTick)

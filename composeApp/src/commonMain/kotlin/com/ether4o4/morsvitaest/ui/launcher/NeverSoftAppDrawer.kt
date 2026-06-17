@@ -75,10 +75,26 @@ internal data class LauncherApp(
 // Default pin sets. The taskbar starts empty — the user pins their own apps.
 // The Start menu keeps a few handy defaults.
 internal val defaultDockPins = emptyList<String>()
-internal val defaultStartPins = listOf("assistant", "terminal", "files", "settings")
+internal val defaultStartPins = listOf("terminal", "files", "settings")
 
 /** One fixed quick-launch slot at the bottom of the Start menu. */
 private data class QuickSlot(val id: String, val label: String, val glyph: String)
+
+/** A small glyph button in the Start menu's top row (AI settings / shell). */
+@Composable
+private fun HeaderIconButton(glyph: String, tint: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(tint.copy(alpha = 0.14f))
+            .border(1.dp, tint.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(glyph, color = tint, fontSize = 14.sp)
+    }
+}
 
 private val quickSlots = listOf(
     QuickSlot("photos", "Photos", "🖼️"),
@@ -112,6 +128,7 @@ internal fun StartDrawer(
     onOpenLauncherCustomize: () -> Unit = {},
     onOpenAgentSettings: () -> Unit = {},
     onLaunchChat: () -> Unit = {},
+    onLaunchShell: () -> Unit = {},
     allowDesktopShortcut: Boolean = false,
     onDesktopChanged: () -> Unit = {},
 ) {
@@ -135,7 +152,9 @@ internal fun StartDrawer(
     val q = query.trim()
     val builtInShown = apps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
     val installedShown = installedApps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
-    val pinnedShown = startPins.mapNotNull { id -> apps.firstOrNull { it.id == id } }
+    // The assistant chat lives in the widget/notification pop-up now, so it's no
+    // longer shown as a Start-menu tile (drops the old MVE mascot image here too).
+    val pinnedShown = startPins.filter { it != "assistant" }.mapNotNull { id -> apps.firstOrNull { it.id == id } }
 
     // Installed apps grouped into the five named boxes (recomputed when an
     // override changes). "All" always lists everything.
@@ -182,7 +201,8 @@ internal fun StartDrawer(
                     .clickable(enabled = false) {}
                     .padding(14.dp),
             ) {
-                // Compact top row — close (left), the NS agent (tap for chat); the
+                // Compact top row — close, AI settings (engine: API keys, services,
+                // MCP, tools, sandbox, integrations), and the shell launcher; the
                 // resize grip overlays top-right.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -195,14 +215,16 @@ internal fun StartDrawer(
                     ) {
                         Text("✕", color = c, fontSize = 13.sp)
                     }
-                    Spacer(Modifier.width(6.dp))
-                    HangingMascot(
-                        sizeDp = 46,
-                        onClick = {
-                            onClose()
-                            onLaunchChat()
-                        },
-                    )
+                    Spacer(Modifier.width(8.dp))
+                    HeaderIconButton(glyph = "⚙", tint = c) {
+                        onClose()
+                        onOpenAgentSettings()
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    HeaderIconButton(glyph = ">_", tint = c) {
+                        onClose()
+                        onLaunchShell()
+                    }
                     Spacer(Modifier.weight(1f))
                 }
 
