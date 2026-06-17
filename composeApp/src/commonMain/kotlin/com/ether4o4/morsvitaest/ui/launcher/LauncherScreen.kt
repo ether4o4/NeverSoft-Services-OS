@@ -457,6 +457,10 @@ fun LauncherScreen(
                     showDrawer = false
                     openWindow(DesktopApp.Assistant)
                 },
+                onLaunchShell = {
+                    showDrawer = false
+                    openWindow(DesktopApp.Terminal)
+                },
                 allowDesktopShortcut = true,
                 onDesktopChanged = { desktopVersion++ },
             )

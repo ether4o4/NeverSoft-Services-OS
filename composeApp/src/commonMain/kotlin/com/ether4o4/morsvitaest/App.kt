@@ -66,7 +66,6 @@ import com.ether4o4.morsvitaest.ui.handCursor
 import com.ether4o4.morsvitaest.ui.help.HelpAssistantSheet
 import com.ether4o4.morsvitaest.ui.help.HelpBubble
 import com.ether4o4.morsvitaest.ui.launcher.DesktopApp
-import com.ether4o4.morsvitaest.ui.launcher.HangingMascot
 import com.ether4o4.morsvitaest.ui.launcher.HudShellScreen
 import com.ether4o4.morsvitaest.ui.launcher.LauncherAppShell
 import com.ether4o4.morsvitaest.ui.launcher.LauncherScreen
@@ -600,21 +599,12 @@ private fun LauncherAppWindowContent(
         DesktopApp.Terminal -> {
             val sandboxViewModel = koinViewModel<SandboxViewModel>()
             val sandboxState by sandboxViewModel.state.collectAsStateWithLifecycle()
-            Box(Modifier.fillMaxSize()) {
-                SandboxTabsContent(
-                    sandboxState = sandboxState,
-                    onSetupSandbox = { sandboxViewModel.onSetupSandbox() },
-                    onCancelSandbox = { sandboxViewModel.onCancelSandbox() },
-                    modifier = Modifier.fillMaxSize(),
-                )
-                // The NS guy hangs around the top of the shell, switching poses.
-                // Tap him to open the chat.
-                HangingMascot(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(end = 6.dp),
-                    sizeDp = 92,
-                    onClick = onOpenChat,
-                )
-            }
+            SandboxTabsContent(
+                sandboxState = sandboxState,
+                onSetupSandbox = { sandboxViewModel.onSetupSandbox() },
+                onCancelSandbox = { sandboxViewModel.onCancelSandbox() },
+                modifier = Modifier.fillMaxSize(),
+            )
         }
 
         DesktopApp.Spotlight -> SpotlightContent(onRequestClose = onRequestClose)
