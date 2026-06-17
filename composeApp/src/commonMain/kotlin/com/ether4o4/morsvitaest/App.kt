@@ -335,6 +335,7 @@ private fun AppContent(
                                         app = app,
                                         onRequestClose = onRequestClose,
                                         textToSpeech = textToSpeech,
+                                        onOpenChat = { navController.navigate(FoundryChat(WorkspaceTab.Chat.name)) },
                                     )
                                 },
                                 newsPage = {
@@ -576,6 +577,7 @@ private fun LauncherAppWindowContent(
     app: DesktopApp,
     onRequestClose: () -> Unit,
     textToSpeech: TextToSpeechInstance?,
+    onOpenChat: () -> Unit = {},
 ) {
     when (app) {
         DesktopApp.Assistant -> ChatScreen(
@@ -606,16 +608,18 @@ private fun LauncherAppWindowContent(
                     modifier = Modifier.fillMaxSize(),
                 )
                 // The NS guy hangs around the top of the shell, switching poses.
+                // Tap him to open the chat.
                 HangingMascot(
                     modifier = Modifier.align(Alignment.TopEnd).padding(end = 6.dp),
                     sizeDp = 92,
+                    onClick = onOpenChat,
                 )
             }
         }
 
         DesktopApp.Spotlight -> SpotlightContent(onRequestClose = onRequestClose)
 
-        DesktopApp.Widgets -> WidgetsContent()
+        DesktopApp.Widgets -> WidgetsContent(onOpenAssistant = onOpenChat)
 
         DesktopApp.LauncherSettings -> LauncherSettingsContent(
             onOpenAiSettings = { /* AI settings opens from the Settings desktop tile. */ },

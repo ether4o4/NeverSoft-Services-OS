@@ -182,7 +182,8 @@ internal fun StartDrawer(
                     .clickable(enabled = false) {}
                     .padding(14.dp),
             ) {
-                // Compact top row — close (left); the resize grip overlays top-right.
+                // Compact top row — close (left), the NS agent (tap for chat); the
+                // resize grip overlays top-right.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -194,6 +195,14 @@ internal fun StartDrawer(
                     ) {
                         Text("✕", color = c, fontSize = 13.sp)
                     }
+                    Spacer(Modifier.width(6.dp))
+                    HangingMascot(
+                        sizeDp = 46,
+                        onClick = {
+                            onClose()
+                            onLaunchChat()
+                        },
+                    )
                     Spacer(Modifier.weight(1f))
                 }
 
