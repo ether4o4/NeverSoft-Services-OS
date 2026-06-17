@@ -73,12 +73,15 @@ import coil3.compose.AsyncImage
 import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.SystemApp
 import com.ether4o4.morsvitaest.SystemSetting
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.data.DataRepository
 import com.ether4o4.morsvitaest.getInstalledApps
 import com.ether4o4.morsvitaest.launchApp
 import com.ether4o4.morsvitaest.openSystemApp
 import com.ether4o4.morsvitaest.openSystemSetting
 import com.ether4o4.morsvitaest.openUrl
+import com.ether4o4.morsvitaest.persistentTaskbarHasPermission
 import com.ether4o4.morsvitaest.ui.onboarding.OnDeviceAiSetup
 import com.ether4o4.morsvitaest.ui.onboarding.SettingsGuide
 import dev.chrisbanes.haze.HazeState
@@ -126,9 +129,15 @@ fun LauncherScreen(
     appContent: @Composable (DesktopApp, onRequestClose: () -> Unit) -> Unit,
 ) {
     val settings = koinInject<AppSettings>()
+    val dataRepository = koinInject<DataRepository>()
     // Bumped when the Launcher Settings window closes so a freshly picked
     // wallpaper / Start-orb photo (and theme/label changes) apply live.
     var appearanceVersion by remember { mutableStateOf(0) }
+    // When the persistent overlay taskbar is active it IS the taskbar, so the
+    // launcher's own in-app taskbar is hidden to avoid a doubled-up bar.
+    val taskbarOverlayActive = remember(appearanceVersion) {
+        settings.isPersistentTaskbarEnabled() && persistentTaskbarHasPermission()
+    }
     // Bumped when a desktop shortcut is created from the Start menu so the canvas reloads.
     var desktopVersion by remember { mutableStateOf(0) }
     val wallpaperColors = remember(appearanceVersion) {
@@ -148,6 +157,15 @@ fun LauncherScreen(
     // Shared Haze source so the floating windows really blur the wallpaper
     // behind them (glassmorphism).
     val hazeState = remember { HazeState() }
+
+    // The persistent overlay taskbar's Start orb opens the Start menu through here.
+    val openStartMenuRequested by dataRepository.openStartMenuRequested.collectAsStateWithLifecycle()
+    LaunchedEffect(openStartMenuRequested) {
+        if (openStartMenuRequested) {
+            showDrawer = true
+            dataRepository.consumeOpenStartMenuRequest()
+        }
+    }
 
     // Once setup is done, offer the guided tour a single time; it's always
     // re-launchable from the Start menu afterward.
@@ -352,10 +370,12 @@ fun LauncherScreen(
 
             // Edge-to-edge glass taskbar (48dp): open-window buttons + pins on the
             // left, the Start orb + Phone + Messages centered, the clock on the right.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
+            // Hidden when the persistent overlay taskbar is active — it replaces this bar.
+            if (!taskbarOverlayActive) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
                     // Taskbar follows the launcher theme (color + glass gradient).
                     .background(theme.surfaceBrush())
                     .drawBehind {
@@ -406,6 +426,7 @@ fun LauncherScreen(
                     content = theme.content,
                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp),
                 )
+                }
             }
         }
 

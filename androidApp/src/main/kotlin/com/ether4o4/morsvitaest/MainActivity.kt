@@ -146,6 +146,11 @@ class MainActivity : ComponentActivity() {
             // the deep-link after ChatViewModel has already consumed it.
             intent.removeExtra(EXTRA_OPEN_HEARTBEAT)
         }
+        if (intent?.getBooleanExtra(EXTRA_OPEN_START_MENU, false) == true) {
+            val dataRepository: DataRepository = get()
+            dataRepository.requestOpenStartMenu()
+            intent.removeExtra(EXTRA_OPEN_START_MENU)
+        }
     }
 }
 

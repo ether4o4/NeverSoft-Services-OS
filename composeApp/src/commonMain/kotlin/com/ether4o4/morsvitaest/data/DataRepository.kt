@@ -216,6 +216,15 @@ interface DataRepository {
     fun requestOpenHeartbeat()
     fun consumeOpenHeartbeatRequest()
 
+    /**
+     * Pulse that fires when the persistent overlay taskbar's Start orb asks the
+     * launcher to open the Start menu (the overlay can't draw the in-app drawer,
+     * so it foregrounds the app and signals through here). Consume after showing.
+     */
+    val openStartMenuRequested: StateFlow<Boolean>
+    fun requestOpenStartMenu()
+    fun consumeOpenStartMenuRequest()
+
     // On-device inference (LiteRT)
     fun isLocalInferenceAvailable(): Boolean
     fun getLocalEngineState(): StateFlow<EngineState>?

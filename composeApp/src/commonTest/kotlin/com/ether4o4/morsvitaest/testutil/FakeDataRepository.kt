@@ -512,6 +512,14 @@ class FakeDataRepository : DataRepository {
         openHeartbeatRequested.value = false
     }
 
+    override val openStartMenuRequested: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    override fun requestOpenStartMenu() {
+        openStartMenuRequested.value = true
+    }
+    override fun consumeOpenStartMenuRequest() {
+        openStartMenuRequested.value = false
+    }
+
     // Email management
     private var emailEnabled = true
     private val emailAccounts = mutableListOf<EmailAccount>()

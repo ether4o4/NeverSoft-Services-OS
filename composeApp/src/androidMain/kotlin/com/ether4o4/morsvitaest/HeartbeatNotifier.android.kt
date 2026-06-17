@@ -21,6 +21,9 @@ import org.koin.java.KoinJavaComponent.inject
  */
 const val EXTRA_OPEN_HEARTBEAT = "com.ether4o4.morsvitaest.OPEN_HEARTBEAT"
 
+/** Intent extra: the persistent overlay taskbar's Start orb asks the launcher to open the Start menu. */
+const val EXTRA_OPEN_START_MENU = "com.ether4o4.morsvitaest.OPEN_START_MENU"
+
 /** Shared with the AI `send_notification` tool — ensures the channel is created once. */
 private const val CHANNEL_ID = "kai_ai_notifications"
 

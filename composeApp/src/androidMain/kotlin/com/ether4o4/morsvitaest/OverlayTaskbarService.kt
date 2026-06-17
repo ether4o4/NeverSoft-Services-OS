@@ -345,6 +345,8 @@ class OverlayTaskbarService :
     private fun bringAppToFront() {
         val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            // Ask the launcher to open the Start menu when it comes to the front.
+            putExtra(EXTRA_OPEN_START_MENU, true)
         } ?: return
         try {
             startActivity(intent)
