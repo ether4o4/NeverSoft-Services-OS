@@ -302,7 +302,8 @@ fun LauncherSettingsContent(
                 Column(Modifier.weight(1f)) {
                     Text("Keep taskbar over all apps", color = Color.White, fontSize = 15.sp)
                     Text(
-                        "Floats the taskbar on top of other apps (Messages, Phone, browsers…).",
+                        "Floats the taskbar — with a one-tap AI chat — on top of other apps " +
+                            "(Messages, Phone, browsers…).",
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 12.sp,
                     )
