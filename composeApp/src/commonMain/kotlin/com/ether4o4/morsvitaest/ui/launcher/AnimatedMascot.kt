@@ -49,6 +49,8 @@ private val mascotPoses = listOf(
 fun HangingMascot(modifier: Modifier = Modifier, sizeDp: Int = 128, onClick: (() -> Unit)? = null) {
     var poseIdx by remember { mutableIntStateOf(0) }
     var flipped by remember { mutableStateOf(false) }
+    // Hoisted so the remember isn't called conditionally inside the modifier chain.
+    val interaction = remember { MutableInteractionSource() }
 
     val motion = rememberInfiniteTransition()
     val swing by motion.animateFloat(
@@ -78,7 +80,7 @@ fun HangingMascot(modifier: Modifier = Modifier, sizeDp: Int = 128, onClick: (()
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
+                        interactionSource = interaction,
                         indication = null,
                         onClick = onClick,
                     )

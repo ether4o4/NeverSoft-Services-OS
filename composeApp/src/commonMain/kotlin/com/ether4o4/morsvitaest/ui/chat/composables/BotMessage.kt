@@ -3,6 +3,7 @@ package com.ether4o4.morsvitaest.ui.chat.composables
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,7 +64,6 @@ import morsvitaest.composeapp.generated.resources.ic_flag
 import morsvitaest.composeapp.generated.resources.ic_refresh
 import morsvitaest.composeapp.generated.resources.ic_stop
 import morsvitaest.composeapp.generated.resources.ic_volume_up
-import androidx.compose.foundation.Image
 import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import nl.marc_apps.tts.TextToSpeechInstance
 import nl.marc_apps.tts.errors.TextToSpeechSynthesisInterruptedError
