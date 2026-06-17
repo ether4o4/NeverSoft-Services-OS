@@ -1,8 +1,10 @@
 package com.ether4o4.morsvitaest.ui.onboarding
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,9 @@ import com.ether4o4.morsvitaest.ui.foundry.FoundryCard
 import com.ether4o4.morsvitaest.ui.foundry.FoundryIntent
 import com.ether4o4.morsvitaest.ui.foundry.FoundryPill
 import com.ether4o4.morsvitaest.ui.handCursor
+import morsvitaest.composeapp.generated.resources.Res
+import morsvitaest.composeapp.generated.resources.ns_mascot_face
+import org.jetbrains.compose.resources.painterResource
 
 private data class TourStep(
     val glyph: String,
@@ -115,6 +120,13 @@ fun WelcomeTour(
                 )
             }
 
+            // The MVE agent greets you for the intro.
+            Image(
+                painter = painterResource(Res.drawable.ns_mascot_face),
+                contentDescription = "MVE",
+                modifier = Modifier.size(88.dp).clip(CircleShape),
+            )
+            Spacer(Modifier.height(12.dp))
             Box(
                 modifier = Modifier
                     .size(64.dp)

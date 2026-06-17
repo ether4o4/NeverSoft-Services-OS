@@ -6,6 +6,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -44,7 +46,7 @@ private val mascotPoses = listOf(
  * shrug, run, wrench) so he looks like he's goofing around in the box.
  */
 @Composable
-fun HangingMascot(modifier: Modifier = Modifier, sizeDp: Int = 128) {
+fun HangingMascot(modifier: Modifier = Modifier, sizeDp: Int = 128, onClick: (() -> Unit)? = null) {
     var poseIdx by remember { mutableIntStateOf(0) }
     var flipped by remember { mutableStateOf(false) }
 
@@ -73,6 +75,17 @@ fun HangingMascot(modifier: Modifier = Modifier, sizeDp: Int = 128) {
         contentDescription = "NeverSoft assistant",
         modifier = modifier
             .size(sizeDp.dp)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .offset { IntOffset(0, bob.toInt()) }
             .graphicsLayer {
                 // Pivot at the top so he swings like he's hanging on the box.

@@ -102,8 +102,8 @@ fun WidgetsContent() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // The NS guy hangs out at the top of the widgets box, swinging and
-        // switching poses.
-        HangingMascot(sizeDp = 132)
+        // switching poses. Tap him to open the assistant.
+        HangingMascot(sizeDp = 132, onClick = onOpenAssistant)
         // Clock widget
         Text(time, color = c, fontSize = 64.sp, fontWeight = FontWeight.Bold)
         Text("$weekdayName, $monthName ${local.day}", color = c.copy(alpha = 0.75f), fontSize = 16.sp)

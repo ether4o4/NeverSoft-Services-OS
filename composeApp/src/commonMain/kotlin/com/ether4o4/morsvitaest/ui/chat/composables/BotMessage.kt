@@ -63,8 +63,11 @@ import morsvitaest.composeapp.generated.resources.ic_flag
 import morsvitaest.composeapp.generated.resources.ic_refresh
 import morsvitaest.composeapp.generated.resources.ic_stop
 import morsvitaest.composeapp.generated.resources.ic_volume_up
+import androidx.compose.foundation.Image
+import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import nl.marc_apps.tts.TextToSpeechInstance
 import nl.marc_apps.tts.errors.TextToSpeechSynthesisInterruptedError
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -95,6 +98,15 @@ internal fun BotMessage(
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
+            // The MVE agent's face on his message side.
+            Image(
+                painter = painterResource(Res.drawable.ns_mascot_face),
+                contentDescription = "MVE",
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 12.dp)
+                    .size(28.dp)
+                    .clip(CircleShape),
+            )
             val nonBlankSegments = remember(reasoningSegments) {
                 reasoningSegments.filter { it.isNotBlank() }.toImmutableList()
             }
