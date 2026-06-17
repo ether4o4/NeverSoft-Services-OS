@@ -52,9 +52,9 @@ Concretely this means:
 
 The latest sideloadable preview APK is always at:
 
-[`MorsVitaEst-android-preview.apk`](https://github.com/ether4o4/MorsVitaEst/releases/download/android-preview-latest/MorsVitaEst-android-preview.apk)
+[`MorsVitaEst-android-preview.apk`](https://github.com/ether4o4/NeverSoft-Services-OS-PR/releases/download/android-preview-latest/MorsVitaEst-android-preview.apk)
 
-URL is stable — the file behind it auto-updates on every push to `main`. See the [Releases tab](https://github.com/ether4o4/MorsVitaEst/releases) for dated versions.
+URL is stable — the file behind it auto-updates on every push to `main`. See the [Releases tab](https://github.com/ether4o4/NeverSoft-Services-OS-PR/releases) for dated versions.
 
 **To install:**
 

@@ -35,23 +35,23 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.ether4o4.morsvitaest.ui.overlay.OverlayChatContent
+import com.ether4o4.morsvitaest.ui.overlay.OverlayWidgetPanel
 import java.util.Calendar
 
 /**
- * A persistent, system-wide taskbar drawn as a floating overlay window so it
- * stays on screen over every other app (Messages, Phone, browsers, …) — not just
- * inside the launcher. It hosts a Start button (brings MorsVitaEst to the front),
- * a Chat button that pops up a floating AI-chat window over the current app,
- * Phone + Messages shortcuts, and a live clock.
+ * A permanent, system-wide taskbar drawn as an overlay window so it stays on
+ * screen over every other app (Messages, Phone, browsers, …) and never
+ * disappears. Once the service is running the bar is always visible — it does
+ * not depend on any per-app show command.
  *
- * Shown only while MorsVitaEst itself is in the background (the activity drives
- * [show]/[hide] from its start/stop), so the launcher's own in-app taskbar isn't
- * doubled up on the home screen.
+ * The bar hosts a Start orb (brings MorsVitaEst forward + opens the Start menu),
+ * Phone + Messages shortcuts, and a clock. Tapping the clock toggles a floating
+ * widget/chat panel (the live agent chat + widgets) that also floats over other
+ * apps and only closes when the clock (or its ✕) is tapped again.
  *
  * Acts as the lifecycle / view-model-store / saved-state owner for the Compose
- * chat window hosted in the overlay. Requires the "Display over other apps"
- * permission and runs as a foreground service so the OS keeps it alive.
+ * panel hosted in the overlay. Requires the "Display over other apps" permission
+ * and runs as a foreground service so the OS keeps it alive.
  */
 class OverlayTaskbarService :
     Service(),
@@ -70,7 +70,7 @@ class OverlayTaskbarService :
     private var windowManager: WindowManager? = null
     private var barView: View? = null
     private var clockView: TextView? = null
-    private var chatView: ComposeView? = null
+    private var panelView: ComposeView? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private val clockTick = object : Runnable {
@@ -92,26 +92,18 @@ class OverlayTaskbarService :
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startAsForeground()
-        ensureBar()
-        when (intent?.action) {
-            ACTION_SHOW -> setBarVisible(true)
-
-            ACTION_HIDE -> {
-                hideChat()
-                setBarVisible(false)
-            }
-
-            ACTION_STOP -> {
-                stopSelf()
-                return START_NOT_STICKY
-            }
+        if (intent?.action == ACTION_STOP) {
+            stopSelf()
+            return START_NOT_STICKY
         }
+        // Any other start command just (re-)asserts the permanent bar.
+        ensureBar()
         return START_STICKY
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(clockTick)
-        hideChat()
+        hidePanel()
         removeBar()
         store.clear()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
@@ -156,11 +148,12 @@ class OverlayTaskbarService :
         }
     }
 
-    // ---- Overlay bar ------------------------------------------------------
+    // ---- Permanent overlay bar --------------------------------------------
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    private fun wm(): WindowManager = windowManager ?: (getSystemService(Context.WINDOW_SERVICE) as WindowManager).also { windowManager = it }
+    private fun wm(): WindowManager =
+        windowManager ?: (getSystemService(Context.WINDOW_SERVICE) as WindowManager).also { windowManager = it }
 
     private fun ensureBar() {
         if (barView != null) return
@@ -168,7 +161,8 @@ class OverlayTaskbarService :
 
         val bar = buildBar()
         barView = bar
-        bar.visibility = View.GONE
+        // Visible immediately and permanently — never hidden while the service runs.
+        bar.visibility = View.VISIBLE
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -200,12 +194,6 @@ class OverlayTaskbarService :
         clockView = null
     }
 
-    private fun setBarVisible(visible: Boolean) {
-        ensureBar()
-        barView?.visibility = if (visible) View.VISIBLE else View.GONE
-        if (visible) updateClock()
-    }
-
     private fun buildBar(): View {
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -220,10 +208,6 @@ class OverlayTaskbarService :
             LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(8) },
         )
         bar.addView(
-            glyphButton("AI") { toggleChat() },
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(38)).apply { marginEnd = dp(8) },
-        )
-        bar.addView(
             glyphButton("✆") { openDialer() },
             LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(8) },
         )
@@ -234,10 +218,19 @@ class OverlayTaskbarService :
 
         bar.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
 
+        // Tapping the clock toggles the floating widget/chat panel.
         val clock = TextView(this).apply {
             setTextColor(Color.WHITE)
             textSize = 13f
             gravity = Gravity.CENTER
+            setPadding(dp(10), dp(4), dp(10), dp(4))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(9).toFloat()
+                setColor(0x22FFFFFF)
+            }
+            isClickable = true
+            setOnClickListener { togglePanel() }
         }
         clockView = clock
         bar.addView(
@@ -268,9 +261,8 @@ class OverlayTaskbarService :
     private fun glyphButton(glyph: String, onClick: () -> Unit): TextView = TextView(this).apply {
         text = glyph
         setTextColor(Color.WHITE)
-        textSize = if (glyph.length > 1) 13f else 16f
+        textSize = 16f
         gravity = Gravity.CENTER
-        setPadding(dp(8), 0, dp(8), 0)
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dp(9).toFloat()
@@ -290,34 +282,33 @@ class OverlayTaskbarService :
         clockView?.text = "$h12:$minute $ampm"
     }
 
-    // ---- Floating chat window (Compose) -----------------------------------
+    // ---- Floating widget/chat panel (Compose) -----------------------------
 
-    private fun toggleChat() {
-        if (chatView != null) hideChat() else showChat()
+    private fun togglePanel() {
+        if (panelView != null) hidePanel() else showPanel()
     }
 
-    private fun showChat() {
-        if (chatView != null || !Settings.canDrawOverlays(this)) return
+    private fun showPanel() {
+        if (panelView != null || !Settings.canDrawOverlays(this)) return
         val view = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@OverlayTaskbarService)
             setViewTreeViewModelStoreOwner(this@OverlayTaskbarService)
             setViewTreeSavedStateRegistryOwner(this@OverlayTaskbarService)
             setContent {
-                OverlayChatContent(
-                    onMinimize = { hideChat() },
-                    onClose = { hideChat() },
-                )
+                OverlayWidgetPanel(onClose = { hidePanel() })
             }
         }
-        chatView = view
+        panelView = view
 
         val screenHeight = resources.displayMetrics.heightPixels
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            (screenHeight * 0.62f).toInt(),
+            (screenHeight * 0.72f).toInt(),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            // Focusable (no NOT_FOCUSABLE flag) so the keyboard works in the chat input.
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            // Focusable (no NOT_FOCUSABLE) so the keyboard works in the chat input;
+            // NOT_TOUCH_MODAL lets taps outside the panel reach the app behind it.
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.START
@@ -327,17 +318,17 @@ class OverlayTaskbarService :
         try {
             wm().addView(view, params)
         } catch (_: Exception) {
-            chatView = null
+            panelView = null
         }
     }
 
-    private fun hideChat() {
-        val view = chatView ?: return
+    private fun hidePanel() {
+        val view = panelView ?: return
         try {
             windowManager?.removeView(view)
         } catch (_: Exception) {
         }
-        chatView = null
+        panelView = null
     }
 
     // ---- Button actions ---------------------------------------------------
@@ -345,6 +336,8 @@ class OverlayTaskbarService :
     private fun bringAppToFront() {
         val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            // Ask the launcher to open the Start menu when it comes to the front.
+            putExtra(EXTRA_OPEN_START_MENU, true)
         } ?: return
         try {
             startActivity(intent)
@@ -368,7 +361,6 @@ class OverlayTaskbarService :
         private const val NOTIFICATION_ID = 9102
         private const val BAR_HEIGHT_DP = 46
         const val ACTION_SHOW = "com.ether4o4.morsvitaest.taskbar.SHOW"
-        const val ACTION_HIDE = "com.ether4o4.morsvitaest.taskbar.HIDE"
         const val ACTION_STOP = "com.ether4o4.morsvitaest.taskbar.STOP"
 
         private fun send(context: Context, action: String) {
@@ -376,11 +368,8 @@ class OverlayTaskbarService :
             ContextCompat.startForegroundService(context, intent)
         }
 
-        /** Start (if needed) and reveal the overlay bar — used when MVE is backgrounded. */
+        /** Start (if needed) the permanent overlay bar. */
         fun show(context: Context) = send(context, ACTION_SHOW)
-
-        /** Start (if needed) but keep the bar hidden — used when MVE is foregrounded. */
-        fun hide(context: Context) = send(context, ACTION_HIDE)
 
         /** Tear the overlay down entirely. */
         fun stop(context: Context) {

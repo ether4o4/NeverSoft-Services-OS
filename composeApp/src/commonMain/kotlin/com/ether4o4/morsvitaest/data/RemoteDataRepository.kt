@@ -2316,6 +2316,17 @@ class RemoteDataRepository(
         _openHeartbeatRequested.value = false
     }
 
+    private val _openStartMenuRequested = MutableStateFlow(false)
+    override val openStartMenuRequested: StateFlow<Boolean> = _openStartMenuRequested
+
+    override fun requestOpenStartMenu() {
+        _openStartMenuRequested.value = true
+    }
+
+    override fun consumeOpenStartMenuRequest() {
+        _openStartMenuRequested.value = false
+    }
+
     override suspend fun addAssistantMessage(content: String) {
         val now = Clock.System.now().toEpochMilliseconds()
 

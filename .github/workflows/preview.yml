@@ -45,6 +45,11 @@ jobs:
     # The Unit Tests workflow pushes auto-fix commits back to PR branches; don't
     # rebuild a preview for those bot commits.
     if: github.actor != 'github-actions[bot]'
+    # Where preview releases are published. Defaults to this repo; set the repo
+    # variable RELEASES_REPO (+ the RELEASES_REPO_TOKEN secret) to publish the
+    # downloadable APK to a separate public repo while this one stays private.
+    env:
+      RELEASES_REPO: ${{ vars.RELEASES_REPO || github.repository }}
 
     steps:
       - name: Checkout repository
@@ -152,8 +157,8 @@ jobs:
           - Signed with the repo's shared debug keystore, so it installs over prior debug/preview builds without wiping app data.
           - APK SHA-256: \`${APK_SHA}\`
           - Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          - Direct download: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${{ steps.preview.outputs.tag }}/${PREVIEW_APK_NAME}
-          - Rolling latest download: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${{ steps.preview.outputs.latest_tag }}/${PREVIEW_APK_NAME}
+          - Direct download: ${GITHUB_SERVER_URL}/${RELEASES_REPO}/releases/download/${{ steps.preview.outputs.tag }}/${PREVIEW_APK_NAME}
+          - Rolling latest download: ${GITHUB_SERVER_URL}/${RELEASES_REPO}/releases/download/${{ steps.preview.outputs.latest_tag }}/${PREVIEW_APK_NAME}
 
           This is a sideloadable preview build, not a production release. By default this workflow creates/updates a dated preview release and also replaces the APK on the rolling \`android-preview-latest\` release.
           EOF
@@ -162,6 +167,8 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ env.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_REPO_TOKEN || github.token }}
           tag_name: ${{ steps.preview.outputs.tag }}
           name: MorsVitaEst Android Preview ${{ steps.preview.outputs.date }}
           body_path: preview-output/release-notes.md
@@ -175,6 +182,8 @@ jobs:
         if: github.event_name != 'pull_request' && steps.preview.outputs.tag != steps.preview.outputs.latest_tag
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ env.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_REPO_TOKEN || github.token }}
           tag_name: ${{ steps.preview.outputs.latest_tag }}
           name: MorsVitaEst Android Preview Latest (${{ steps.preview.outputs.date }})
           body_path: preview-output/release-notes.md
@@ -194,9 +203,9 @@ jobs:
             echo "Download it from the **Artifacts** section of this run, then sideload it onto a device."
             if [ "${{ github.event_name }}" != "pull_request" ]; then
               echo ""
-              echo "**Dated pre-release:** https://github.com/${{ github.repository }}/releases/tag/${{ steps.preview.outputs.tag }}"
-              echo "**Dated APK:** https://github.com/${{ github.repository }}/releases/download/${{ steps.preview.outputs.tag }}/${{ env.PREVIEW_APK_NAME }}"
-              echo "**Rolling latest APK:** https://github.com/${{ github.repository }}/releases/download/${{ steps.preview.outputs.latest_tag }}/${{ env.PREVIEW_APK_NAME }}"
+              echo "**Dated pre-release:** https://github.com/${{ env.RELEASES_REPO }}/releases/tag/${{ steps.preview.outputs.tag }}"
+              echo "**Dated APK:** https://github.com/${{ env.RELEASES_REPO }}/releases/download/${{ steps.preview.outputs.tag }}/${{ env.PREVIEW_APK_NAME }}"
+              echo "**Rolling latest APK:** https://github.com/${{ env.RELEASES_REPO }}/releases/download/${{ steps.preview.outputs.latest_tag }}/${{ env.PREVIEW_APK_NAME }}"
             fi
             echo ""
             echo "> Signed with the repo's shared debug keystore, so it installs over a previous"

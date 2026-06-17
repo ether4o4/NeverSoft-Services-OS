@@ -542,9 +542,8 @@ actual fun requestPersistentTaskbarPermission() {
 actual fun applyPersistentTaskbar(enabled: Boolean) {
     val context: Context by inject(Context::class.java)
     if (enabled && android.provider.Settings.canDrawOverlays(context)) {
-        // Start the service kept hidden; the activity reveals it when MVE goes to
-        // the background. (If toggled while MVE is foreground, that's correct.)
-        OverlayTaskbarService.hide(context)
+        // Start the permanent overlay bar immediately; it stays up from now on.
+        OverlayTaskbarService.show(context)
     } else {
         OverlayTaskbarService.stop(context)
     }
