@@ -321,6 +321,11 @@ jobs:
     name: Release APK, DMG, MSI, DEB, RPM, AppImage, Flatpak and Tarball
     needs: [apk, dmg, msi, deb, rpm, appimage, linux-tar, flatpak]
     runs-on: ubuntu-latest
+    # Publish the downloadable release to this repo by default; set the repo
+    # variable RELEASES_REPO (+ RELEASES_REPO_TOKEN secret) to publish to a
+    # separate public repo while the source repo stays private.
+    env:
+      RELEASES_REPO: ${{ vars.RELEASES_REPO || github.repository }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -402,6 +407,8 @@ jobs:
       - name: Create Github Release
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ env.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_REPO_TOKEN || github.token }}
           name: Release ${{ github.ref_name }}
           body_path: changelog.txt
           files: MorsVitaEst-*
