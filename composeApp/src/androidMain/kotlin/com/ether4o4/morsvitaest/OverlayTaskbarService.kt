@@ -161,8 +161,7 @@ class OverlayTaskbarService :
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    private fun wm(): WindowManager =
-        windowManager ?: (getSystemService(Context.WINDOW_SERVICE) as WindowManager).also { windowManager = it }
+    private fun wm(): WindowManager = windowManager ?: (getSystemService(Context.WINDOW_SERVICE) as WindowManager).also { windowManager = it }
 
     private fun ensureBar() {
         if (barView != null) return
