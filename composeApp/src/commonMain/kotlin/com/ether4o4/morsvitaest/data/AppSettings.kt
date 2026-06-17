@@ -366,6 +366,13 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_LAUNCHER_LABELS, shown)
     }
 
+    // Persistent system-wide taskbar (floats over other apps via an overlay).
+    fun isPersistentTaskbarEnabled(): Boolean = settings.getBoolean(KEY_PERSISTENT_TASKBAR, false)
+
+    fun setPersistentTaskbarEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_PERSISTENT_TASKBAR, enabled)
+    }
+
     // Sticky-note widget text.
     fun getLauncherNote(): String = settings.getString(KEY_LAUNCHER_NOTE, "")
 
@@ -780,6 +787,7 @@ class AppSettings(internal val settings: Settings) {
 
         const val KEY_LAUNCHER_WALLPAPER = "launcher_wallpaper"
         const val KEY_LAUNCHER_LABELS = "launcher_labels"
+        const val KEY_PERSISTENT_TASKBAR = "launcher_persistent_taskbar"
         const val KEY_LAUNCHER_NOTE = "launcher_note"
         const val KEY_DEFAULT_FILE_EXPLORER = "default_file_explorer"
         const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"
