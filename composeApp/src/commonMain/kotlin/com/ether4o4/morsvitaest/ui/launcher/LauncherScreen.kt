@@ -69,11 +69,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.ether4o4.morsvitaest.InstalledApp
 import com.ether4o4.morsvitaest.SystemApp
 import com.ether4o4.morsvitaest.SystemSetting
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.data.DataRepository
 import com.ether4o4.morsvitaest.getInstalledApps
@@ -376,56 +376,56 @@ fun LauncherScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                    // Taskbar follows the launcher theme (color + glass gradient).
-                    .background(theme.surfaceBrush())
-                    .drawBehind {
-                        // 1px white top-edge highlight line.
-                        drawLine(
-                            color = Color.White.copy(alpha = 0.5f),
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = 1f,
-                        )
-                    }
-                    .padding(horizontal = 8.dp),
-            ) {
-                // Left: user-pinned apps + a button per open window.
-                Row(
-                    modifier = Modifier.align(Alignment.CenterStart),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        // Taskbar follows the launcher theme (color + glass gradient).
+                        .background(theme.surfaceBrush())
+                        .drawBehind {
+                            // 1px white top-edge highlight line.
+                            drawLine(
+                                color = Color.White.copy(alpha = 0.5f),
+                                start = Offset(0f, 0f),
+                                end = Offset(size.width, 0f),
+                                strokeWidth = 1f,
+                            )
+                        }
+                        .padding(horizontal = 8.dp),
                 ) {
-                    dockPins.mapNotNull { byId[it] }.forEach {
-                        DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
+                    // Left: user-pinned apps + a button per open window.
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        dockPins.mapNotNull { byId[it] }.forEach {
+                            DockIcon(it.icon, it.image, it.label, it.color, it.onOpen)
+                        }
+                        val topZ = windows.maxOfOrNull { it.z } ?: 0
+                        windows.forEach { win ->
+                            TaskbarWindowButton(
+                                label = win.app.title,
+                                active = !win.minimized && win.z == topZ,
+                                tint = theme.content,
+                                onClick = { toggleTaskbar(win) },
+                            )
+                        }
                     }
-                    val topZ = windows.maxOfOrNull { it.z } ?: 0
-                    windows.forEach { win ->
-                        TaskbarWindowButton(
-                            label = win.app.title,
-                            active = !win.minimized && win.z == topZ,
-                            tint = theme.content,
-                            onClick = { toggleTaskbar(win) },
-                        )
+
+                    // Center: Start orb + the Phone & Messages hollow-glass icons.
+                    Row(
+                        modifier = Modifier.align(Alignment.Center),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
+                        GlassDockIcon(Res.drawable.ic_glass_phone, "Phone") { openSystemApp(SystemApp.Phone) }
+                        GlassDockIcon(Res.drawable.ic_glass_messages, "Messages") { openSystemApp(SystemApp.Messages) }
                     }
-                }
 
-                // Center: Start orb + the Phone & Messages hollow-glass icons.
-                Row(
-                    modifier = Modifier.align(Alignment.Center),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    StartOrb(style = orbStyle, imagePath = orbImage) { showDrawer = true }
-                    GlassDockIcon(Res.drawable.ic_glass_phone, "Phone") { openSystemApp(SystemApp.Phone) }
-                    GlassDockIcon(Res.drawable.ic_glass_messages, "Messages") { openSystemApp(SystemApp.Messages) }
-                }
-
-                // Right: the two-line clock opens the widgets panel.
-                DesktopClock(
-                    onClick = { showWidgets = true },
-                    content = theme.content,
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp),
-                )
+                    // Right: the two-line clock opens the widgets panel.
+                    DesktopClock(
+                        onClick = { showWidgets = true },
+                        content = theme.content,
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp),
+                    )
                 }
             }
         }
