@@ -310,6 +310,13 @@ fun LauncherScreen(
             val pagerState = rememberPagerState(initialPage = 1) { 3 }
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 var areaSize by remember { mutableStateOf(IntSize.Zero) }
+                // The largest desktop height we've seen. The Activity uses adjustResize,
+                // so opening the soft keyboard shrinks this area live; sizing floating
+                // windows off the live height makes them shrink/jump on every keystroke.
+                // Sizing off the stable max keeps a window steady — the keyboard simply
+                // overlaps its lower edge (its input stays at the top, still visible).
+                var stableAreaHeight by remember { mutableStateOf(0) }
+                if (areaSize.height > stableAreaHeight) stableAreaHeight = areaSize.height
                 HorizontalPager(
                     state = pagerState,
                     userScrollEnabled = windows.none { !it.minimized },
@@ -340,7 +347,7 @@ fun LauncherScreen(
                                     WindowFrame(
                                         win = win,
                                         areaWidthPx = areaSize.width,
-                                        areaHeightPx = areaSize.height,
+                                        areaHeightPx = maxOf(areaSize.height, stableAreaHeight),
                                         onFocus = { raise(win) },
                                         onMinimize = { win.minimized = true },
                                         onClose = {
