@@ -87,6 +87,14 @@ class OverlayTaskbarService :
         }
     }
 
+    private var keyboardOpen = false
+    private val keyboardTick = object : Runnable {
+        override fun run() {
+            updateKeyboardState()
+            handler.postDelayed(this, KEYBOARD_POLL_MS)
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -110,6 +118,7 @@ class OverlayTaskbarService :
 
     override fun onDestroy() {
         handler.removeCallbacks(clockTick)
+        handler.removeCallbacks(keyboardTick)
         hidePanel()
         removeBar()
         store.clear()
@@ -189,17 +198,18 @@ class OverlayTaskbarService :
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            dp(BAR_HEIGHT_DP),
+            dp(BAR_HEIGHT_DP) + navBarHeightPx(),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.START
-            // Sit just ABOVE the system gesture-nav bar so the bar and the pill
-            // don't overlap (the pill stays the thin system edge below the bar —
-            // an overlay can't move the system pill above itself).
-            y = navBarHeightPx()
+            // Flush to the very bottom edge so the bar IS the bottom of the screen.
+            // Android still draws its gesture pill in that bottom strip (an overlay
+            // can't move the system pill), so the bar extends down into it and keeps
+            // its icons above the pill via bottom padding (see buildBar).
+            y = 0
         }
         try {
             wm().addView(bar, params)
@@ -211,10 +221,16 @@ class OverlayTaskbarService :
         updateClock()
         handler.removeCallbacks(clockTick)
         handler.postDelayed(clockTick, 30_000L)
+        // Watch for the soft keyboard so the bar can step aside while typing.
+        keyboardOpen = false
+        handler.removeCallbacks(keyboardTick)
+        handler.postDelayed(keyboardTick, KEYBOARD_POLL_MS)
     }
 
     private fun removeBar() {
         val bar = barView ?: return
+        handler.removeCallbacks(keyboardTick)
+        keyboardOpen = false
         try {
             windowManager?.removeView(bar)
         } catch (_: Exception) {
@@ -239,7 +255,9 @@ class OverlayTaskbarService :
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             background = GradientDrawable().apply { setColor(barColor) }
-            setPadding(dp(10), dp(3), dp(10), dp(3))
+            // Extra bottom padding = the gesture-pill strip the bar now extends over,
+            // so the icons stay above the system pill.
+            setPadding(dp(10), dp(3), dp(10), dp(3) + navBarHeightPx())
             elevation = dp(8).toFloat()
         }
         // The window ROOT must own the view-tree lifecycle / view-model / saved-state:
@@ -350,6 +368,44 @@ class OverlayTaskbarService :
         clockView?.text = "$h12:$minute $ampm"
     }
 
+    // ---- Keyboard-aware hiding --------------------------------------------
+
+    /**
+     * Detect the soft keyboard and step the bar aside while it's up, so a bottom
+     * bar never covers the keys. The bar's visible display frame shrinks from the
+     * bottom when an IME shows; a gesture/nav bar alone is small, so anything over
+     * ~120dp of bottom obstruction means a keyboard. Polled because a non-focusable
+     * overlay isn't relaid-out by the IME, so layout listeners wouldn't fire.
+     */
+    private fun updateKeyboardState() {
+        val bar = barView ?: return
+        val rect = android.graphics.Rect()
+        bar.getWindowVisibleDisplayFrame(rect)
+        val screenH = resources.displayMetrics.heightPixels
+        val bottomObstruction = screenH - rect.bottom
+        val open = bottomObstruction > dp(120)
+        if (open != keyboardOpen) {
+            keyboardOpen = open
+            setBarHiddenForKeyboard(open)
+        }
+    }
+
+    /** Hide (and stop intercepting touches) while the keyboard is up; restore after. */
+    private fun setBarHiddenForKeyboard(hidden: Boolean) {
+        val bar = barView ?: return
+        val params = bar.layoutParams as? WindowManager.LayoutParams ?: return
+        bar.visibility = if (hidden) View.INVISIBLE else View.VISIBLE
+        params.flags = if (hidden) {
+            params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        } else {
+            params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        }
+        try {
+            windowManager?.updateViewLayout(bar, params)
+        } catch (_: Exception) {
+        }
+    }
+
     // ---- Floating widget/chat panel (Compose) -----------------------------
 
     private fun togglePanel() {
@@ -431,6 +487,7 @@ class OverlayTaskbarService :
         private const val CHANNEL_ID = "mve_taskbar_overlay"
         private const val NOTIFICATION_ID = 9102
         private const val BAR_HEIGHT_DP = 50
+        private const val KEYBOARD_POLL_MS = 250L
         const val ACTION_SHOW = "com.ether4o4.morsvitaest.taskbar.SHOW"
         const val ACTION_STOP = "com.ether4o4.morsvitaest.taskbar.STOP"
 
