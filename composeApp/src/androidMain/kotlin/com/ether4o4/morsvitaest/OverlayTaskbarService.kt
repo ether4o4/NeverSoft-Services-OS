@@ -242,6 +242,14 @@ class OverlayTaskbarService :
             setPadding(dp(10), dp(3), dp(10), dp(3))
             elevation = dp(8).toFloat()
         }
+        // The window ROOT must own the view-tree lifecycle / view-model / saved-state:
+        // Compose resolves the window recomposer for the nested Start-orb ComposeView
+        // from the root view (this LinearLayout), NOT from the ComposeView itself.
+        // Without these the recomposer can't be created and applying the taskbar
+        // instantly crashes the app.
+        bar.setViewTreeLifecycleOwner(this)
+        bar.setViewTreeViewModelStoreOwner(this)
+        bar.setViewTreeSavedStateRegistryOwner(this)
 
         bar.addView(
             orbView { bringAppToFront() },
