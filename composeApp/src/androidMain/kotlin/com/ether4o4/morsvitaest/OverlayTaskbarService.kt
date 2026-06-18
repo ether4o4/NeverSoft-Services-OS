@@ -36,7 +36,11 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import androidx.compose.ui.graphics.toArgb
+import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
 import com.ether4o4.morsvitaest.ui.overlay.OverlayWidgetPanel
+import org.koin.java.KoinJavaComponent.getKoin
 import java.util.Calendar
 
 /**
@@ -179,8 +183,11 @@ class OverlayTaskbarService :
             WindowManager.LayoutParams.MATCH_PARENT,
             dp(BAR_HEIGHT_DP),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            // NO_LIMITS lets the bar sit flush against the very bottom edge
+            // (into the gesture-nav area) instead of floating above it.
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.START
@@ -207,11 +214,22 @@ class OverlayTaskbarService :
         clockView = null
     }
 
+    /** Bar background + content (glyph/text) colors from the user's launcher theme. */
+    private fun themeColors(): Pair<Int, Int> = try {
+        val theme = resolveLauncherTheme(getKoin().get<AppSettings>().getLauncherTheme())
+        // No blur in the overlay, so a "glass" theme becomes a readable translucent dark.
+        val bar = if (theme.glass) 0xE6101216.toInt() else theme.panel.toArgb()
+        bar to theme.content.toArgb()
+    } catch (_: Exception) {
+        0xF20E1014.toInt() to Color.WHITE
+    }
+
     private fun buildBar(): View {
+        val (barColor, contentColor) = themeColors()
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            background = GradientDrawable().apply { setColor(0xF20E1014.toInt()) }
+            background = GradientDrawable().apply { setColor(barColor) }
             setPadding(dp(10), dp(4), dp(10), dp(4))
             elevation = dp(8).toFloat()
         }
@@ -221,11 +239,11 @@ class OverlayTaskbarService :
             LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(8) },
         )
         bar.addView(
-            glyphButton("✆") { openDialer() },
+            glyphButton("✆", contentColor) { openDialer() },
             LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(8) },
         )
         bar.addView(
-            glyphButton("✉") { openMessages() },
+            glyphButton("✉", contentColor) { openMessages() },
             LinearLayout.LayoutParams(dp(38), dp(38)),
         )
 
@@ -233,14 +251,14 @@ class OverlayTaskbarService :
 
         // Tapping the clock toggles the floating widget/chat panel.
         val clock = TextView(this).apply {
-            setTextColor(Color.WHITE)
+            setTextColor(contentColor)
             textSize = 13f
             gravity = Gravity.CENTER
             setPadding(dp(10), dp(4), dp(10), dp(4))
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dp(9).toFloat()
-                setColor(0x22FFFFFF)
+                setColor((contentColor and 0xFFFFFF) or 0x22000000)
             }
             isClickable = true
             setOnClickListener { togglePanel() }
@@ -271,16 +289,16 @@ class OverlayTaskbarService :
         setOnClickListener { onClick() }
     }
 
-    private fun glyphButton(glyph: String, onClick: () -> Unit): TextView = TextView(this).apply {
+    private fun glyphButton(glyph: String, contentColor: Int, onClick: () -> Unit): TextView = TextView(this).apply {
         text = glyph
-        setTextColor(Color.WHITE)
+        setTextColor(contentColor)
         textSize = 16f
         gravity = Gravity.CENTER
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dp(9).toFloat()
-            setColor(0x22FFFFFF)
-            setStroke(dp(1), 0x33FFFFFF)
+            setColor((contentColor and 0xFFFFFF) or 0x22000000)
+            setStroke(dp(1), (contentColor and 0xFFFFFF) or 0x33000000)
         }
         isClickable = true
         setOnClickListener { onClick() }

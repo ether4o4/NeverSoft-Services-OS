@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ether4o4.morsvitaest.ui.DarkColorScheme
 import com.ether4o4.morsvitaest.ui.Theme
-import com.ether4o4.morsvitaest.ui.launcher.WidgetsContent
 import org.koin.compose.KoinContext
 
 /**
@@ -66,7 +65,7 @@ fun OverlayWidgetPanel(onClose: () -> Unit) {
                     }
                 }
                 Box(modifier = Modifier.fillMaxSize()) {
-                    WidgetsContent()
+                    OverlayMiniChat()
                 }
             }
         }
