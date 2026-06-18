@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -61,7 +63,17 @@ fun OverlayMiniChat(modifier: Modifier = Modifier) {
     }
     var text by remember { mutableStateOf("") }
 
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    // imePadding keeps the input row above the soft keyboard. The overlay window is
+    // a fixed-height TYPE_APPLICATION_OVERLAY anchored above the taskbar, so the system's
+    // adjustResize never reflows it — we must inset the content by the IME ourselves.
+    // navigationBarsPadding guards the case where the panel reaches the gesture bar.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .imePadding()
+            .navigationBarsPadding(),
+    ) {
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             state = listState,
