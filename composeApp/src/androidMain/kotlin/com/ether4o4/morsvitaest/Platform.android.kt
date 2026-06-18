@@ -216,6 +216,13 @@ actual fun getPlatformToolDefinitions(): List<ToolInfo> = buildList {
             descriptionRes = Res.string.tool_open_file_description,
         ),
     )
+    add(
+        ToolInfo(
+            id = "post_to_social",
+            name = "Post to social",
+            description = "Share a post (text + optional image) to Instagram, X, Facebook, TikTok, etc. via the Android share sheet",
+        ),
+    )
     // SMS tools are intentionally absent here: availability is driven by the Agent-tab
     // master toggles (isSmsEnabled / isSmsSendEnabled) plus the FOSS-only `isSmsSupported`
     // check in `getAvailableTools()`. Listing per-tool toggles in the Tools tab was dead
@@ -409,6 +416,55 @@ actual fun getAvailableTools(): List<Tool> {
                                 "success" to false,
                                 "error" to (e.message ?: "Failed to set alarm"),
                             )
+                        }
+                    }
+                },
+            )
+        }
+
+        if (appSettings.isToolEnabled("post_to_social")) {
+            add(
+                object : Tool {
+                    override val schema = ToolSchema(
+                        "post_to_social",
+                        "Share a post to a social app (Instagram, X/Twitter, Facebook, TikTok, WhatsApp, etc.) or anywhere, via the Android share sheet. Provide the caption text and optionally a local image file path. This opens the share sheet for the user to pick the app and confirm — it does NOT publish silently. Use it whenever the user wants to post something to social media.",
+                        mapOf(
+                            "text" to ParameterSchema("string", "The caption / text of the post", true),
+                            "image_path" to ParameterSchema("string", "Absolute path to a local image file to attach (optional; needed for an Instagram feed post)", false),
+                        ),
+                    )
+
+                    override suspend fun execute(args: Map<String, Any>): Any {
+                        val text = args["text"]?.toString()
+                            ?: return mapOf("success" to false, "error" to "text is required")
+                        val imagePath = args["image_path"]?.toString()?.takeIf { it.isNotBlank() }
+                        return try {
+                            val file = imagePath?.let { java.io.File(it) }?.takeIf { it.exists() }
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                if (file != null) {
+                                    type = "image/*"
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file,
+                                    )
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    putExtra(Intent.EXTRA_TEXT, text)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                } else {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, text)
+                                }
+                            }
+                            val chooser = Intent.createChooser(send, "Share post")
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(chooser)
+                            mapOf(
+                                "success" to true,
+                                "message" to "Opened the share sheet — the user picks an app (e.g. Instagram) and taps to post.",
+                            )
+                        } catch (e: Exception) {
+                            mapOf("success" to false, "error" to "Failed to open share: ${e.message}")
                         }
                     }
                 },

@@ -285,6 +285,26 @@ class OverlayTaskbarService :
             gradientType = GradientDrawable.RADIAL_GRADIENT
             gradientRadius = dp(22).toFloat()
         }
+        // A custom Start-orb photo (Launcher Settings ▸ Start Orb ▸ Use a photo)
+        // overrides the default blue orb, shown as a circle.
+        val orbImage = try {
+            getKoin().get<AppSettings>().getLauncherOrbImage()
+        } catch (_: Exception) {
+            ""
+        }
+        if (orbImage.isNotBlank()) {
+            val bmp = try {
+                android.graphics.BitmapFactory.decodeFile(orbImage)
+            } catch (_: Exception) {
+                null
+            }
+            if (bmp != null) {
+                text = ""
+                background = androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
+                    .create(resources, bmp)
+                    .apply { isCircular = true }
+            }
+        }
         isClickable = true
         setOnClickListener { onClick() }
     }
