@@ -38,8 +38,10 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.ui.launcher.StartOrb
 import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
 import com.ether4o4.morsvitaest.ui.overlay.OverlayWidgetPanel
+import org.koin.compose.KoinContext
 import org.koin.java.KoinJavaComponent.getKoin
 import java.util.Calendar
 
@@ -237,13 +239,16 @@ class OverlayTaskbarService :
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             background = GradientDrawable().apply { setColor(barColor) }
-            setPadding(dp(10), dp(4), dp(10), dp(4))
+            setPadding(dp(10), dp(3), dp(10), dp(3))
             elevation = dp(8).toFloat()
         }
 
         bar.addView(
-            orbButton("≡") { bringAppToFront() },
-            LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(8) },
+            orbView { bringAppToFront() },
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { marginEnd = dp(4) },
         )
         bar.addView(
             glyphButton("✆", contentColor) { openDialer() },
@@ -281,39 +286,36 @@ class OverlayTaskbarService :
         return bar
     }
 
-    private fun orbButton(glyph: String, onClick: () -> Unit): TextView = TextView(this).apply {
-        text = glyph
-        setTextColor(Color.WHITE)
-        textSize = 17f
-        gravity = Gravity.CENTER
-        background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            colors = intArrayOf(0xFF8FE6FF.toInt(), 0xFF1E7FD0.toInt(), 0xFF0B3C73.toInt())
-            gradientType = GradientDrawable.RADIAL_GRADIENT
-            gradientRadius = dp(22).toFloat()
+    /**
+     * The Start orb, hosted as a small Compose island so it renders the exact same
+     * [StartOrb] the in-app launcher uses — every style (default glow / mascot / logo
+     * / grid) and the custom photo, plus the cyan accent ring — instead of a static
+     * glyph. Reads the user's chosen orb style + photo from settings.
+     */
+    private fun orbView(onClick: () -> Unit): View {
+        val style = try {
+            getKoin().get<AppSettings>().getLauncherOrbStyle()
+        } catch (_: Exception) {
+            "orb"
         }
-        // A custom Start-orb photo (Launcher Settings ▸ Start Orb ▸ Use a photo)
-        // overrides the default blue orb, shown as a circle.
-        val orbImage = try {
+        val image = try {
             getKoin().get<AppSettings>().getLauncherOrbImage()
         } catch (_: Exception) {
             ""
         }
-        if (orbImage.isNotBlank()) {
-            val bmp = try {
-                android.graphics.BitmapFactory.decodeFile(orbImage)
-            } catch (_: Exception) {
-                null
-            }
-            if (bmp != null) {
-                text = ""
-                background = androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
-                    .create(resources, bmp)
-                    .apply { isCircular = true }
+        return ComposeView(this).apply {
+            // Unique id so this ComposeView's saved-state key doesn't collide with the
+            // panel ComposeView's (both share this service as SavedStateRegistryOwner).
+            id = View.generateViewId()
+            setViewTreeLifecycleOwner(this@OverlayTaskbarService)
+            setViewTreeViewModelStoreOwner(this@OverlayTaskbarService)
+            setViewTreeSavedStateRegistryOwner(this@OverlayTaskbarService)
+            setContent {
+                KoinContext {
+                    StartOrb(style = style, imagePath = image, onClick = onClick)
+                }
             }
         }
-        isClickable = true
-        setOnClickListener { onClick() }
     }
 
     private fun glyphButton(glyph: String, contentColor: Int, onClick: () -> Unit): TextView = TextView(this).apply {
@@ -349,6 +351,8 @@ class OverlayTaskbarService :
     private fun showPanel() {
         if (panelView != null || !Settings.canDrawOverlays(this)) return
         val view = ComposeView(this).apply {
+            // Unique id so the panel's saved-state key doesn't collide with the orb's.
+            id = View.generateViewId()
             setViewTreeLifecycleOwner(this@OverlayTaskbarService)
             setViewTreeViewModelStoreOwner(this@OverlayTaskbarService)
             setViewTreeSavedStateRegistryOwner(this@OverlayTaskbarService)
@@ -418,7 +422,7 @@ class OverlayTaskbarService :
     companion object {
         private const val CHANNEL_ID = "mve_taskbar_overlay"
         private const val NOTIFICATION_ID = 9102
-        private const val BAR_HEIGHT_DP = 46
+        private const val BAR_HEIGHT_DP = 50
         const val ACTION_SHOW = "com.ether4o4.morsvitaest.taskbar.SHOW"
         const val ACTION_STOP = "com.ether4o4.morsvitaest.taskbar.STOP"
 
