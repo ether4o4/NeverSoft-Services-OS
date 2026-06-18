@@ -747,7 +747,7 @@ private fun WindowButton(glyph: String, color: Color, onClick: () -> Unit) {
  * overrides the default glyph; the glowing orb is the default look.
  */
 @Composable
-private fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
+internal fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .padding(horizontal = 3.dp)
