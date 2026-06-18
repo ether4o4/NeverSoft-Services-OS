@@ -165,6 +165,12 @@ class OverlayTaskbarService :
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    /** Height of the system navigation (gesture) bar, so the taskbar can sit just above it. */
+    private fun navBarHeightPx(): Int {
+        val id = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        return if (id > 0) resources.getDimensionPixelSize(id) else 0
+    }
+
     private fun wm(): WindowManager = windowManager ?: (getSystemService(Context.WINDOW_SERVICE) as WindowManager).also { windowManager = it }
 
     private fun ensureBar() {
@@ -183,14 +189,15 @@ class OverlayTaskbarService :
             WindowManager.LayoutParams.MATCH_PARENT,
             dp(BAR_HEIGHT_DP),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            // NO_LIMITS lets the bar sit flush against the very bottom edge
-            // (into the gesture-nav area) instead of floating above it.
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.START
+            // Sit just ABOVE the system gesture-nav bar so the bar and the pill
+            // don't overlap (the pill stays the thin system edge below the bar —
+            // an overlay can't move the system pill above itself).
+            y = navBarHeightPx()
         }
         try {
             wm().addView(bar, params)
@@ -285,6 +292,26 @@ class OverlayTaskbarService :
             gradientType = GradientDrawable.RADIAL_GRADIENT
             gradientRadius = dp(22).toFloat()
         }
+        // A custom Start-orb photo (Launcher Settings ▸ Start Orb ▸ Use a photo)
+        // overrides the default blue orb, shown as a circle.
+        val orbImage = try {
+            getKoin().get<AppSettings>().getLauncherOrbImage()
+        } catch (_: Exception) {
+            ""
+        }
+        if (orbImage.isNotBlank()) {
+            val bmp = try {
+                android.graphics.BitmapFactory.decodeFile(orbImage)
+            } catch (_: Exception) {
+                null
+            }
+            if (bmp != null) {
+                text = ""
+                background = androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
+                    .create(resources, bmp)
+                    .apply { isCircular = true }
+            }
+        }
         isClickable = true
         setOnClickListener { onClick() }
     }
@@ -343,7 +370,8 @@ class OverlayTaskbarService :
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.START
-            y = dp(BAR_HEIGHT_DP)
+            // Sit above the bar, which itself sits above the gesture-nav bar.
+            y = dp(BAR_HEIGHT_DP) + navBarHeightPx()
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
         try {
