@@ -447,6 +447,7 @@ class OverlayTaskbarService :
         }
         try {
             wm().addView(view, params)
+            matchOverlayNavBar(view)
         } catch (_: Exception) {
             panelView = null
         }
@@ -495,7 +496,7 @@ class OverlayTaskbarService :
         val screenHeight = resources.displayMetrics.heightPixels
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            (screenHeight * 0.82f).toInt(),
+            (screenHeight * 0.66f).toInt(),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             // Focusable (no NOT_FOCUSABLE) so the search keyboard works;
             // NOT_TOUCH_MODAL lets taps above the menu reach the app behind it.
@@ -509,6 +510,7 @@ class OverlayTaskbarService :
         }
         try {
             wm().addView(view, params)
+            matchOverlayNavBar(view)
         } catch (_: Exception) {
             startMenuView = null
         }
@@ -521,6 +523,31 @@ class OverlayTaskbarService :
         } catch (_: Exception) {
         }
         startMenuView = null
+    }
+
+    /**
+     * Keep a focusable overlay (Start menu / chat panel) from disturbing the system
+     * nav bar: when the "Full-screen taskbar" immersive mode is on, MVE's Activity
+     * hides the gesture pill, but a focusable overlay that takes focus would let the
+     * pill pop back. Match the state so the pill stays hidden while the overlay is up.
+     */
+    private fun matchOverlayNavBar(view: View) {
+        val immersive = try {
+            getKoin().get<AppSettings>().isFullscreenLauncherEnabled()
+        } catch (_: Exception) {
+            false
+        }
+        if (!immersive) return
+        view.post {
+            try {
+                androidx.core.view.ViewCompat.getWindowInsetsController(view)?.apply {
+                    systemBarsBehavior =
+                        androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+                }
+            } catch (_: Exception) {
+            }
+        }
     }
 
     // ---- Button actions ---------------------------------------------------
