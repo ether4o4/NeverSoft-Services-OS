@@ -16,7 +16,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -61,9 +63,12 @@ fun OverlayTaskbarBar(
     KoinContext {
         Theme(colorScheme = DarkColorScheme) {
             val settings = koinInject<AppSettings>()
-            val theme = remember { resolveLauncherTheme(settings.getLauncherTheme()) }
-            val orbStyle = remember { settings.getLauncherOrbStyle() }
-            val orbImage = remember { settings.getLauncherOrbImage() }
+            // Re-read appearance whenever a launcher appearance setting changes, so the
+            // persistent bar's theme / orb / pins switch live with the rest of the UI.
+            val appearance by settings.launcherAppearanceFlow.collectAsStateWithLifecycle()
+            val theme = remember(appearance) { resolveLauncherTheme(settings.getLauncherTheme()) }
+            val orbStyle = remember(appearance) { settings.getLauncherOrbStyle() }
+            val orbImage = remember(appearance) { settings.getLauncherOrbImage() }
 
             // Built-in apps, for resolving pinned dock icons. Over other apps they bring
             // the launcher forward rather than opening an MVE window.
@@ -79,7 +84,7 @@ fun OverlayTaskbarBar(
                 )
             }
             val byId = remember(catalog) { catalog.associateBy { it.id } }
-            val dockPins = remember { settings.getLauncherDockPins(defaultDockPins).filter { byId.containsKey(it) } }
+            val dockPins = remember(appearance) { settings.getLauncherDockPins(defaultDockPins).filter { byId.containsKey(it) } }
 
             // The whole window (bar + the bottom gesture-pill strip) carries the theme.
             // An opaque base sits under the theme brush so a translucent "glass" theme
