@@ -535,113 +535,119 @@ internal fun StartDrawer(
         }
     }
 
-    if (!inOverlay) pinDialogFor?.let { app ->
-        val inStart = startPins.contains(app.id)
-        val inDock = dockPins.contains(app.id)
-        AlertDialog(
-            onDismissRequest = { pinDialogFor = null },
-            title = { Text(app.label) },
-            text = { Text("Pin to Start and Pin to Taskbar are separate — set each how you like.") },
-            confirmButton = {
-                Column {
-                    TextButton(onClick = {
-                        onToggleStartPin(app.id)
-                        pinDialogFor = null
-                    }) { Text(if (inStart) "Unpin from Start" else "Pin to Start") }
-                    TextButton(onClick = {
-                        onToggleDockPin(app.id)
-                        pinDialogFor = null
-                    }) { Text(if (inDock) "Unpin from Taskbar" else "Pin to Taskbar") }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pinDialogFor = null }) { Text("Cancel") }
-            },
-        )
+    if (!inOverlay) {
+        pinDialogFor?.let { app ->
+            val inStart = startPins.contains(app.id)
+            val inDock = dockPins.contains(app.id)
+            AlertDialog(
+                onDismissRequest = { pinDialogFor = null },
+                title = { Text(app.label) },
+                text = { Text("Pin to Start and Pin to Taskbar are separate — set each how you like.") },
+                confirmButton = {
+                    Column {
+                        TextButton(onClick = {
+                            onToggleStartPin(app.id)
+                            pinDialogFor = null
+                        }) { Text(if (inStart) "Unpin from Start" else "Pin to Start") }
+                        TextButton(onClick = {
+                            onToggleDockPin(app.id)
+                            pinDialogFor = null
+                        }) { Text(if (inDock) "Unpin from Taskbar" else "Pin to Taskbar") }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pinDialogFor = null }) { Text("Cancel") }
+                },
+            )
+        }
     }
 
-    if (!inOverlay) moveDialogFor?.let { app ->
-        AlertDialog(
-            onDismissRequest = { moveDialogFor = null },
-            title = { Text(app.label) },
-            text = { Text("Put this app on the desktop, or move it to a different box. ‘Auto’ uses the system category; ‘All only’ keeps it out of every box.") },
-            confirmButton = {
-                Column {
-                    if (allowDesktopShortcut) {
+    if (!inOverlay) {
+        moveDialogFor?.let { app ->
+            AlertDialog(
+                onDismissRequest = { moveDialogFor = null },
+                title = { Text(app.label) },
+                text = { Text("Put this app on the desktop, or move it to a different box. ‘Auto’ uses the system category; ‘All only’ keeps it out of every box.") },
+                confirmButton = {
+                    Column {
+                        if (allowDesktopShortcut) {
+                            TextButton(onClick = {
+                                settings.addDesktopShortcut(app.packageName, app.label)
+                                onDesktopChanged()
+                                moveDialogFor = null
+                                onClose()
+                            }) { Text("Create desktop shortcut") }
+                        }
+                        AppCategory.entries.forEach { cat ->
+                            TextButton(onClick = {
+                                settings.setAppCategoryOverride(app.packageName, cat.id)
+                                dataVersion++
+                                moveDialogFor = null
+                            }) { Text(cat.label) }
+                        }
                         TextButton(onClick = {
-                            settings.addDesktopShortcut(app.packageName, app.label)
-                            onDesktopChanged()
-                            moveDialogFor = null
-                            onClose()
-                        }) { Text("Create desktop shortcut") }
-                    }
-                    AppCategory.entries.forEach { cat ->
-                        TextButton(onClick = {
-                            settings.setAppCategoryOverride(app.packageName, cat.id)
+                            settings.setAppCategoryOverride(app.packageName, UNCATEGORIZED_ID)
                             dataVersion++
                             moveDialogFor = null
-                        }) { Text(cat.label) }
+                        }) { Text("All only") }
+                        TextButton(onClick = {
+                            settings.setAppCategoryOverride(app.packageName, "")
+                            dataVersion++
+                            moveDialogFor = null
+                        }) { Text("Auto") }
                     }
-                    TextButton(onClick = {
-                        settings.setAppCategoryOverride(app.packageName, UNCATEGORIZED_ID)
-                        dataVersion++
-                        moveDialogFor = null
-                    }) { Text("All only") }
-                    TextButton(onClick = {
-                        settings.setAppCategoryOverride(app.packageName, "")
-                        dataVersion++
-                        moveDialogFor = null
-                    }) { Text("Auto") }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { moveDialogFor = null }) { Text("Cancel") }
-            },
-        )
+                },
+                dismissButton = {
+                    TextButton(onClick = { moveDialogFor = null }) { Text("Cancel") }
+                },
+            )
+        }
     }
 
-    if (!inOverlay) pickerForSlot?.let { slot ->
-        AlertDialog(
-            onDismissRequest = { pickerForSlot = null },
-            title = { Text("Choose an app") },
-            text = {
-                Column(modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-                    if (installedApps.isEmpty()) {
-                        Text("No installed apps found.", color = c.copy(alpha = 0.6f))
-                    }
-                    installedApps.forEach { app ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    settings.setQuickLaunchApp(slot, app.packageName)
-                                    dataVersion++
-                                    pickerForSlot = null
+    if (!inOverlay) {
+        pickerForSlot?.let { slot ->
+            AlertDialog(
+                onDismissRequest = { pickerForSlot = null },
+                title = { Text("Choose an app") },
+                text = {
+                    Column(modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                        if (installedApps.isEmpty()) {
+                            Text("No installed apps found.", color = c.copy(alpha = 0.6f))
+                        }
+                        installedApps.forEach { app ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        settings.setQuickLaunchApp(slot, app.packageName)
+                                        dataVersion++
+                                        pickerForSlot = null
+                                    }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                val ic = app.icon
+                                if (ic != null) {
+                                    Image(bitmap = ic, contentDescription = app.label, modifier = Modifier.size(28.dp))
                                 }
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            val ic = app.icon
-                            if (ic != null) {
-                                Image(bitmap = ic, contentDescription = app.label, modifier = Modifier.size(28.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(app.label)
                             }
-                            Spacer(Modifier.width(10.dp))
-                            Text(app.label)
                         }
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    settings.setQuickLaunchApp(slot, "")
-                    dataVersion++
-                    pickerForSlot = null
-                }) { Text("Clear") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pickerForSlot = null }) { Text("Cancel") }
-            },
-        )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        settings.setQuickLaunchApp(slot, "")
+                        dataVersion++
+                        pickerForSlot = null
+                    }) { Text("Clear") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pickerForSlot = null }) { Text("Cancel") }
+                },
+            )
+        }
     }
 }
 

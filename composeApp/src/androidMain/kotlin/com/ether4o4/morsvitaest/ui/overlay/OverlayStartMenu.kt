@@ -15,9 +15,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.ether4o4.morsvitaest.InstalledApp
+import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getInstalledApps
 import com.ether4o4.morsvitaest.launchApp
-import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.ui.DarkColorScheme
 import com.ether4o4.morsvitaest.ui.Theme
 import com.ether4o4.morsvitaest.ui.launcher.LauncherApp
