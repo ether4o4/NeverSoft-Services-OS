@@ -169,17 +169,21 @@ class MveKeyboardService : InputMethodService() {
         }
     }
 
-    private fun isSpecial(key: String) =
-        key in setOf("⇧", "⌫", "?123", "ABC", "PC", "⏎", "Ctrl", "Alt", "Tab", "Esc", "Del", "↑", "↓", "←", "→")
+    private fun isSpecial(key: String) = key in setOf("⇧", "⌫", "?123", "ABC", "PC", "⏎", "Ctrl", "Alt", "Tab", "Esc", "Del", "↑", "↓", "←", "→")
 
     /** Highlight active sticky modifiers. */
-    private fun isActiveModifier(key: String) =
-        (key == "Ctrl" && ctrl) || (key == "Alt" && alt) || (key == "⇧" && shifted)
+    private fun isActiveModifier(key: String) = (key == "Ctrl" && ctrl) || (key == "Alt" && alt) || (key == "⇧" && shifted)
 
     private fun keyView(key: String): TextView = TextView(this).apply {
         text = label(key)
         setTextColor(colors.text)
-        textSize = if (key.length > 1 && key != "space") 12f else if (mode == Mode.PC) 15f else 18f
+        textSize = if (key.length > 1 && key != "space") {
+            12f
+        } else if (mode == Mode.PC) {
+            15f
+        } else {
+            18f
+        }
         gravity = Gravity.CENTER
         // Resolve the fill here: inside GradientDrawable.apply, `colors` would bind to
         // GradientDrawable.colors (the gradient array), not this service's colors.
@@ -196,27 +200,61 @@ class MveKeyboardService : InputMethodService() {
         setOnClickListener { onKey(key) }
     }
 
-    private fun label(key: String): String =
-        if (mode != Mode.SYMBOLS && shifted && key.length == 1 && key[0].isLetter()) key.uppercase() else key
+    private fun label(key: String): String = if (mode != Mode.SYMBOLS && shifted && key.length == 1 && key[0].isLetter()) key.uppercase() else key
 
     private fun onKey(key: String) {
         val ic = currentInputConnection ?: return
         when (key) {
             "⌫" -> sendKey(KeyEvent.KEYCODE_DEL)
+
             "Del" -> sendKey(KeyEvent.KEYCODE_FORWARD_DEL)
+
             "space" -> ic.commitText(" ", 1)
-            "⇧" -> { shifted = !shifted; renderRows() }
-            "?123" -> { mode = Mode.SYMBOLS; renderRows() }
-            "ABC" -> { mode = Mode.ABC; ctrl = false; alt = false; renderRows() }
-            "PC" -> { mode = Mode.PC; renderRows() }
+
+            "⇧" -> {
+                shifted = !shifted
+                renderRows()
+            }
+
+            "?123" -> {
+                mode = Mode.SYMBOLS
+                renderRows()
+            }
+
+            "ABC" -> {
+                mode = Mode.ABC
+                ctrl = false
+                alt = false
+                renderRows()
+            }
+
+            "PC" -> {
+                mode = Mode.PC
+                renderRows()
+            }
+
             "Esc" -> sendKey(KeyEvent.KEYCODE_ESCAPE)
+
             "Tab" -> sendKey(KeyEvent.KEYCODE_TAB)
-            "Ctrl" -> { ctrl = !ctrl; renderRows() }
-            "Alt" -> { alt = !alt; renderRows() }
+
+            "Ctrl" -> {
+                ctrl = !ctrl
+                renderRows()
+            }
+
+            "Alt" -> {
+                alt = !alt
+                renderRows()
+            }
+
             "←" -> sendKey(KeyEvent.KEYCODE_DPAD_LEFT)
+
             "→" -> sendKey(KeyEvent.KEYCODE_DPAD_RIGHT)
+
             "↑" -> sendKey(KeyEvent.KEYCODE_DPAD_UP)
+
             "↓" -> sendKey(KeyEvent.KEYCODE_DPAD_DOWN)
+
             "⏎" -> {
                 if (mode == Mode.PC) {
                     sendKey(KeyEvent.KEYCODE_ENTER)
@@ -230,6 +268,7 @@ class MveKeyboardService : InputMethodService() {
                     }
                 }
             }
+
             else -> typeKey(key)
         }
     }
@@ -252,7 +291,10 @@ class MveKeyboardService : InputMethodService() {
         }
         val out = if (mode != Mode.SYMBOLS && shifted && key.length == 1) key.uppercase() else key
         ic.commitText(out, 1)
-        if (shifted && mode == Mode.ABC) { shifted = false; renderRows() }
+        if (shifted && mode == Mode.ABC) {
+            shifted = false
+            renderRows()
+        }
     }
 
     private fun keyCodeFor(key: String): Int {
