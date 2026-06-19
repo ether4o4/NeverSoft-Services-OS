@@ -673,17 +673,73 @@ actual fun saveLauncherImage(name: String, bytes: ByteArray): String? = try {
 
 actual fun launchApp(appId: String): Boolean = try {
     val context: Context by inject(Context::class.java)
-    val intent = context.packageManager.getLaunchIntentForPackage(appId)?.apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
+    val settings: AppSettings by inject(AppSettings::class.java)
+    val intent = context.packageManager.getLaunchIntentForPackage(appId)
     if (intent != null) {
-        context.startActivity(intent)
-        true
+        if (settings.isWindowedAppsEnabled() && launchAppFreeform(context, intent)) {
+            true
+        } else {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            true
+        }
     } else {
         false
     }
 } catch (_: Exception) {
     false
+}
+
+/**
+ * Launch [intent] in a freeform window sized to stop just above the taskbar — the
+ * desktop-OS model the user asked for. Requires the device to have freeform windowing
+ * enabled (Samsung: Good Lock/MultiStar or the "Force activities to be resizable"
+ * developer option; stock: `settings put global enable_freeform_support 1`). Returns
+ * false if the launch is rejected so the caller can fall back to a normal fullscreen
+ * launch.
+ *
+ * NEW_TASK + MULTIPLE_TASK avoids the platform quirk where an app already open
+ * fullscreen in Recents is simply re-shown fullscreen instead of windowed.
+ */
+private fun launchAppFreeform(context: Context, intent: Intent): Boolean = try {
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+    val options = android.app.ActivityOptions.makeBasic().apply {
+        setLaunchBounds(windowedAppBounds(context))
+        // WINDOWING_MODE_FREEFORM = 5 — a @SystemApi, set via reflection. If hidden-API
+        // restrictions block it, the launch bounds alone still open freeform on devices
+        // where freeform support is enabled (e.g. Samsung).
+        try {
+            javaClass.getMethod("setLaunchWindowingMode", Int::class.javaPrimitiveType)
+                .invoke(this, 5)
+        } catch (_: Throwable) {
+        }
+    }
+    context.startActivity(intent, options.toBundle())
+    true
+} catch (_: Throwable) {
+    false
+}
+
+/** Window bounds that fill the screen above the taskbar (its flush height incl. the pill strip). */
+private fun windowedAppBounds(context: Context): android.graphics.Rect {
+    val wm = context.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
+    val width: Int
+    val height: Int
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        val b = wm.currentWindowMetrics.bounds
+        width = b.width()
+        height = b.height()
+    } else {
+        @Suppress("DEPRECATION")
+        val dm = context.resources.displayMetrics
+        width = dm.widthPixels
+        height = dm.heightPixels
+    }
+    val density = context.resources.displayMetrics.density
+    val navId = context.resources.getIdentifier("navigation_bar_height", "dimen", "android")
+    val navPx = if (navId > 0) context.resources.getDimensionPixelSize(navId) else 0
+    val taskbarPx = (50 * density).toInt() + navPx
+    return android.graphics.Rect(0, 0, width, (height - taskbarPx).coerceAtLeast(height / 2))
 }
 
 actual fun openUrl(url: String): Boolean = try {
