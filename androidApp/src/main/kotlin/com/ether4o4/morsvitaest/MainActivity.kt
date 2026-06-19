@@ -19,6 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.ether4o4.morsvitaest.data.AppSettings
@@ -70,6 +73,13 @@ class MainActivity : ComponentActivity() {
                     },
                 )
             }
+            // Full-screen launcher: hide the system nav bar (gesture pill) so the
+            // taskbar is the true bottom edge. Keyed on isDarkTheme too, so it re-applies
+            // after enableEdgeToEdge runs (which can re-show the bar).
+            val fullscreenLauncher by appSettings.fullscreenLauncherFlow.collectAsStateWithLifecycle()
+            LaunchedEffect(fullscreenLauncher, isDarkTheme) {
+                applyImmersive(fullscreenLauncher)
+            }
             val context = LocalContext.current
             val lightScheme: ColorScheme = if (dynamicColor) dynamicLightColorScheme(context) else LightColorScheme
             val darkScheme: ColorScheme = if (dynamicColor) dynamicDarkColorScheme(context) else DarkColorScheme
@@ -110,6 +120,25 @@ class MainActivity : ComponentActivity() {
         // foreground, where starting a foreground service is always allowed; the
         // service then keeps the bar up on its own — no background re-assert needed.
         reconcileTaskbar()
+        // Re-assert immersive mode (some OEMs reset it when returning to the app).
+        applyImmersive(get<AppSettings>().isFullscreenLauncherEnabled())
+    }
+
+    /**
+     * Hide or show the system navigation bar (gesture pill) for MorsVitaEst's own
+     * window. When hidden the taskbar sits flush at the very bottom — the desktop
+     * look; the bar reappears transiently on an edge swipe. This only affects MVE's
+     * window (an app can't hide the nav bar over other apps without root).
+     */
+    private fun applyImmersive(enabled: Boolean) {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (enabled) {
+            controller.hide(WindowInsetsCompat.Type.navigationBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.navigationBars())
+        }
     }
 
     private fun reconcileTaskbar() {

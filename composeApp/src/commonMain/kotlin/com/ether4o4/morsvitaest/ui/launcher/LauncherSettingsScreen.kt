@@ -331,6 +331,36 @@ fun LauncherSettingsContent(
                     modifier = Modifier.padding(top = 6.dp, start = 4.dp),
                 )
             }
+
+            Spacer(Modifier.height(8.dp))
+            var fullscreenLauncher by remember { mutableStateOf(settings.isFullscreenLauncherEnabled()) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Full-screen taskbar", color = Color.White, fontSize = 15.sp)
+                    Text(
+                        "Hides the system navigation bar on MorsVitaEst so the taskbar sits at " +
+                            "the very bottom edge — no pill below it. Swipe up from the bottom to " +
+                            "bring the system bar back.",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Switch(
+                    checked = fullscreenLauncher,
+                    onCheckedChange = {
+                        fullscreenLauncher = it
+                        settings.setFullscreenLauncherEnabled(it)
+                    },
+                )
+            }
         }
 
         Spacer(Modifier.height(18.dp))
