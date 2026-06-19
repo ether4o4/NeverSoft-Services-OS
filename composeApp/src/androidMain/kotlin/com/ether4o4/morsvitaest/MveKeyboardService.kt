@@ -10,6 +10,11 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.compose.ui.graphics.toArgb
+import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.ui.launcher.NeverSoftAccent
+import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
+import org.koin.java.KoinJavaComponent.getKoin
 
 /**
  * MVE's own on-screen keyboard. Its whole reason to exist: it reserves the taskbar's
@@ -36,6 +41,40 @@ class MveKeyboardService : InputMethodService() {
     private var ctrl = false
     private var alt = false
     private var rootView: LinearLayout? = null
+    private var colors = fallbackColors()
+
+    /** Keyboard colors derived from the launcher theme, so it matches the taskbar / Start menu / widgets. */
+    private data class KbColors(val bg: Int, val key: Int, val special: Int, val text: Int, val accent: Int)
+
+    private fun themeColors(): KbColors = try {
+        val theme = resolveLauncherTheme(getKoin().get<AppSettings>().getLauncherTheme())
+        val bg = if (theme.glass) 0xFF0E1117.toInt() else (0xFF000000.toInt() or (theme.panel.toArgb() and 0xFFFFFF))
+        val text = theme.content.toArgb()
+        KbColors(
+            bg = bg,
+            key = blend(bg, text, 0.16f),
+            special = blend(bg, text, 0.07f),
+            text = text,
+            accent = NeverSoftAccent.toArgb(),
+        )
+    } catch (_: Exception) {
+        fallbackColors()
+    }
+
+    private fun blend(base: Int, over: Int, frac: Float): Int {
+        val ir = (Color.red(base) * (1 - frac) + Color.red(over) * frac).toInt()
+        val ig = (Color.green(base) * (1 - frac) + Color.green(over) * frac).toInt()
+        val ib = (Color.blue(base) * (1 - frac) + Color.blue(over) * frac).toInt()
+        return Color.rgb(ir, ig, ib)
+    }
+
+    private fun fallbackColors() = KbColors(
+        bg = 0xFF0E1117.toInt(),
+        key = 0xFF363C49.toInt(),
+        special = 0xFF21262F.toInt(),
+        text = Color.WHITE,
+        accent = 0xFF1E6FB0.toInt(),
+    )
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
@@ -71,9 +110,10 @@ class MveKeyboardService : InputMethodService() {
     )
 
     override fun onCreateInputView(): View {
+        colors = themeColors()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.parseColor("#0E1117"))
+            setBackgroundColor(colors.bg)
             // The crucial bit: reserve the taskbar strip so the keys rest on its top edge.
             setPadding(dp(3), dp(6), dp(3), taskbarReservePx() + dp(4))
         }
@@ -84,7 +124,11 @@ class MveKeyboardService : InputMethodService() {
 
     override fun onStartInput(info: EditorInfo?, restarting: Boolean) {
         super.onStartInput(info, restarting)
+        // Re-read the theme each time, so changing the launcher theme reflects here too.
+        colors = themeColors()
+        rootView?.setBackgroundColor(colors.bg)
         rootView?.setPadding(dp(3), dp(6), dp(3), taskbarReservePx() + dp(4))
+        renderRows()
     }
 
     private fun rowsFor(): List<List<String>> = when (mode) {
@@ -134,19 +178,17 @@ class MveKeyboardService : InputMethodService() {
 
     private fun keyView(key: String): TextView = TextView(this).apply {
         text = label(key)
-        setTextColor(Color.WHITE)
+        setTextColor(colors.text)
         textSize = if (key.length > 1 && key != "space") 12f else if (mode == Mode.PC) 15f else 18f
         gravity = Gravity.CENTER
         background = GradientDrawable().apply {
             cornerRadius = dp(7).toFloat()
             setColor(
-                Color.parseColor(
-                    when {
-                        isActiveModifier(key) -> "#1E6FB0"
-                        isSpecial(key) -> "#21262F"
-                        else -> "#363C49"
-                    },
-                ),
+                when {
+                    isActiveModifier(key) -> colors.accent
+                    isSpecial(key) -> colors.special
+                    else -> colors.key
+                },
             )
         }
         isClickable = true
