@@ -386,6 +386,16 @@ class AppSettings(internal val settings: Settings) {
         _fullscreenLauncherFlow.value = enabled
     }
 
+    // Windowed apps (experimental): launch apps in a freeform window sized to stop
+    // just above the taskbar, instead of fullscreen — the desktop-OS model. Requires
+    // the device to have freeform windowing enabled (Samsung: Good Lock/MultiStar or
+    // the "Force activities to be resizable" developer option).
+    fun isWindowedAppsEnabled(): Boolean = settings.getBoolean(KEY_WINDOWED_APPS, false)
+
+    fun setWindowedAppsEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_WINDOWED_APPS, enabled)
+    }
+
     // Sticky-note widget text.
     fun getLauncherNote(): String = settings.getString(KEY_LAUNCHER_NOTE, "")
 
@@ -802,6 +812,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_LAUNCHER_LABELS = "launcher_labels"
         const val KEY_PERSISTENT_TASKBAR = "launcher_persistent_taskbar"
         const val KEY_FULLSCREEN_LAUNCHER = "launcher_fullscreen_immersive"
+        const val KEY_WINDOWED_APPS = "launcher_windowed_apps"
         const val KEY_LAUNCHER_NOTE = "launcher_note"
         const val KEY_DEFAULT_FILE_EXPLORER = "default_file_explorer"
         const val KEY_LAUNCHER_ICON_LINK_PREFIX = "launcher_icon_link_"

@@ -40,6 +40,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.ui.launcher.StartOrb
 import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
+import com.ether4o4.morsvitaest.ui.overlay.OverlayStartMenu
 import com.ether4o4.morsvitaest.ui.overlay.OverlayWidgetPanel
 import org.koin.compose.KoinContext
 import org.koin.java.KoinJavaComponent.getKoin
@@ -78,6 +79,7 @@ class OverlayTaskbarService :
     private var barView: View? = null
     private var clockView: TextView? = null
     private var panelView: ComposeView? = null
+    private var startMenuView: ComposeView? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private val clockTick = object : Runnable {
@@ -120,6 +122,7 @@ class OverlayTaskbarService :
         handler.removeCallbacks(clockTick)
         handler.removeCallbacks(keyboardTick)
         hidePanel()
+        hideStartMenu()
         removeBar()
         store.clear()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
@@ -270,7 +273,7 @@ class OverlayTaskbarService :
         bar.setViewTreeSavedStateRegistryOwner(this)
 
         bar.addView(
-            orbView { bringAppToFront() },
+            orbView { toggleStartMenu() },
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -456,6 +459,68 @@ class OverlayTaskbarService :
         } catch (_: Exception) {
         }
         panelView = null
+    }
+
+    // ---- Start menu (Compose overlay) -------------------------------------
+
+    private fun toggleStartMenu() {
+        if (startMenuView != null) hideStartMenu() else showStartMenu()
+    }
+
+    /**
+     * Show the Start menu as its own overlay window so it draws ON TOP of freeform
+     * app windows. The in-app Start menu can't: it lives in the launcher's home
+     * window, which the system keeps behind floating app windows.
+     */
+    private fun showStartMenu() {
+        if (startMenuView != null || !Settings.canDrawOverlays(this)) return
+        hidePanel() // don't stack the chat panel and the Start menu
+        val view = ComposeView(this).apply {
+            id = View.generateViewId()
+            setViewTreeLifecycleOwner(this@OverlayTaskbarService)
+            setViewTreeViewModelStoreOwner(this@OverlayTaskbarService)
+            setViewTreeSavedStateRegistryOwner(this@OverlayTaskbarService)
+            setContent {
+                OverlayStartMenu(
+                    onClose = { hideStartMenu() },
+                    onOpenMve = {
+                        hideStartMenu()
+                        bringAppToFront()
+                    },
+                )
+            }
+        }
+        startMenuView = view
+
+        val screenHeight = resources.displayMetrics.heightPixels
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            (screenHeight * 0.82f).toInt(),
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            // Focusable (no NOT_FOCUSABLE) so the search keyboard works;
+            // NOT_TOUCH_MODAL lets taps above the menu reach the app behind it.
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.START
+            y = dp(BAR_HEIGHT_DP) + navBarHeightPx()
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        }
+        try {
+            wm().addView(view, params)
+        } catch (_: Exception) {
+            startMenuView = null
+        }
+    }
+
+    private fun hideStartMenu() {
+        val view = startMenuView ?: return
+        try {
+            windowManager?.removeView(view)
+        } catch (_: Exception) {
+        }
+        startMenuView = null
     }
 
     // ---- Button actions ---------------------------------------------------

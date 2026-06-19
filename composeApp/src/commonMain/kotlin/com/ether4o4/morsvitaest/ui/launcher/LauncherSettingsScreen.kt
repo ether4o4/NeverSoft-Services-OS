@@ -361,6 +361,37 @@ fun LauncherSettingsContent(
                     },
                 )
             }
+
+            Spacer(Modifier.height(8.dp))
+            var windowedApps by remember { mutableStateOf(settings.isWindowedAppsEnabled()) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Open apps in windows (experimental)", color = Color.White, fontSize = 15.sp)
+                    Text(
+                        "Opens apps in a resizable window that stops above the taskbar, instead of " +
+                            "fullscreen — so the taskbar always stays put. Needs freeform windowing " +
+                            "enabled on your device (Samsung: Good Lock ▸ MultiStar, or Developer " +
+                            "options ▸ “Force activities to be resizable”).",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Switch(
+                    checked = windowedApps,
+                    onCheckedChange = {
+                        windowedApps = it
+                        settings.setWindowedAppsEnabled(it)
+                    },
+                )
+            }
         }
 
         Spacer(Modifier.height(18.dp))
