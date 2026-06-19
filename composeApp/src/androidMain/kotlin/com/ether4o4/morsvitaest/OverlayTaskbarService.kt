@@ -8,9 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -19,10 +17,7 @@ import android.provider.Settings
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -38,13 +33,10 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ether4o4.morsvitaest.data.AppSettings
-import com.ether4o4.morsvitaest.ui.launcher.StartOrb
-import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
 import com.ether4o4.morsvitaest.ui.overlay.OverlayStartMenu
+import com.ether4o4.morsvitaest.ui.overlay.OverlayTaskbarBar
 import com.ether4o4.morsvitaest.ui.overlay.OverlayWidgetPanel
-import org.koin.compose.KoinContext
 import org.koin.java.KoinJavaComponent.getKoin
-import java.util.Calendar
 
 /**
  * A permanent, system-wide taskbar drawn as an overlay window so it stays on
@@ -77,17 +69,10 @@ class OverlayTaskbarService :
 
     private var windowManager: WindowManager? = null
     private var barView: View? = null
-    private var clockView: TextView? = null
     private var panelView: ComposeView? = null
     private var startMenuView: ComposeView? = null
 
     private val handler = Handler(Looper.getMainLooper())
-    private val clockTick = object : Runnable {
-        override fun run() {
-            updateClock()
-            handler.postDelayed(this, 30_000L)
-        }
-    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -111,7 +96,6 @@ class OverlayTaskbarService :
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(clockTick)
         hidePanel()
         hideStartMenu()
         removeBar()
@@ -212,9 +196,6 @@ class OverlayTaskbarService :
             barView = null
             Toast.makeText(this, "Taskbar couldn't draw (${e.message})", Toast.LENGTH_LONG).show()
         }
-        updateClock()
-        handler.removeCallbacks(clockTick)
-        handler.postDelayed(clockTick, 30_000L)
     }
 
     private fun removeBar() {
@@ -224,136 +205,22 @@ class OverlayTaskbarService :
         } catch (_: Exception) {
         }
         barView = null
-        clockView = null
     }
 
-    /** Bar background + content (glyph/text) colors from the user's launcher theme. */
-    private fun themeColors(): Pair<Int, Int> = try {
-        val theme = resolveLauncherTheme(getKoin().get<AppSettings>().getLauncherTheme())
-        // No blur in the overlay, so a "glass" theme becomes a readable translucent dark.
-        val bar = if (theme.glass) 0xE6101216.toInt() else theme.panel.toArgb()
-        bar to theme.content.toArgb()
-    } catch (_: Exception) {
-        0xF20E1014.toInt() to Color.WHITE
-    }
-
-    private fun buildBar(): View {
-        val (barColor, contentColor) = themeColors()
-        val bar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            background = GradientDrawable().apply { setColor(barColor) }
-            // Extra bottom padding = the gesture-pill strip the bar now extends over,
-            // so the icons stay above the system pill.
-            setPadding(dp(10), dp(3), dp(10), dp(3) + navBarHeightPx())
-            elevation = dp(8).toFloat()
+    private fun buildBar(): View = ComposeView(this).apply {
+        id = View.generateViewId()
+        setViewTreeLifecycleOwner(this@OverlayTaskbarService)
+        setViewTreeViewModelStoreOwner(this@OverlayTaskbarService)
+        setViewTreeSavedStateRegistryOwner(this@OverlayTaskbarService)
+        setContent {
+            OverlayTaskbarBar(
+                onOrb = { toggleStartMenu() },
+                onClock = { togglePanel() },
+                onPhone = { openDialer() },
+                onMessages = { openMessages() },
+                onDockPin = { bringAppToFront() },
+            )
         }
-        // The window ROOT must own the view-tree lifecycle / view-model / saved-state:
-        // Compose resolves the window recomposer for the nested Start-orb ComposeView
-        // from the root view (this LinearLayout), NOT from the ComposeView itself.
-        // Without these the recomposer can't be created and applying the taskbar
-        // instantly crashes the app.
-        bar.setViewTreeLifecycleOwner(this)
-        bar.setViewTreeViewModelStoreOwner(this)
-        bar.setViewTreeSavedStateRegistryOwner(this)
-
-        bar.addView(
-            orbView { toggleStartMenu() },
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply { marginEnd = dp(4) },
-        )
-        bar.addView(
-            glyphButton("✆", contentColor) { openDialer() },
-            LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(8) },
-        )
-        bar.addView(
-            glyphButton("✉", contentColor) { openMessages() },
-            LinearLayout.LayoutParams(dp(38), dp(38)),
-        )
-
-        bar.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
-
-        // Tapping the clock toggles the floating widget/chat panel.
-        val clock = TextView(this).apply {
-            setTextColor(contentColor)
-            textSize = 13f
-            gravity = Gravity.CENTER
-            setPadding(dp(10), dp(4), dp(10), dp(4))
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(9).toFloat()
-                setColor((contentColor and 0xFFFFFF) or 0x22000000)
-            }
-            isClickable = true
-            setOnClickListener { togglePanel() }
-        }
-        clockView = clock
-        bar.addView(
-            clock,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-        return bar
-    }
-
-    /**
-     * The Start orb, hosted as a small Compose island so it renders the exact same
-     * [StartOrb] the in-app launcher uses — every style (default glow / mascot / logo
-     * / grid) and the custom photo, plus the cyan accent ring — instead of a static
-     * glyph. Reads the user's chosen orb style + photo from settings.
-     */
-    private fun orbView(onClick: () -> Unit): View {
-        val style = try {
-            getKoin().get<AppSettings>().getLauncherOrbStyle()
-        } catch (_: Exception) {
-            "orb"
-        }
-        val image = try {
-            getKoin().get<AppSettings>().getLauncherOrbImage()
-        } catch (_: Exception) {
-            ""
-        }
-        return ComposeView(this).apply {
-            // Unique id so this ComposeView's saved-state key doesn't collide with the
-            // panel ComposeView's (both share this service as SavedStateRegistryOwner).
-            id = View.generateViewId()
-            setViewTreeLifecycleOwner(this@OverlayTaskbarService)
-            setViewTreeViewModelStoreOwner(this@OverlayTaskbarService)
-            setViewTreeSavedStateRegistryOwner(this@OverlayTaskbarService)
-            setContent {
-                KoinContext {
-                    StartOrb(style = style, imagePath = image, onClick = onClick)
-                }
-            }
-        }
-    }
-
-    private fun glyphButton(glyph: String, contentColor: Int, onClick: () -> Unit): TextView = TextView(this).apply {
-        text = glyph
-        setTextColor(contentColor)
-        textSize = 16f
-        gravity = Gravity.CENTER
-        background = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(9).toFloat()
-            setColor((contentColor and 0xFFFFFF) or 0x22000000)
-            setStroke(dp(1), (contentColor and 0xFFFFFF) or 0x33000000)
-        }
-        isClickable = true
-        setOnClickListener { onClick() }
-    }
-
-    private fun updateClock() {
-        val c = Calendar.getInstance()
-        val hour24 = c.get(Calendar.HOUR_OF_DAY)
-        val h12 = if (hour24 % 12 == 0) 12 else hour24 % 12
-        val minute = c.get(Calendar.MINUTE).toString().padStart(2, '0')
-        val ampm = if (hour24 < 12) "AM" else "PM"
-        clockView?.text = "$h12:$minute $ampm"
     }
 
     // ---- Floating widget/chat panel (Compose) -----------------------------

@@ -629,7 +629,7 @@ private fun PageDots(count: Int, current: Int, modifier: Modifier) {
 
 @OptIn(ExperimentalTime::class)
 @Composable
-private fun DesktopClock(onClick: () -> Unit, content: Color, modifier: Modifier) {
+internal fun DesktopClock(onClick: () -> Unit, content: Color, modifier: Modifier) {
     var now by remember { mutableStateOf(Clock.System.now()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -815,7 +815,7 @@ internal fun StartOrb(style: String, imagePath: String, onClick: () -> Unit) {
  * the reference renders do.
  */
 @Composable
-private fun GlassDockIcon(image: DrawableResource, label: String, onClick: () -> Unit) {
+internal fun GlassDockIcon(image: DrawableResource, label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -835,7 +835,7 @@ private fun GlassDockIcon(image: DrawableResource, label: String, onClick: () ->
 }
 
 @Composable
-private fun DockIcon(
+internal fun DockIcon(
     icon: ImageVector?,
     image: DrawableResource?,
     label: String,
