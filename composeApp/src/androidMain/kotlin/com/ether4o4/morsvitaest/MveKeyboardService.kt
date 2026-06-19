@@ -1,10 +1,13 @@
 package com.ether4o4.morsvitaest
 
+import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -193,6 +196,7 @@ class MveKeyboardService : InputMethodService() {
     /** Highlight active sticky modifiers. */
     private fun isActiveModifier(key: String) = (key == "Ctrl" && ctrl) || (key == "Alt" && alt) || (key == "⇧" && shifted)
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun keyView(key: String): TextView = TextView(this).apply {
         text = label(key)
         setTextColor(colors.text)
@@ -211,12 +215,37 @@ class MveKeyboardService : InputMethodService() {
             isSpecial(key) -> colors.special
             else -> colors.key
         }
-        background = GradientDrawable().apply {
+        val normalBg = GradientDrawable().apply {
             cornerRadius = dp(7).toFloat()
             setColor(fill)
         }
+        val pressedBg = GradientDrawable().apply {
+            cornerRadius = dp(7).toFloat()
+            setColor(blend(fill, Color.WHITE, 0.32f))
+        }
+        background = normalBg
         isClickable = true
-        setOnClickListener { onKey(key) }
+        isHapticFeedbackEnabled = true
+        // Fire on touch-DOWN like a real keyboard — snappier and far fewer missed taps
+        // than waiting for a click — with a press highlight and a haptic tap so each key
+        // feels hit.
+        setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    v.background = pressedBg
+                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onKey(key)
+                    true
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.background = normalBg
+                    true
+                }
+
+                else -> false
+            }
+        }
     }
 
     private fun label(key: String): String = if (mode != Mode.SYMBOLS && shifted && key.length == 1 && key[0].isLetter()) key.uppercase() else key
