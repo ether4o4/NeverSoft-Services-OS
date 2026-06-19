@@ -181,15 +181,16 @@ class MveKeyboardService : InputMethodService() {
         setTextColor(colors.text)
         textSize = if (key.length > 1 && key != "space") 12f else if (mode == Mode.PC) 15f else 18f
         gravity = Gravity.CENTER
+        // Resolve the fill here: inside GradientDrawable.apply, `colors` would bind to
+        // GradientDrawable.colors (the gradient array), not this service's colors.
+        val fill = when {
+            isActiveModifier(key) -> colors.accent
+            isSpecial(key) -> colors.special
+            else -> colors.key
+        }
         background = GradientDrawable().apply {
             cornerRadius = dp(7).toFloat()
-            setColor(
-                when {
-                    isActiveModifier(key) -> colors.accent
-                    isSpecial(key) -> colors.special
-                    else -> colors.key
-                },
-            )
+            setColor(fill)
         }
         isClickable = true
         setOnClickListener { onKey(key) }
