@@ -440,19 +440,17 @@ class OverlayTaskbarService :
         }
         startMenuView = view
 
-        val screenHeight = resources.displayMetrics.heightPixels
+        // Full-screen so the hosted StartDrawer (which sizes + scrims itself) renders
+        // exactly like the in-app one. Focusable for the search keyboard.
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            (screenHeight * 0.66f).toInt(),
+            WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            // Focusable (no NOT_FOCUSABLE) so the search keyboard works;
-            // NOT_TOUCH_MODAL lets taps above the menu reach the app behind it.
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT,
         ).apply {
-            gravity = Gravity.BOTTOM or Gravity.START
-            y = dp(BAR_HEIGHT_DP) + navBarHeightPx()
+            gravity = Gravity.TOP or Gravity.START
+            y = 0
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
         try {

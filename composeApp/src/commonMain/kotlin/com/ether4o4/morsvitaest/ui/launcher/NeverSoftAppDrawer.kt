@@ -131,6 +131,10 @@ internal fun StartDrawer(
     onLaunchShell: () -> Unit = {},
     allowDesktopShortcut: Boolean = false,
     onDesktopChanged: () -> Unit = {},
+    // When hosted in a system overlay (over other apps), pop-up dialogs can't be shown
+    // (no Activity window token → crash). The menu looks and launches identically; the
+    // long-press pin/move dialogs are simply suppressed here.
+    inOverlay: Boolean = false,
 ) {
     val settings = koinInject<AppSettings>()
     var query by remember { mutableStateOf("") }
@@ -531,7 +535,7 @@ internal fun StartDrawer(
         }
     }
 
-    pinDialogFor?.let { app ->
+    if (!inOverlay) pinDialogFor?.let { app ->
         val inStart = startPins.contains(app.id)
         val inDock = dockPins.contains(app.id)
         AlertDialog(
@@ -556,7 +560,7 @@ internal fun StartDrawer(
         )
     }
 
-    moveDialogFor?.let { app ->
+    if (!inOverlay) moveDialogFor?.let { app ->
         AlertDialog(
             onDismissRequest = { moveDialogFor = null },
             title = { Text(app.label) },
@@ -596,7 +600,7 @@ internal fun StartDrawer(
         )
     }
 
-    pickerForSlot?.let { slot ->
+    if (!inOverlay) pickerForSlot?.let { slot ->
         AlertDialog(
             onDismissRequest = { pickerForSlot = null },
             title = { Text("Choose an app") },
