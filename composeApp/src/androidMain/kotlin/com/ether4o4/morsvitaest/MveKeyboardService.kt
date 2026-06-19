@@ -41,7 +41,7 @@ class MveKeyboardService : InputMethodService() {
     private var ctrl = false
     private var alt = false
     private var rootView: LinearLayout? = null
-    private var colors = fallbackColors()
+    private var colors: KbColors = fallbackColors()
 
     /** Keyboard colors derived from the launcher theme, so it matches the taskbar / Start menu / widgets. */
     private data class KbColors(val bg: Int, val key: Int, val special: Int, val text: Int, val accent: Int)
@@ -68,7 +68,7 @@ class MveKeyboardService : InputMethodService() {
         return Color.rgb(ir, ig, ib)
     }
 
-    private fun fallbackColors() = KbColors(
+    private fun fallbackColors(): KbColors = KbColors(
         bg = 0xFF0E1117.toInt(),
         key = 0xFF363C49.toInt(),
         special = 0xFF21262F.toInt(),
