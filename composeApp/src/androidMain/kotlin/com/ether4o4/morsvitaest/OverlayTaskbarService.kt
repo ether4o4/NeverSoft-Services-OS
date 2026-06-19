@@ -89,14 +89,6 @@ class OverlayTaskbarService :
         }
     }
 
-    private var keyboardOpen = false
-    private val keyboardTick = object : Runnable {
-        override fun run() {
-            updateKeyboardState()
-            handler.postDelayed(this, KEYBOARD_POLL_MS)
-        }
-    }
-
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -120,7 +112,6 @@ class OverlayTaskbarService :
 
     override fun onDestroy() {
         handler.removeCallbacks(clockTick)
-        handler.removeCallbacks(keyboardTick)
         hidePanel()
         hideStartMenu()
         removeBar()
@@ -224,16 +215,10 @@ class OverlayTaskbarService :
         updateClock()
         handler.removeCallbacks(clockTick)
         handler.postDelayed(clockTick, 30_000L)
-        // Watch for the soft keyboard so the bar can step aside while typing.
-        keyboardOpen = false
-        handler.removeCallbacks(keyboardTick)
-        handler.postDelayed(keyboardTick, KEYBOARD_POLL_MS)
     }
 
     private fun removeBar() {
         val bar = barView ?: return
-        handler.removeCallbacks(keyboardTick)
-        keyboardOpen = false
         try {
             windowManager?.removeView(bar)
         } catch (_: Exception) {
@@ -369,44 +354,6 @@ class OverlayTaskbarService :
         val minute = c.get(Calendar.MINUTE).toString().padStart(2, '0')
         val ampm = if (hour24 < 12) "AM" else "PM"
         clockView?.text = "$h12:$minute $ampm"
-    }
-
-    // ---- Keyboard-aware hiding --------------------------------------------
-
-    /**
-     * Detect the soft keyboard and step the bar aside while it's up, so a bottom
-     * bar never covers the keys. The bar's visible display frame shrinks from the
-     * bottom when an IME shows; a gesture/nav bar alone is small, so anything over
-     * ~120dp of bottom obstruction means a keyboard. Polled because a non-focusable
-     * overlay isn't relaid-out by the IME, so layout listeners wouldn't fire.
-     */
-    private fun updateKeyboardState() {
-        val bar = barView ?: return
-        val rect = android.graphics.Rect()
-        bar.getWindowVisibleDisplayFrame(rect)
-        val screenH = resources.displayMetrics.heightPixels
-        val bottomObstruction = screenH - rect.bottom
-        val open = bottomObstruction > dp(120)
-        if (open != keyboardOpen) {
-            keyboardOpen = open
-            setBarHiddenForKeyboard(open)
-        }
-    }
-
-    /** Hide (and stop intercepting touches) while the keyboard is up; restore after. */
-    private fun setBarHiddenForKeyboard(hidden: Boolean) {
-        val bar = barView ?: return
-        val params = bar.layoutParams as? WindowManager.LayoutParams ?: return
-        bar.visibility = if (hidden) View.INVISIBLE else View.VISIBLE
-        params.flags = if (hidden) {
-            params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-        } else {
-            params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
-        }
-        try {
-            windowManager?.updateViewLayout(bar, params)
-        } catch (_: Exception) {
-        }
     }
 
     // ---- Floating widget/chat panel (Compose) -----------------------------
@@ -579,7 +526,6 @@ class OverlayTaskbarService :
         private const val CHANNEL_ID = "mve_taskbar_overlay"
         private const val NOTIFICATION_ID = 9102
         private const val BAR_HEIGHT_DP = 50
-        private const val KEYBOARD_POLL_MS = 250L
         const val ACTION_SHOW = "com.ether4o4.morsvitaest.taskbar.SHOW"
         const val ACTION_STOP = "com.ether4o4.morsvitaest.taskbar.STOP"
 
