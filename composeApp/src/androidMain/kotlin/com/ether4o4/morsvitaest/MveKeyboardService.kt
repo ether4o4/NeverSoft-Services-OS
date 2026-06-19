@@ -41,6 +41,7 @@ class MveKeyboardService : InputMethodService() {
     private var ctrl = false
     private var alt = false
     private var rootView: LinearLayout? = null
+    private var reserveView: View? = null
     private var colors: KbColors = fallbackColors()
 
     /** Keyboard colors derived from the launcher theme, so it matches the taskbar / Start menu / widgets. */
@@ -111,15 +112,29 @@ class MveKeyboardService : InputMethodService() {
 
     override fun onCreateInputView(): View {
         colors = themeColors()
-        val root = LinearLayout(this).apply {
+        // The keys carry the keyboard background; below them sits a TRANSPARENT spacer the
+        // height of the taskbar, so the persistent taskbar shows through it instead of being
+        // hidden behind the keyboard's own background. The keys rest on the taskbar's top edge.
+        val keys = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(colors.bg)
-            // The crucial bit: reserve the taskbar strip so the keys rest on its top edge.
-            setPadding(dp(3), dp(6), dp(3), taskbarReservePx() + dp(4))
+            setPadding(dp(3), dp(6), dp(3), dp(4))
         }
-        rootView = root
+        rootView = keys
+        val reserve = View(this)
+        reserveView = reserve
         renderRows()
-        return root
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(
+                keys,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            addView(reserve, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, taskbarReservePx()))
+        }
     }
 
     override fun onStartInput(info: EditorInfo?, restarting: Boolean) {
@@ -127,7 +142,10 @@ class MveKeyboardService : InputMethodService() {
         // Re-read the theme each time, so changing the launcher theme reflects here too.
         colors = themeColors()
         rootView?.setBackgroundColor(colors.bg)
-        rootView?.setPadding(dp(3), dp(6), dp(3), taskbarReservePx() + dp(4))
+        reserveView?.let { v ->
+            v.layoutParams = v.layoutParams.apply { height = taskbarReservePx() }
+            v.requestLayout()
+        }
         renderRows()
     }
 
