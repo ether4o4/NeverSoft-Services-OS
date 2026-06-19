@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -340,21 +341,49 @@ internal fun DesktopCanvas(
                 .pointerInput(Unit) { detectTapGestures(onLongPress = { menuOffset = it }) },
         )
 
-        FlowRow(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(12.dp)
-                .widthIn(max = 380.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            items.filter { it.parent == "" }.forEach { item ->
+        // Desktop icons are freely placed. A saved spot is stored as a fraction of the
+        // canvas (xFrac/yFrac); items never placed fall back to an auto grid by index.
+        // Long-press to pick one up and drag it anywhere; long-press without moving edits it.
+        val tileWpx = with(density) { 80.dp.toPx() }
+        val tileHpx = with(density) { 96.dp.toPx() }
+        val padPx = with(density) { 12.dp.toPx() }
+        val cols = ((maxWpx - padPx) / tileWpx).toInt().coerceAtLeast(1)
+
+        items.filter { it.parent == "" }.forEachIndexed { index, item ->
+            fun gridX() = padPx + (index % cols) * tileWpx
+            fun gridY() = padPx + (index / cols) * tileHpx
+            val px = if (item.xFrac >= 0f) item.xFrac * maxWpx else gridX()
+            val py = if (item.yFrac >= 0f) item.yFrac * maxHpx else gridY()
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(px.roundToInt(), py.roundToInt()) }
+                    .pointerInput(item.id, maxWpx, maxHpx, cols) {
+                        var moved = false
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { moved = false },
+                            onDragEnd = { if (moved) persist() else editItem = item },
+                            onDragCancel = { if (moved) persist() },
+                        ) { change, drag ->
+                            change.consume()
+                            moved = true
+                            val i = items.indexOfFirst { it.id == item.id }
+                            if (i >= 0) {
+                                val cur = items[i]
+                                val curX = if (cur.xFrac >= 0f) cur.xFrac * maxWpx else gridX()
+                                val curY = if (cur.yFrac >= 0f) cur.yFrac * maxHpx else gridY()
+                                val nx = (curX + drag.x).coerceIn(0f, (maxWpx - tileWpx).coerceAtLeast(0f))
+                                val ny = (curY + drag.y).coerceIn(0f, (maxHpx - tileHpx).coerceAtLeast(0f))
+                                items[i] = cur.copy(xFrac = nx / maxWpx, yFrac = ny / maxHpx)
+                            }
+                        }
+                    },
+            ) {
                 DesktopItemTile(
                     item = item,
                     installedApps = installedApps,
                     showLabels = showLabels,
                     onClick = { if (item.isFolder) openFolder = item.id else onLaunchTarget(item.target) },
-                    onLongClick = { editItem = item },
+                    onLongClick = null,
                 )
             }
         }
@@ -478,13 +507,21 @@ private fun DesktopItemTile(
     installedApps: List<InstalledApp>,
     showLabels: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
             .width(76.dp)
             .clip(RoundedCornerShape(10.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .then(
+                // When long-press is handled by an outer drag wrapper, the tile must not
+                // claim long-press itself, or the two gestures fight.
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                },
+            )
             .padding(vertical = 6.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

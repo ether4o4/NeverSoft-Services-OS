@@ -16,6 +16,9 @@ import kotlin.random.Random
  * - [iconId]: a built-in icon id (used when there's no photo).
  * - with neither set, an app-package shortcut shows that installed app's own icon.
  * - [parent]: the containing folder's id, or "" for the desktop root.
+ * - [xFrac]/[yFrac]: free placement on the desktop as a fraction (0..1) of the canvas,
+ *   so a chosen spot adapts to screen size. -1 means "not placed yet" — those fall back
+ *   to an auto grid until the user drags them.
  */
 @Serializable
 internal data class DesktopItem(
@@ -26,6 +29,8 @@ internal data class DesktopItem(
     val imagePath: String = "",
     val iconId: String = "",
     val parent: String = "",
+    val xFrac: Float = -1f,
+    val yFrac: Float = -1f,
 )
 
 private val desktopItemsJson = Json { ignoreUnknownKeys = true }

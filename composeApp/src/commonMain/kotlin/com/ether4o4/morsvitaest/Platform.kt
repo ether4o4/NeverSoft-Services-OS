@@ -90,6 +90,9 @@ enum class SystemSetting {
 
     /** This app's notification settings. */
     AppNotifications,
+
+    /** The system keyboards / input-method list, to enable & pick the MVE keyboard. */
+    InputMethods,
 }
 
 /** Opens the given system settings screen. Returns false if unavailable. */
