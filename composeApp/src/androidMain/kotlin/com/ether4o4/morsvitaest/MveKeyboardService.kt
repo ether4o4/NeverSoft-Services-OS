@@ -90,14 +90,14 @@ class MveKeyboardService : InputMethodService() {
         listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
         listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
         listOf("⇧", "z", "x", "c", "v", "b", "n", "m", "⌫"),
-        listOf("?123", "PC", ",", "space", ".", "⏎"),
+        listOf("?123", "PC", ",", "⌄", "space", ".", "⏎"),
     )
 
     private val symbolRows = listOf(
         listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"),
         listOf("@", "#", "\$", "_", "&", "-", "+", "(", ")"),
         listOf("*", "\"", "'", ":", ";", "!", "?", "/", "⌫"),
-        listOf("ABC", "PC", ",", "space", ".", "⏎"),
+        listOf("ABC", "PC", ",", "⌄", "space", ".", "⏎"),
     )
 
     // Hacker's-Keyboard-style terminal layout.
@@ -106,7 +106,7 @@ class MveKeyboardService : InputMethodService() {
         listOf("Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
         listOf("Ctrl", "a", "s", "d", "f", "g", "h", "j", "k", "l", "⏎"),
         listOf("Alt", "z", "x", "c", "v", "b", "n", "m", "/", "↑"),
-        listOf("ABC", "⇧", "Del", "space", "←", "↓", "→"),
+        listOf("ABC", "⇧", "Del", "⌄", "space", "←", "↓", "→"),
     )
 
     override fun onCreateInputView(): View {
@@ -149,6 +149,7 @@ class MveKeyboardService : InputMethodService() {
             for (key in row) {
                 val weight = when (key) {
                     "space" -> if (mode == Mode.PC) 3f else 4f
+                    "⌄" -> 0.9f
                     "⇧", "⌫", "?123", "ABC", "PC", "⏎", "Ctrl", "Alt", "Tab", "Esc", "Del" -> 1.5f
                     else -> 1f
                 }
@@ -169,7 +170,7 @@ class MveKeyboardService : InputMethodService() {
         }
     }
 
-    private fun isSpecial(key: String) = key in setOf("⇧", "⌫", "?123", "ABC", "PC", "⏎", "Ctrl", "Alt", "Tab", "Esc", "Del", "↑", "↓", "←", "→")
+    private fun isSpecial(key: String) = key in setOf("⇧", "⌫", "?123", "ABC", "PC", "⏎", "Ctrl", "Alt", "Tab", "Esc", "Del", "⌄", "↑", "↓", "←", "→")
 
     /** Highlight active sticky modifiers. */
     private fun isActiveModifier(key: String) = (key == "Ctrl" && ctrl) || (key == "Alt" && alt) || (key == "⇧" && shifted)
@@ -208,6 +209,8 @@ class MveKeyboardService : InputMethodService() {
             "⌫" -> sendKey(KeyEvent.KEYCODE_DEL)
 
             "Del" -> sendKey(KeyEvent.KEYCODE_FORWARD_DEL)
+
+            "⌄" -> requestHideSelf(0)
 
             "space" -> ic.commitText(" ", 1)
 
