@@ -542,6 +542,9 @@ actual fun openSystemSetting(setting: SystemSetting): Boolean = try {
         SystemSetting.AppNotifications ->
             Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+
+        SystemSetting.InputMethods ->
+            Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS)
     }.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
     context.startActivity(intent)
     true

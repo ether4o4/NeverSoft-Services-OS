@@ -33,8 +33,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ether4o4.morsvitaest.SystemSetting
 import com.ether4o4.morsvitaest.applyPersistentTaskbar
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.openSystemSetting
 import com.ether4o4.morsvitaest.persistentTaskbarHasPermission
 import com.ether4o4.morsvitaest.persistentTaskbarSupported
 import com.ether4o4.morsvitaest.requestPersistentTaskbarPermission
@@ -391,6 +393,30 @@ fun LauncherSettingsContent(
                         settings.setWindowedAppsEnabled(it)
                     },
                 )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .clickable { openSystemSetting(SystemSetting.InputMethods) }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Set up MVE keyboard", color = Color.White, fontSize = 15.sp)
+                    Text(
+                        "MVE's keyboard rests on the taskbar's top edge instead of under it — so the " +
+                            "bar can stay at the very bottom while you type, like a PC. Tap to open " +
+                            "Keyboards, turn on “MVE keyboard”, then set it as your default. Switch back " +
+                            "to your usual keyboard any time.",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                    )
+                }
+                Text("›", color = Color.White.copy(alpha = 0.6f), fontSize = 22.sp)
             }
         }
 
