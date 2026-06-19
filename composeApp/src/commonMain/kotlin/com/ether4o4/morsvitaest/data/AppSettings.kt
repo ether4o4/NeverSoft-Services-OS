@@ -410,12 +410,24 @@ class AppSettings(internal val settings: Settings) {
         settings.putString(KEY_DEFAULT_FILE_EXPLORER, pkg)
     }
 
+    // Bumped whenever a launcher appearance setting (theme / orb / dock pins) changes, so
+    // the persistent overlay taskbar can observe it and re-read. The overlay bar is a
+    // long-lived view (not recreated like the in-app launcher), so it can't see the change
+    // any other way.
+    private val _launcherAppearance = MutableStateFlow(0)
+    val launcherAppearanceFlow: StateFlow<Int> = _launcherAppearance
+
+    private fun bumpLauncherAppearance() {
+        _launcherAppearance.value++
+    }
+
     // Start orb + app pins. Dock pins and Start-menu pins are independent
     // lists of launcher app ids, fully user-curated.
     fun getLauncherOrbStyle(): String = settings.getString(KEY_LAUNCHER_ORB_STYLE, "orb")
 
     fun setLauncherOrbStyle(style: String) {
         settings.putString(KEY_LAUNCHER_ORB_STYLE, style)
+        bumpLauncherAppearance()
     }
 
     // Theme that tints the taskbar, Start menu, and widgets window.
@@ -423,6 +435,7 @@ class AppSettings(internal val settings: Settings) {
 
     fun setLauncherTheme(id: String) {
         settings.putString(KEY_LAUNCHER_THEME, id)
+        bumpLauncherAppearance()
     }
 
     // Custom photos for the wallpaper and the Start orb (absolute file paths).
@@ -445,6 +458,7 @@ class AppSettings(internal val settings: Settings) {
         } else {
             settings.putString(KEY_LAUNCHER_ORB_IMAGE, path)
         }
+        bumpLauncherAppearance()
     }
 
     fun getLauncherDockPins(default: List<String>): List<String> {
@@ -454,6 +468,7 @@ class AppSettings(internal val settings: Settings) {
 
     fun setLauncherDockPins(ids: List<String>) {
         settings.putString(KEY_LAUNCHER_DOCK_PINS, ids.joinToString(","))
+        bumpLauncherAppearance()
     }
 
     fun getLauncherStartPins(default: List<String>): List<String> {
