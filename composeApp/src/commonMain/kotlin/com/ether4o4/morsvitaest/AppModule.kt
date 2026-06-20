@@ -44,7 +44,18 @@ import com.ether4o4.morsvitaest.ui.settings.SplinterlandsViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
-val appModule = module {
+/**
+ * The headless MVE kernel: every engine service, with no Compose UI bindings.
+ *
+ * This is the module a non-Compose host (the NeverSoft OS shell, a desktop
+ * smoke test, a background daemon) boots to get a fully wired [DataRepository]
+ * and [SandboxController] without dragging in any ViewModel/Compose dependency.
+ * See [com.ether4o4.morsvitaest.bridge.HeadlessEngine].
+ *
+ * Nothing here changed when the module was split out of [appModule] — the
+ * Compose app still loads the exact same bindings via [appModule]'s `includes`.
+ */
+val engineModule = module {
     single<CalendarPermissionController> { CalendarPermissionController() }
     single<NotificationPermissionController> { NotificationPermissionController() }
     single<SmsPermissionController> { SmsPermissionController() }
@@ -152,6 +163,13 @@ val appModule = module {
     }
     single<DaemonController> { createDaemonController() }
     single<SandboxController> { createSandboxController() }
+}
+
+/**
+ * Compose-only bindings (ViewModels). Loaded by the MVE Compose app; the
+ * NeverSoft shell and other headless hosts omit this module entirely.
+ */
+val uiModule = module {
     viewModel { SettingsViewModel(get<DataRepository>(), get<DaemonController>(), get<NotificationPermissionController>(), get<TaskScheduler>()) }
     viewModel { SandboxViewModel(get<DataRepository>(), get<SandboxController>()) }
     viewModel { SandboxFileBrowserViewModel(get<SandboxController>()) }
@@ -162,4 +180,13 @@ val appModule = module {
     viewModel { CompareViewModel(get<DataRepository>()) }
     viewModel { FoundryHomeViewModel(get<DataRepository>(), get<TaskScheduler>()) }
     viewModel { HelpAssistantViewModel(get<DataRepository>()) }
+}
+
+/**
+ * The full Compose application graph: engine + UI. Kept as a single [module]
+ * (via `includes`) so existing call sites — `modules(appModule)` in App.kt and
+ * `modules(appModule, sandboxModule)` on Android — are unchanged.
+ */
+val appModule = module {
+    includes(engineModule, uiModule)
 }
