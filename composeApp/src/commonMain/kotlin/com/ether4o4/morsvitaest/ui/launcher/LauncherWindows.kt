@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +72,12 @@ class WinState(
     var minimized by mutableStateOf(false)
     var maximized by mutableStateOf(false)
     var z by mutableIntStateOf(z)
+
+    // Window size in px. -1 means "not sized yet" → the frame seeds it from the
+    // default float size once it knows the desktop area; the resize grip then
+    // edits these so a resize sticks while the window stays open.
+    var widthPx by mutableIntStateOf(-1)
+    var heightPx by mutableIntStateOf(-1)
 }
 
 /**
@@ -95,11 +102,25 @@ fun WindowFrame(
 ) {
     val density = LocalDensity.current
 
-    // Default floating size: 86% wide, 70% tall.
-    val floatWidthPx = areaWidthPx * 0.86f
-    val floatHeightPx = areaHeightPx * 0.70f
-    val floatWidthDp = with(density) { floatWidthPx.toDp() }
-    val floatHeightDp = with(density) { floatHeightPx.toDp() }
+    // Default floating size: 86% wide, 70% tall — seeded into the window state the
+    // first time we know the desktop area, so the resize grip has a value to edit.
+    val defaultWidthPx = (areaWidthPx * 0.86f).toInt()
+    val defaultHeightPx = (areaHeightPx * 0.70f).toInt()
+    LaunchedEffect(win, areaWidthPx, areaHeightPx) {
+        if (areaWidthPx > 0 && win.widthPx <= 0) win.widthPx = defaultWidthPx
+        if (areaHeightPx > 0 && win.heightPx <= 0) win.heightPx = defaultHeightPx
+    }
+
+    // Minimum window size so it can never be shrunk into an unusable sliver.
+    val minWidthPx = with(density) { 240.dp.toPx() }.toInt()
+    val minHeightPx = with(density) { 180.dp.toPx() }.toInt()
+
+    val currentWidthPx = (if (win.widthPx > 0) win.widthPx else defaultWidthPx)
+        .coerceIn(minWidthPx, areaWidthPx.coerceAtLeast(minWidthPx))
+    val currentHeightPx = (if (win.heightPx > 0) win.heightPx else defaultHeightPx)
+        .coerceIn(minHeightPx, areaHeightPx.coerceAtLeast(minHeightPx))
+    val floatWidthDp = with(density) { currentWidthPx.toDp() }
+    val floatHeightDp = with(density) { currentHeightPx.toDp() }
 
     val cornerRadius = if (win.maximized) 0.dp else 6.dp
     val shape = RoundedCornerShape(cornerRadius)
@@ -134,7 +155,7 @@ fun WindowFrame(
                     onFocus()
                     if (!win.maximized) {
                         win.offsetX = (win.offsetX + dx.toInt())
-                            .coerceIn(-(floatWidthPx * 0.5f).toInt(), (areaWidthPx - floatWidthPx * 0.5f).toInt())
+                            .coerceIn(-(currentWidthPx * 0.5f).toInt(), (areaWidthPx - currentWidthPx * 0.5f).toInt())
                         win.offsetY = (win.offsetY + dy.toInt())
                             .coerceIn(0, (areaHeightPx - 40).coerceAtLeast(0))
                     }
@@ -148,6 +169,37 @@ fun WindowFrame(
             )
             Box(modifier = Modifier.fillMaxSize()) {
                 content()
+            }
+        }
+
+        // Resize grip — bottom-right corner drag changes the window size (not when
+        // maximized). Coerced to the min size and the desktop area.
+        if (!win.maximized) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(22.dp)
+                    .pointerInput(win, areaWidthPx, areaHeightPx) {
+                        detectDragGestures { change, drag ->
+                            change.consume()
+                            onFocus()
+                            // Read the live stored size each event so the drag accumulates.
+                            val baseW = if (win.widthPx > 0) win.widthPx else defaultWidthPx
+                            val baseH = if (win.heightPx > 0) win.heightPx else defaultHeightPx
+                            win.widthPx = (baseW + drag.x.toInt())
+                                .coerceIn(minWidthPx, areaWidthPx.coerceAtLeast(minWidthPx))
+                            win.heightPx = (baseH + drag.y.toInt())
+                                .coerceIn(minHeightPx, areaHeightPx.coerceAtLeast(minHeightPx))
+                        }
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "⤡",
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }

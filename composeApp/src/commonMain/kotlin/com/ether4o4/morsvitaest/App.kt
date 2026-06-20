@@ -368,6 +368,12 @@ private fun AppContent(
                                         onRefreshFeed = homeViewModel::refresh,
                                         isRefreshing = homeState.isRefreshing,
                                         feedItems = homeState.feed,
+                                        newsItems = homeState.news,
+                                        isNewsRefreshing = homeState.isNewsRefreshing,
+                                        onRefreshNews = homeViewModel::refreshNews,
+                                        newsSources = homeState.newsSources,
+                                        onAddNewsSource = homeViewModel::addNewsSource,
+                                        onRemoveNewsSource = homeViewModel::removeNewsSource,
                                     )
                                 },
                             )
@@ -463,6 +469,12 @@ private fun AppContent(
                                 onRefreshFeed = homeViewModel::refresh,
                                 isRefreshing = homeState.isRefreshing,
                                 feedItems = homeState.feed,
+                                newsItems = homeState.news,
+                                isNewsRefreshing = homeState.isNewsRefreshing,
+                                onRefreshNews = homeViewModel::refreshNews,
+                                newsSources = homeState.newsSources,
+                                onAddNewsSource = homeViewModel::addNewsSource,
+                                onRemoveNewsSource = homeViewModel::removeNewsSource,
                                 navigationTabBar = navigationTabBar,
                             )
                         }

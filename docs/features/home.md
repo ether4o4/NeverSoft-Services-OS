@@ -1,6 +1,6 @@
 # Home & Navigation
 
-**Last verified:** 2026-06-07
+**Last verified:** 2026-06-20
 
 The app opens to a brushed-metal home screen (Page 1). A two-tab bar — **Home** and **Workspace** —
 switches between the home and the chat/sandbox workspace. The bar is shown on the home for every
@@ -9,17 +9,25 @@ screens, while phones rely on the workspace's own controls and the system back g
 
 ## Home (Page 1)
 
+The whole page and both of its boxes are tinted with the **launcher theme** — the same color that
+paints the taskbar, Start menu, keyboard, and widgets — and re-tint live the moment the theme changes.
+The page is split into two equal-height boxes:
+
 - **Title plate** — the wordmark.
 - **Compare action** — a prominent button that opens the workspace on its Multi chat tab (see [compare.md](compare.md)).
-- **News feed** — a live feed at the top, sourced from the Heartbeat engine: each heartbeat update is
-  a card, newest first. Each row shows a thumbnail: if the update's text carries an image (a markdown
-  image or a bare image link), it loads as the thumbnail; otherwise the row falls back to the source's
-  initial. Pull down (or tap the refresh icon) to run a heartbeat immediately and reload. When there
-  are no updates yet, a hint points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
-- **Integration boxes** — Services, MCP, Hugging Face, Ollama, and an LLM chooser. Tapping a box's body
-  jumps to the matching settings section. Tapping its gear opens a small "glass" config sheet first —
-  a plain-language blurb plus a tiny numbered recipe and a single button into the full settings — so
-  the gear never dead-ends straight onto a dense settings screen.
+- **News box (top)** — a manual-refresh news reader. Each story is one of the user's RSS/Atom sources'
+  newest items and shows the story's **own** article picture (pulled from the feed's media / enclosure /
+  inline-image markup), not the website's favicon. Tapping a row opens the article in the browser. A
+  refresh icon (↻) reloads on demand — the box does not auto-poll. The ＋ icon opens a sheet to paste
+  RSS/Atom source links or remove them; until the user adds any, a built-in set of image-rich tech
+  sources is used. When empty, a hint points to the refresh and add-source actions.
+- **Heartbeat box (bottom)** — the assistant's "what's new" updates: each assistant message in the
+  dedicated heartbeat conversation is a card, newest first, with an inline-image thumbnail when the
+  update carries one. Pull down (or tap ↻) to run a heartbeat immediately and reload. When there are no
+  updates yet, a hint points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
+
+The provider/MCP integration entries (Services, MCP, Hugging Face, Ollama, LLM chooser) are **not** on
+this page; they live in Settings, reachable from the settings gear.
 
 ## Workspace (Page 2)
 
@@ -39,7 +47,8 @@ of the spots the first-run tour points out.
 |---|---|
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/App.kt` | Navigation graph, the Home/Workspace tab bar, and route wiring |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/workspace/WorkspaceScreen.kt` | The unified workspace: Chat / Multi chat / Shell tab strip + settings gear |
-| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHome.kt` | Home layout: title plate, compare action, news feed, integration boxes |
-| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHomeViewModel.kt` | Builds the news feed from heartbeat updates; pull-to-refresh trigger |
+| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHome.kt` | Home layout: title plate, compare action, themed News box + Heartbeat box, news-sources sheet |
+| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHomeViewModel.kt` | Builds the heartbeat feed and the RSS news feed; manual refresh + source management |
+| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/data/NewsRepository.kt` | Fetches and parses RSS/Atom sources into stories with real article thumbnails |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryComponents.kt` | Brushed-metal pills, cards, and tiles |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryTokens.kt` | The metal finish tokens (brushed fills, bevels, gloss) |

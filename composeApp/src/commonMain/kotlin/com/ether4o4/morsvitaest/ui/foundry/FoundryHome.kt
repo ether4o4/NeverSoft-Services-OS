@@ -2,11 +2,14 @@
 
 package com.ether4o4.morsvitaest.ui.foundry
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,8 +23,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -33,37 +39,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
+import com.ether4o4.morsvitaest.ui.launcher.surfaceBrush
+import org.koin.compose.koinInject
 
 /**
- * FoundryHome — the brushed-metal landing screen (Page 1).
+ * FoundryHome — the MorsVitaEst landing screen (Page 1).
  *
- * Vertical, mobile-first layout (replaces the earlier side-by-side draft that
- * didn't fit small phones):
+ * The page and its two boxes are tinted with the **launcher theme** (the same
+ * color that paints the taskbar, Start menu, keyboard, and widgets), so the home
+ * matches the rest of the system and switches live when the theme changes.
  *
  *   ┌─────────────────────────────────────────┐
- *   │            MORSVITAEST  (title plate)    │
+ *   │            MORS VITA EST  (wordmark)     │
+ *   │     ⚖  COMPARE YOUR FAVORITE LLMS        │
  *   ├─────────────────────────────────────────┤
- *   │  NEWS FEED                          ↻    │  ← top, full width
- *   │  ┌───┐ headline …                        │
- *   │  │IMG│ source · summary                  │     thumbnail rows
+ *   │  NEWS                          ＋   ↻    │  ← top box (50%)
+ *   │  ┌──────┐ headline …                     │
+ *   │  │ IMG  │ source · summary               │     real article thumbnails
+ *   │  └──────┘                                │     tap a row → open article
+ *   ├─────────────────────────────────────────┤
+ *   │  HEARTBEAT                          ↻    │  ← bottom box (50%)
+ *   │  ┌───┐ what's-new update …               │     the assistant's updates
  *   │  └───┘                                   │
- *   ├─────────────────────────────────────────┤
- *   │  SERVICES   MCP        each box has its   │
- *   │  HUGGING…   OLLAMA     own ⚙ that opens   │  ← integration boxes
- *   │  LLM CHOOSER          its config sheet    │
  *   └─────────────────────────────────────────┘
  *
- * Page 2 (the Chat / Compare / Shell workspace) is a separate screen. Each tile
- * here drives [onNavigate]; the gear on a box drives the same callback with the
- * box's *config* destination so the per-box ⚙ pattern stays consistent.
+ * The provider/MCP integration boxes were moved out of here — they live in MVE
+ * Settings (reachable from the settings gear) so this page stays the news/home.
  */
 @Composable
 fun FoundryHome(
@@ -72,15 +87,29 @@ fun FoundryHome(
     onRefreshFeed: () -> Unit = {},
     isRefreshing: Boolean = false,
     feedItems: List<FoundryFeedItem> = previewFeedItems,
+    newsItems: List<FoundryFeedItem> = previewNewsItems,
+    isNewsRefreshing: Boolean = false,
+    onRefreshNews: () -> Unit = {},
+    newsSources: List<String> = emptyList(),
+    onAddNewsSource: (String) -> Unit = {},
+    onRemoveNewsSource: (String) -> Unit = {},
     navigationTabBar: (@Composable () -> Unit)? = null,
 ) {
-    // Which integration box's glass config sheet is open (null = none).
-    var sheetBox by remember { mutableStateOf<IntegrationBox?>(null) }
+    // Resolve the live launcher theme so the home matches the taskbar / Start menu
+    // / keyboard and re-tints the instant the theme changes anywhere in the OS.
+    val settings = koinInject<AppSettings>()
+    val appearance by settings.launcherAppearanceFlow.collectAsStateWithLifecycle()
+    val theme = remember(appearance) { resolveLauncherTheme(settings.getLauncherTheme()) }
+    val surface = theme.surfaceBrush()
+    val content = theme.content
+
+    var showSources by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Foundry.background)
+            .background(Color(0xFF0B0D11))
+            .background(surface)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(Foundry.pagePadding),
@@ -93,7 +122,7 @@ fun FoundryHome(
                 navigationTabBar()
             }
         }
-        TitlePlate()
+        TitlePlate(content)
         Spacer(Modifier.height(Foundry.gridGap))
 
         FoundryPill(
@@ -104,27 +133,36 @@ fun FoundryHome(
         )
         Spacer(Modifier.height(Foundry.gridGap))
 
-        // News feed sits at the top and takes the remaining vertical space.
-        NewsFeedCard(
-            items = feedItems,
-            onRefresh = onRefreshFeed,
-            isRefreshing = isRefreshing,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
+        // News box (top) — real stories with article thumbnails; manual refresh.
+        NewsBox(
+            items = newsItems,
+            isRefreshing = isNewsRefreshing,
+            onRefresh = onRefreshNews,
+            onManageSources = { showSources = true },
+            surface = surface,
+            content = content,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         )
 
         Spacer(Modifier.height(Foundry.gridGap))
 
-        // Integration boxes — body taps deep-link; each ⚙ opens a glass config sheet.
-        IntegrationBoxes(onNavigate = onNavigate, onConfig = { sheetBox = it })
+        // Heartbeat box (bottom) — the assistant's "what's new" updates.
+        HeartbeatBox(
+            items = feedItems,
+            onRefresh = onRefreshFeed,
+            isRefreshing = isRefreshing,
+            surface = surface,
+            content = content,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
     }
 
-    sheetBox?.let { box ->
-        IntegrationBoxSheet(
-            box = box,
-            onOpen = onNavigate,
-            onDismiss = { sheetBox = null },
+    if (showSources) {
+        NewsSourcesSheet(
+            sources = newsSources,
+            onAdd = onAddNewsSource,
+            onRemove = onRemoveNewsSource,
+            onDismiss = { showSources = false },
         )
     }
 }
@@ -134,13 +172,10 @@ fun FoundryHome(
 // ────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun TitlePlate() {
-    // A slim wordmark instead of the tall logo plate — frees up vertical room for
-    // the feed and the boxes below. The eye from the old logo lives on as the app
-    // icon now.
+private fun TitlePlate(content: Color) {
     Text(
         text = "MORS VITA EST",
-        color = Foundry.wordmark,
+        color = content,
         fontWeight = FontWeight.Bold,
         fontSize = 26.sp,
         letterSpacing = 5.sp,
@@ -152,123 +187,207 @@ private fun TitlePlate() {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// News feed (top)
+// Feed model + themed boxes
 // ────────────────────────────────────────────────────────────────────
 
-/** A single feed row. [thumbnailUrl] is reserved for live wiring; the layout
- *  renders a thumbnail frame either way so rows stay aligned. */
+/** A single feed row. [thumbnailUrl] is the story's own image when present;
+ *  the layout renders a thumbnail frame either way so rows stay aligned. [link],
+ *  when set, makes the row open the article in the browser. */
 data class FoundryFeedItem(
     val title: String,
     val source: String,
     val summary: String,
     val thumbnailUrl: String? = null,
+    val link: String? = null,
 )
 
+/** A themed surface box that carries the launcher theme (opaque base + theme
+ *  brush + hairline border), used by both the News and Heartbeat boxes. */
 @Composable
-private fun NewsFeedCard(
+private fun ThemedBox(
+    surface: Brush,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(Foundry.cardShapeLarge)
+            .background(Color(0xFF11151B), Foundry.cardShapeLarge)
+            .background(surface, Foundry.cardShapeLarge)
+            .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), Foundry.cardShapeLarge)
+            .padding(10.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun BoxHeader(
+    label: String,
+    content: Color,
+    modifier: Modifier = Modifier,
+    trailing: @Composable () -> Unit,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = content,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            letterSpacing = 1.5.sp,
+            modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+        )
+        trailing()
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// News box (top)
+// ────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun NewsBox(
+    items: List<FoundryFeedItem>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    onManageSources: () -> Unit,
+    surface: Brush,
+    content: Color,
+    modifier: Modifier = Modifier,
+) {
+    ThemedBox(surface = surface, modifier = modifier) {
+        BoxHeader(label = "NEWS", content = content) {
+            if (isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = content,
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            // Manage the RSS/Atom sources the box pulls from.
+            FoundryIconChip(glyph = "＋", onClick = onManageSources, size = 34.dp, contentDescription = "Add news source")
+            Spacer(Modifier.width(6.dp))
+            // Manual refresh — the news box does not auto-poll.
+            FoundryIconChip(glyph = "↻", onClick = onRefresh, size = 34.dp, contentDescription = "Refresh news")
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (items.isEmpty()) {
+                item {
+                    EmptyRow(
+                        text = "No stories yet — tap ↻ to load, or ＋ to add an RSS source.",
+                        content = content,
+                    )
+                }
+            } else {
+                items(items) { item -> FeedRow(item = item, content = content, thumbWidth = 78.dp, thumbHeight = 58.dp) }
+            }
+        }
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Heartbeat box (bottom)
+// ────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HeartbeatBox(
     items: List<FoundryFeedItem>,
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
+    surface: Brush,
+    content: Color,
     modifier: Modifier = Modifier,
 ) {
-    FoundryCard(
-        modifier = modifier,
-        contentPadding = PaddingValues(8.dp),
-        shape = Foundry.cardShapeLarge,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "NEWS FEED",
-                color = Foundry.labelPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                letterSpacing = 1.5.sp,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp, vertical = 6.dp),
-            )
-            // Tap-to-refresh (works everywhere); the list also supports pull-to-refresh.
-            FoundryIconChip(
-                glyph = "↻",
-                onClick = onRefresh,
-                size = 34.dp,
-                contentDescription = "Refresh feed",
-            )
+    ThemedBox(surface = surface, modifier = modifier) {
+        BoxHeader(label = "HEARTBEAT", content = content) {
+            FoundryIconChip(glyph = "↻", onClick = onRefresh, size = 34.dp, contentDescription = "Refresh heartbeat")
         }
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+            modifier = Modifier.fillMaxSize(),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (items.isEmpty()) {
-                    item { EmptyFeedRow() }
+                    item {
+                        EmptyRow(
+                            text = "No updates yet — pull down to refresh, or turn on Heartbeat in Settings.",
+                            content = content,
+                        )
+                    }
                 } else {
-                    items(items) { item -> FeedRow(item) }
+                    items(items) { item -> FeedRow(item = item, content = content, thumbWidth = 56.dp, thumbHeight = 56.dp) }
                 }
             }
         }
     }
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Shared rows
+// ────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun EmptyFeedRow() {
+private fun EmptyRow(text: String, content: Color) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(Foundry.tileShape)
-            .background(Color(0xFF1A1A1A), Foundry.tileShape)
+            .background(Color.Black.copy(alpha = 0.20f), Foundry.tileShape)
             .padding(12.dp),
     ) {
-        Text(
-            text = "No updates yet — pull down to refresh, or turn on Heartbeat in Settings.",
-            color = Foundry.labelSecondary,
-            fontSize = 12.sp,
-        )
+        Text(text = text, color = content.copy(alpha = 0.7f), fontSize = 12.sp)
     }
 }
 
 @Composable
-private fun FeedRow(item: FoundryFeedItem) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(Foundry.tileShape)
-            .background(Color(0xFF1A1A1A), Foundry.tileShape)
-            .padding(10.dp),
-    ) {
-        // Thumbnail frame. The source initial sits behind as the fallback; a real
-        // image (when the feed item carries one) loads on top and covers it. If the
-        // image is missing or fails to load, the initial shows through.
+private fun FeedRow(
+    item: FoundryFeedItem,
+    content: Color,
+    thumbWidth: Dp,
+    thumbHeight: Dp,
+) {
+    val uriHandler = LocalUriHandler.current
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .clip(Foundry.tileShape)
+        .background(Color.Black.copy(alpha = 0.20f), Foundry.tileShape)
+        .let { base ->
+            val link = item.link
+            if (link != null) base.clickable { runCatching { uriHandler.openUri(link) } } else base
+        }
+        .padding(10.dp)
+    Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
+        // Thumbnail. The source initial sits behind as a fallback; a real article
+        // image (when present) loads on top and covers it.
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(width = thumbWidth, height = thumbHeight)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF262626), RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = item.source.take(1).uppercase(),
-                color = Foundry.labelMuted,
+                color = Color.White.copy(alpha = 0.55f),
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
+                fontSize = 20.sp,
             )
             if (item.thumbnailUrl != null) {
                 AsyncImage(
                     model = item.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(8.dp)),
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
                 )
             }
         }
@@ -276,7 +395,7 @@ private fun FeedRow(item: FoundryFeedItem) {
         Column(Modifier.weight(1f)) {
             Text(
                 text = item.title,
-                color = Foundry.labelPrimary,
+                color = content,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
                 maxLines = 2,
@@ -285,7 +404,7 @@ private fun FeedRow(item: FoundryFeedItem) {
             Spacer(Modifier.height(2.dp))
             Text(
                 text = item.source,
-                color = Color(0xFFE53935),
+                color = content.copy(alpha = 0.6f),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
@@ -293,7 +412,7 @@ private fun FeedRow(item: FoundryFeedItem) {
             Spacer(Modifier.height(4.dp))
             Text(
                 text = item.summary,
-                color = Foundry.labelSecondary,
+                color = content.copy(alpha = 0.75f),
                 fontSize = 11.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -303,147 +422,17 @@ private fun FeedRow(item: FoundryFeedItem) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Integration boxes (bottom) — each with its own ⚙
+// News sources sheet — add / remove the RSS/Atom links the box pulls from
 // ────────────────────────────────────────────────────────────────────
 
-private data class IntegrationBox(
-    val title: String,
-    val subtitle: String,
-    val open: FoundryDestination,
-    val config: FoundryDestination,
-    val blurb: String,
-    val tips: List<String>,
-    val actionLabel: String,
-)
-
-private val integrationBoxes = listOf(
-    IntegrationBox(
-        title = "SERVICES",
-        subtitle = "API keys",
-        open = FoundryDestination.Services,
-        config = FoundryDestination.Services,
-        blurb = "Bring your own AI accounts. You're already running on the Free AI — add a provider " +
-            "here only if you want your own (often faster or smarter).",
-        tips = listOf("Pick a provider", "Paste its API key", "It's ready everywhere"),
-        actionLabel = "OPEN SERVICES",
-    ),
-    IntegrationBox(
-        title = "MCP",
-        subtitle = "Tool servers",
-        open = FoundryDestination.Mcp,
-        config = FoundryDestination.Mcp,
-        blurb = "Plug-ins that give your AI new abilities — web search, your files, a calendar, and more.",
-        tips = listOf("Add a server URL", "Pick a popular one", "Its tools show up for the AI"),
-        actionLabel = "OPEN MCP",
-    ),
-    IntegrationBox(
-        title = "HUGGING FACE",
-        subtitle = "Models · papers",
-        open = FoundryDestination.HuggingFace,
-        config = FoundryDestination.HuggingFace,
-        blurb = "Pull on-device models from the Hugging Face hub to run locally, no account needed.",
-        tips = listOf("Browse on-device models", "Download one", "Run it fully offline"),
-        actionLabel = "BROWSE MODELS",
-    ),
-    IntegrationBox(
-        title = "OLLAMA",
-        subtitle = "Local runtime",
-        open = FoundryDestination.Ollama,
-        config = FoundryDestination.Ollama,
-        blurb = "Already run Ollama on your machine or network? Point MorsVitaEst at it as a service.",
-        tips = listOf("Add Ollama as a service", "Set its base URL", "Pick a pulled model"),
-        actionLabel = "CONNECT OLLAMA",
-    ),
-    IntegrationBox(
-        title = "LLM CHOOSER",
-        subtitle = "Pick your models",
-        open = FoundryDestination.LlmChooser,
-        config = FoundryDestination.LlmChooser,
-        blurb = "See everything you've connected in one place and choose which models you actually use.",
-        tips = listOf("Review your services", "Enable the ones you want", "Reorder your fallback chain"),
-        actionLabel = "MANAGE MODELS",
-    ),
-)
-
 @Composable
-private fun IntegrationBoxes(
-    onNavigate: (FoundryDestination) -> Unit,
-    onConfig: (IntegrationBox) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Foundry.gridGap)) {
-        // Two-per-row grid; the final odd box spans the full width.
-        integrationBoxes.chunked(2).forEach { rowBoxes ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Foundry.gridGap),
-            ) {
-                rowBoxes.forEach { box ->
-                    IntegrationTile(
-                        box = box,
-                        onNavigate = onNavigate,
-                        onConfig = onConfig,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                if (rowBoxes.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun IntegrationTile(
-    box: IntegrationBox,
-    onNavigate: (FoundryDestination) -> Unit,
-    onConfig: (IntegrationBox) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    FoundryCard(
-        modifier = modifier,
-        onClick = { onNavigate(box.open) },
-        contentPadding = PaddingValues(10.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = box.title,
-                    color = Foundry.labelPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = box.subtitle,
-                    color = Foundry.labelSecondary,
-                    fontSize = 11.sp,
-                )
-            }
-            // Per-box ⚙ — opens this box's own glass config sheet.
-            FoundryIconChip(
-                glyph = "⚙",
-                onClick = { onConfig(box) },
-                size = 34.dp,
-                contentDescription = "Configure ${box.title}",
-            )
-        }
-    }
-}
-
-/**
- * Per-box config sheet — the "fancy glass" panel a box's ⚙ opens. It explains the
- * box in plain language with a tiny numbered recipe, then drops the user into the
- * matching settings only when they choose to. Keeps the gear from dead-ending
- * straight onto a dense settings screen.
- */
-@Composable
-private fun IntegrationBoxSheet(
-    box: IntegrationBox,
-    onOpen: (FoundryDestination) -> Unit,
+private fun NewsSourcesSheet(
+    sources: List<String>,
+    onAdd: (String) -> Unit,
+    onRemove: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var draft by remember { mutableStateOf("") }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -456,52 +445,75 @@ private fun IntegrationBoxSheet(
                 .padding(bottom = 24.dp),
         ) {
             Text(
-                text = box.title,
+                text = "NEWS SOURCES",
                 color = Foundry.labelPrimary,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 letterSpacing = 1.sp,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
-                text = box.blurb,
+                text = "Paste an RSS or Atom feed link. Each story shows its own article picture; tap ↻ on the box to refresh.",
                 color = Foundry.labelSecondary,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
             )
             Spacer(Modifier.height(14.dp))
-            box.tips.forEachIndexed { index, tip ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clip(Foundry.pillShape)
-                            .background(brush = Foundry.brushedRadial, shape = Foundry.pillShape),
-                        contentAlignment = Alignment.Center,
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    singleLine = true,
+                    placeholder = { Text("https://example.com/rss", color = Foundry.labelMuted, fontSize = 13.sp) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFF202020),
+                        unfocusedContainerColor = Color(0xFF202020),
+                        focusedTextColor = Foundry.labelPrimary,
+                        unfocusedTextColor = Foundry.labelPrimary,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                FoundryIconChip(
+                    glyph = "＋",
+                    onClick = {
+                        onAdd(draft)
+                        draft = ""
+                    },
+                    size = 44.dp,
+                    contentDescription = "Add source",
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            if (sources.isEmpty()) {
+                Text(
+                    text = "Using the built-in default sources.",
+                    color = Foundry.labelMuted,
+                    fontSize = 12.sp,
+                )
+            } else {
+                sources.forEach { src ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "${index + 1}",
+                            text = src,
                             color = Foundry.labelPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        FoundryIconChip(
+                            glyph = "✕",
+                            onClick = { onRemove(src) },
+                            size = 32.dp,
+                            contentDescription = "Remove source",
                         )
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Text(text = tip, color = Foundry.labelPrimary, fontSize = 13.sp)
                 }
             }
-            Spacer(Modifier.height(18.dp))
-            FoundryPill(
-                label = box.actionLabel,
-                onClick = {
-                    onDismiss()
-                    onOpen(box.open)
-                },
-                intent = FoundryIntent.Primary,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 }
@@ -510,7 +522,9 @@ private fun IntegrationBoxSheet(
 // Destinations + preview data
 // ────────────────────────────────────────────────────────────────────
 
-/** Destinations the home grid can drive. The host (App.kt) maps these to routes. */
+/** Destinations the home can drive. The host (App.kt) maps these to routes. The
+ *  provider/MCP entries are still reached from Settings even though the home no
+ *  longer shows integration boxes. */
 enum class FoundryDestination {
     Chat,
     Compare,
@@ -525,15 +539,23 @@ enum class FoundryDestination {
     FeedConfig,
 }
 
-private val previewFeedItems = listOf(
+private val previewNewsItems = listOf(
     FoundryFeedItem(
-        title = "Add your own sources",
-        source = "MorsVitaEst",
-        summary = "Paste HuggingFace papers, GitHub trending, RSS, or any link. Pull down to refresh.",
+        title = "Tap refresh to pull the latest stories",
+        source = "News",
+        summary = "Each story shows its own article thumbnail, not the site's logo.",
     ),
     FoundryFeedItem(
+        title = "Add your own RSS or Atom sources",
+        source = "Sources",
+        summary = "Use ＋ to paste a feed link; remove the defaults any time.",
+    ),
+)
+
+private val previewFeedItems = listOf(
+    FoundryFeedItem(
         title = "Heartbeat surfaces here",
-        source = "Roadmap",
+        source = "Heartbeat",
         summary = "Trending integrations, model drops, new MCP servers, and your pinned notes.",
     ),
     FoundryFeedItem(

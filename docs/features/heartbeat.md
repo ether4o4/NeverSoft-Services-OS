@@ -79,12 +79,13 @@ For the full contract of every prompt variation in MorsVitaEst (chat remote/loca
 - Entries show an OK/FAIL indicator and a formatted local timestamp
 - Failed entries display the error message (single line, ellipsized) below the timestamp in the error color
 
-## Home News Feed
+## Home Heartbeat Box
 
-The home screen's news feed is the user-facing surface for heartbeat output: each assistant message in
-the heartbeat conversation becomes a feed card, newest first. Pull-to-refresh (and a refresh button) on
-the feed run a heartbeat immediately — the same manual trigger as the settings refresh — then reload the
-feed. See [home.md](home.md).
+The home screen's **Heartbeat box** (the lower of the home's two boxes) is the user-facing surface for
+heartbeat output: each assistant message in the heartbeat conversation becomes a card, newest first.
+Pull-to-refresh (and a refresh button) on the box run a heartbeat immediately — the same manual trigger
+as the settings refresh — then reload it. The upper box is a separate RSS news reader and is unrelated
+to the heartbeat engine. See [home.md](home.md).
 
 ## Promote Learning
 
@@ -130,7 +131,7 @@ Standing additions to heartbeat behaviour are created with `schedule_task(on_hea
 | `composeApp/src/commonMain/.../data/RemoteDataRepository.kt` | Heartbeat conversation creation, unread flag management |
 | `composeApp/src/commonMain/.../ui/chat/composables/HeartbeatBanner.kt` | Dismissable notification banner UI |
 | `composeApp/src/commonMain/.../ui/settings/SettingsScreen.kt` | Heartbeat settings UI section |
-| `composeApp/src/commonMain/.../ui/foundry/FoundryHomeViewModel.kt` | Turns heartbeat conversation updates into the home news feed; pull-to-refresh trigger |
+| `composeApp/src/commonMain/.../ui/foundry/FoundryHomeViewModel.kt` | Turns heartbeat conversation updates into the home Heartbeat box; pull-to-refresh trigger |
 | `composeApp/src/commonMain/.../Platform.kt` | `expect fun sendHeartbeatNotification` — push notification for background heartbeat reports |
 | `composeApp/src/androidMain/.../HeartbeatNotifier.android.kt` | Android actual + `EXTRA_OPEN_HEARTBEAT` deep-link constant |
 | `androidApp/src/main/kotlin/.../MainActivity.kt` | Reads `EXTRA_OPEN_HEARTBEAT` in `onCreate`/`onNewIntent` and calls `DataRepository.requestOpenHeartbeat` |

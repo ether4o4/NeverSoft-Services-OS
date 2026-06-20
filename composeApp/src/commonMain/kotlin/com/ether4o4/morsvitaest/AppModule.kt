@@ -7,6 +7,7 @@ import com.ether4o4.morsvitaest.data.DataRepository
 import com.ether4o4.morsvitaest.data.EmailStore
 import com.ether4o4.morsvitaest.data.HeartbeatManager
 import com.ether4o4.morsvitaest.data.MemoryStore
+import com.ether4o4.morsvitaest.data.NewsRepository
 import com.ether4o4.morsvitaest.data.NotificationStore
 import com.ether4o4.morsvitaest.data.RemoteDataRepository
 import com.ether4o4.morsvitaest.data.SmsDraftStore
@@ -60,6 +61,9 @@ val appModule = module {
     }
     single<Requests> {
         Requests()
+    }
+    single<NewsRepository> {
+        NewsRepository()
     }
     single<ConversationStorage> {
         ConversationStorage(get())
@@ -160,6 +164,6 @@ val appModule = module {
     viewModel { SplinterlandsViewModel(get<DataRepository>(), get(), get(), get<SplinterlandsApi>()) }
     viewModel { ChatViewModel(get<DataRepository>(), get<TaskScheduler>()) }
     viewModel { CompareViewModel(get<DataRepository>()) }
-    viewModel { FoundryHomeViewModel(get<DataRepository>(), get<TaskScheduler>()) }
+    viewModel { FoundryHomeViewModel(get<DataRepository>(), get<TaskScheduler>(), get<NewsRepository>(), get<AppSettings>()) }
     viewModel { HelpAssistantViewModel(get<DataRepository>()) }
 }
