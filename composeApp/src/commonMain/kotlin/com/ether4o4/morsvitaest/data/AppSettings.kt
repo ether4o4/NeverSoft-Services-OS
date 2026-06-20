@@ -471,6 +471,17 @@ class AppSettings(internal val settings: Settings) {
         bumpLauncherAppearance()
     }
 
+    // News sources for the Foundry home news box: RSS/Atom feed URLs. Stored
+    // newline-separated (URLs can contain commas). Blank = fall back to defaults.
+    fun getNewsFeedUrls(default: List<String>): List<String> {
+        val raw = settings.getString(KEY_NEWS_FEED_URLS, "")
+        return if (raw.isBlank()) default else raw.split("\n").map { it.trim() }.filter { it.isNotBlank() }
+    }
+
+    fun setNewsFeedUrls(urls: List<String>) {
+        settings.putString(KEY_NEWS_FEED_URLS, urls.map { it.trim() }.filter { it.isNotBlank() }.joinToString("\n"))
+    }
+
     fun getLauncherStartPins(default: List<String>): List<String> {
         val raw = settings.getString(KEY_LAUNCHER_START_PINS, "")
         return if (raw.isBlank()) default else raw.split(",").filter { it.isNotBlank() }
@@ -840,6 +851,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_LAUNCHER_ORB_IMAGE = "launcher_orb_image"
         const val KEY_LAUNCHER_DOCK_PINS = "launcher_dock_pins"
         const val KEY_LAUNCHER_START_PINS = "launcher_start_pins"
+        const val KEY_NEWS_FEED_URLS = "news_feed_urls"
         const val KEY_START_MENU_W = "launcher_start_menu_w"
         const val KEY_START_MENU_H = "launcher_start_menu_h"
         const val KEY_WIDGET_PANEL_W = "launcher_widget_panel_w"

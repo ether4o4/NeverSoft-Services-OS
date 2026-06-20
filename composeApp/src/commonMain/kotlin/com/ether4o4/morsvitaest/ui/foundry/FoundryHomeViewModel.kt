@@ -2,8 +2,11 @@ package com.ether4o4.morsvitaest.ui.foundry
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.data.Conversation
 import com.ether4o4.morsvitaest.data.DataRepository
+import com.ether4o4.morsvitaest.data.NewsArticle
+import com.ether4o4.morsvitaest.data.NewsRepository
 import com.ether4o4.morsvitaest.data.TaskScheduler
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -16,18 +19,27 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class FoundryHomeUiState(
+    // Heartbeat box (bottom): the assistant's "what's new" updates.
     val feed: ImmutableList<FoundryFeedItem> = persistentListOf(),
     val isRefreshing: Boolean = false,
+    // News box (top): real stories with article thumbnails from RSS/Atom sources.
+    val news: ImmutableList<FoundryFeedItem> = persistentListOf(),
+    val isNewsRefreshing: Boolean = false,
+    val newsSources: ImmutableList<String> = persistentListOf(),
 )
 
 /**
- * Backs the Foundry home newsfeed. The feed is the Heartbeat engine's output: each assistant
- * message in the dedicated heartbeat conversation is one "what's new" card, newest first.
- * Pull-to-refresh fires an on-demand heartbeat run via [TaskScheduler.triggerHeartbeatNow].
+ * Backs the Foundry home. Two independent boxes:
+ *  - News: a manual-refresh aggregation of the user's RSS/Atom sources, each story
+ *    carrying its own article thumbnail. Refresh is on-demand (no auto-polling).
+ *  - Heartbeat: each assistant message in the dedicated heartbeat conversation is a
+ *    "what's new" card, newest first; pull/tap refresh runs a heartbeat on demand.
  */
 class FoundryHomeViewModel(
     private val repository: DataRepository,
     private val taskScheduler: TaskScheduler,
+    private val newsRepository: NewsRepository,
+    private val settings: AppSettings,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FoundryHomeUiState())
@@ -40,7 +52,67 @@ class FoundryHomeViewModel(
                 _state.update { it.copy(feed = conversations.toFeed()) }
             }
         }
+        _state.update { it.copy(newsSources = currentSources().toImmutableList()) }
+        // One fetch on open so the box isn't empty; further refreshes are manual.
+        refreshNews()
     }
+
+    // region News box
+
+    fun refreshNews() {
+        if (_state.value.isNewsRefreshing) return
+        viewModelScope.launch {
+            _state.update { it.copy(isNewsRefreshing = true) }
+            val articles = try {
+                newsRepository.fetch(currentSources())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                emptyList()
+            }
+            _state.update { state ->
+                state.copy(
+                    isNewsRefreshing = false,
+                    // Keep whatever we already have if a refresh comes back empty (offline).
+                    news = if (articles.isEmpty() && state.news.isNotEmpty()) {
+                        state.news
+                    } else {
+                        articles.map { it.toFeedItem() }.toImmutableList()
+                    },
+                )
+            }
+        }
+    }
+
+    fun addNewsSource(url: String) {
+        val cleaned = url.trim()
+        if (cleaned.isBlank() || !cleaned.startsWith("http")) return
+        val updated = (currentSources() + cleaned).distinct()
+        settings.setNewsFeedUrls(updated)
+        _state.update { it.copy(newsSources = updated.toImmutableList()) }
+        refreshNews()
+    }
+
+    fun removeNewsSource(url: String) {
+        val updated = currentSources().filterNot { it == url }
+        settings.setNewsFeedUrls(updated)
+        _state.update { it.copy(newsSources = updated.toImmutableList()) }
+        refreshNews()
+    }
+
+    private fun currentSources(): List<String> = settings.getNewsFeedUrls(NewsRepository.DEFAULT_FEEDS)
+
+    private fun NewsArticle.toFeedItem(): FoundryFeedItem = FoundryFeedItem(
+        title = title,
+        source = source,
+        summary = summary,
+        thumbnailUrl = imageUrl,
+        link = link,
+    )
+
+    // endregion
+
+    // region Heartbeat box
 
     fun refresh() {
         if (_state.value.isRefreshing) return
@@ -80,6 +152,8 @@ class FoundryHomeViewModel(
         val summary = lines.drop(1).joinToString(" ").ifBlank { cleaned }.take(240)
         return FoundryFeedItem(title = title, source = "Heartbeat", summary = summary, thumbnailUrl = thumbnailUrl)
     }
+
+    // endregion
 }
 
 // ![alt](https://host/pic.png) — grab the URL inside a markdown image.
