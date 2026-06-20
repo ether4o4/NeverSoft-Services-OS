@@ -723,25 +723,24 @@ private fun launchAppFreeform(context: Context, intent: Intent): Boolean = try {
     false
 }
 
-/** Window bounds that fill the screen above the taskbar (its flush height incl. the pill strip). */
+/** Window bounds that fill the whole screen above the taskbar. */
 private fun windowedAppBounds(context: Context): android.graphics.Rect {
     val wm = context.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
-    val width: Int
-    val height: Int
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-        val b = wm.currentWindowMetrics.bounds
-        width = b.width()
-        height = b.height()
-    } else {
-        @Suppress("DEPRECATION")
-        val dm = context.resources.displayMetrics
-        width = dm.widthPixels
-        height = dm.heightPixels
-    }
+    // The device's TRUE full-screen size (incl. system bars) — the phone's actual
+    // resolution — so the window is exactly "screen minus the taskbar", not the wrong
+    // size the app-context window metrics sometimes report.
+    val metrics = android.util.DisplayMetrics()
+    @Suppress("DEPRECATION")
+    wm.defaultDisplay.getRealMetrics(metrics)
+    val width = metrics.widthPixels
+    val height = metrics.heightPixels
+
     val density = context.resources.displayMetrics.density
     val navId = context.resources.getIdentifier("navigation_bar_height", "dimen", "android")
     val navPx = if (navId > 0) context.resources.getDimensionPixelSize(navId) else 0
     val taskbarPx = (50 * density).toInt() + navPx
+
+    // Top-left origin, full width, full height minus the taskbar strip — seamless.
     return android.graphics.Rect(0, 0, width, (height - taskbarPx).coerceAtLeast(height / 2))
 }
 
