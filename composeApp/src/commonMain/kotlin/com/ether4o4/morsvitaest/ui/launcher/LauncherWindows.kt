@@ -172,32 +172,42 @@ fun WindowFrame(
             }
         }
 
-        // Resize grip — bottom-right corner drag changes the window size (not when
-        // maximized). Coerced to the min size and the desktop area.
+        // Resize grip — TOP-LEFT corner. The bottom-right corner stays anchored;
+        // dragging this corner grows/shrinks the window toward / away from it.
+        // Drawn last so it wins the gesture over the title bar in that corner.
         if (!win.maximized) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(22.dp)
+                    .align(Alignment.TopStart)
+                    .size(26.dp)
+                    .background(Color.Black.copy(alpha = 0.28f), RoundedCornerShape(topStart = cornerRadius, bottomEnd = 8.dp))
                     .pointerInput(win, areaWidthPx, areaHeightPx) {
                         detectDragGestures { change, drag ->
                             change.consume()
                             onFocus()
-                            // Read the live stored size each event so the drag accumulates.
-                            val baseW = if (win.widthPx > 0) win.widthPx else defaultWidthPx
-                            val baseH = if (win.heightPx > 0) win.heightPx else defaultHeightPx
-                            win.widthPx = (baseW + drag.x.toInt())
-                                .coerceIn(minWidthPx, areaWidthPx.coerceAtLeast(minWidthPx))
-                            win.heightPx = (baseH + drag.y.toInt())
-                                .coerceIn(minHeightPx, areaHeightPx.coerceAtLeast(minHeightPx))
+                            // Read the live stored size/offset each event so it accumulates.
+                            val curW = if (win.widthPx > 0) win.widthPx else defaultWidthPx
+                            val curH = if (win.heightPx > 0) win.heightPx else defaultHeightPx
+                            // Fixed bottom-right corner = the pivot.
+                            val brX = win.offsetX + curW
+                            val brY = win.offsetY + curH
+                            val maxW = brX.coerceAtMost(areaWidthPx).coerceAtLeast(minWidthPx)
+                            val maxH = brY.coerceAtMost(areaHeightPx).coerceAtLeast(minHeightPx)
+                            val newW = (curW - drag.x.toInt()).coerceIn(minWidthPx, maxW)
+                            val newH = (curH - drag.y.toInt()).coerceIn(minHeightPx, maxH)
+                            win.widthPx = newW
+                            win.heightPx = newH
+                            // Keep the bottom-right corner pinned in place.
+                            win.offsetX = brX - newW
+                            win.offsetY = brY - newH
                         }
                     },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     "⤡",
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 13.sp,
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                 )
             }

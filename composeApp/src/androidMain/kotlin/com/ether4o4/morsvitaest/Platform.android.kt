@@ -738,10 +738,22 @@ private fun windowedAppBounds(context: Context): android.graphics.Rect {
     val density = context.resources.displayMetrics.density
     val navId = context.resources.getIdentifier("navigation_bar_height", "dimen", "android")
     val navPx = if (navId > 0) context.resources.getDimensionPixelSize(navId) else 0
+    // The taskbar overlay sits flush at the bottom (gravity BOTTOM) and is exactly
+    // 50dp + the nav strip tall, so its top edge — where a window must stop — is at
+    // height - taskbarPx.
     val taskbarPx = (50 * density).toInt() + navPx
 
-    // Top-left origin, full width, full height minus the taskbar strip — seamless.
-    return android.graphics.Rect(0, 0, width, (height - taskbarPx).coerceAtLeast(height / 2))
+    // Start the window right below the status bar instead of at y=0. A freeform app
+    // can't draw under the status bar, so a y=0 box gets shoved DOWN by the status-bar
+    // height while keeping its height — pushing its bottom past the taskbar (the gap
+    // the user sees above it). Pinning the top to the status bar makes the box exactly
+    // the usable area, so the bottom lands flush on the taskbar.
+    val statusId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
+    val statusPx = if (statusId > 0) context.resources.getDimensionPixelSize(statusId) else 0
+
+    val bottom = (height - taskbarPx).coerceAtLeast(statusPx + height / 3)
+    // Below the status bar (top), full width side-to-side, flush to the taskbar (bottom).
+    return android.graphics.Rect(0, statusPx, width, bottom)
 }
 
 actual fun openUrl(url: String): Boolean = try {
