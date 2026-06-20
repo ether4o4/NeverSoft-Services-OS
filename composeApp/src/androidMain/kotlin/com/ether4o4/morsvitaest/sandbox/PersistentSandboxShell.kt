@@ -24,10 +24,11 @@ private const val MAX_OUTPUT_LENGTH = 15_000
 private const val RS = ""
 private const val US = ""
 
-// Marker emitted once at shell startup so we know bash's pid before any user
-// command has finished. Without this, cancel on the first command had nothing
-// to signal (bashPid was null, set only from the sentinel of a completed run).
-private const val PID_PROBE_PREFIX = "${RS}MVEBASHPID$US"
+// Marker emitted once at shell startup so we know the shell's pid before any
+// user command has finished. Without this, cancel on the first command had
+// nothing to signal (shellPid was null, set only from the sentinel of a
+// completed run).
+private const val PID_PROBE_PREFIX = "${RS}MVESHELLPID$US"
 
 class PersistentSandboxShell(
     private val executor: ProotExecutor,
@@ -38,7 +39,7 @@ class PersistentSandboxShell(
 
     @Volatile private var handle: ProotHandle? = null
 
-    @Volatile private var bashPid: Int? = null
+    @Volatile private var shellPid: Int? = null
     private var watchdog: Job? = null
     private val currentSink = AtomicReference<CommandSink?>(null)
 
@@ -54,7 +55,7 @@ class PersistentSandboxShell(
     data class Result(
         val exitCode: Int,
         val cwd: String,
-        val bashPid: Int,
+        val shellPid: Int,
         val shellDied: Boolean = false,
     )
 
@@ -106,7 +107,7 @@ class PersistentSandboxShell(
         if (result.shellDied) {
             return@withLock buildResult(sink, result, shellDied = true)
         }
-        bashPid = result.bashPid
+        shellPid = result.shellPid
         return@withLock buildResult(sink, result)
     }
 
@@ -122,12 +123,12 @@ class PersistentSandboxShell(
     /**
      * Best-effort interrupt of the foreground command without killing the
      * shell itself. Without a PTY we can't deliver SIGINT through line
-     * discipline, so we send signals to bash's children from a sibling proot.
-     * Falls back to a full shell reset if the pid isn't known yet (probe race)
-     * or if even SIGKILL doesn't free the foreground.
+     * discipline, so we send signals to the shell's children from a sibling
+     * proot. Falls back to a full shell reset if the pid isn't known yet
+     * (probe race) or if even SIGKILL doesn't free the foreground.
      */
     fun cancelForeground() {
-        val pid = bashPid
+        val pid = shellPid
         if (pid == null) {
             // No pid captured yet — the user expects cancel to actually do
             // something, so nuke the shell. The next run lazily restarts it.
@@ -154,41 +155,53 @@ class PersistentSandboxShell(
         watchdog = null
         handle?.cancel()
         handle = null
-        bashPid = null
+        shellPid = null
         // Fail any in-flight command.
         currentSink.getAndSet(null)?.done?.complete(
-            Result(exitCode = -1, cwd = "/root", bashPid = 0, shellDied = true),
+            Result(exitCode = -1, cwd = "/root", shellPid = 0, shellDied = true),
         )
     }
 
     private fun ensureShell() {
         if (handle != null) return
-        // Non-interactive bash. We have no tty, so -i would only emit prompts
-        // to stderr that we'd have to filter. --noprofile/--norc keep the env
-        // clean; bash still reads commands from stdin line by line, executes
-        // them in-process (so cd/export/. preserve state), and inherits its
-        // stdin to any foreground child (so ssh can read passwords typed via
-        // writeInput).
+        // Pick the most capable shell actually present. bash gives the better
+        // interactive experience but is NOT in the Alpine minirootfs by
+        // default — it only arrives once packages are installed (`apk add
+        // bash`). On a freshly set-up sandbox (and on the headless-bridge path,
+        // where setup never auto-installs packages) only busybox `sh` exists,
+        // so hardcoding `exec bash` would exit 127 and kill the session on the
+        // first command. We therefore prefer bash when it's on PATH and fall
+        // back to `/bin/sh` (busybox ash) otherwise. The command-framing
+        // protocol below is POSIX-only (`.` sourcing, `$?`/`$$`/`$PWD`, octal
+        // `printf`), so it works identically under either shell.
+        //
+        // The chosen shell runs non-interactively: we have no tty, so an
+        // interactive shell would only emit prompts to stderr we'd have to
+        // filter. It reads commands from stdin line by line, executes them
+        // in-process (so cd/export/. preserve state), and inherits its stdin to
+        // any foreground child (so ssh can read passwords typed via writeInput).
+        val launch = "if command -v bash >/dev/null 2>&1; then " +
+            "exec bash --noprofile --norc; else exec /bin/sh; fi"
         val h = executor.executeStreaming(
-            command = "exec bash --noprofile --norc",
+            command = launch,
             onStdout = { line -> dispatchStdout(line) },
             onStderr = { line -> dispatchStderr(line) },
         )
         handle = h
-        // Capture bash's pid before any user command runs. The dispatcher
-        // recognizes this marker on stderr and sets bashPid, so cancel on
+        // Capture the shell's pid before any user command runs. The dispatcher
+        // recognizes this marker on stderr and sets shellPid, so cancel on
         // the very first command has something to signal. Leading \n matches
         // the sentinel pattern below — flushes any partial line first.
-        h.writeInput("printf '\\n\\036MVEBASHPID\\037%d\\036\\n' \"\$\$\" >&2")
+        h.writeInput("printf '\\n\\036MVESHELLPID\\037%d\\036\\n' \"\$\$\" >&2")
         watchdog = scope.launch {
             h.awaitExit()
             // Shell died. Wake up any in-flight command with a shellDied result
             // so callers don't sit on a sentinel that will never come.
             currentSink.getAndSet(null)?.done?.complete(
-                Result(exitCode = -1, cwd = "/root", bashPid = bashPid ?: 0, shellDied = true),
+                Result(exitCode = -1, cwd = "/root", shellPid = shellPid ?: 0, shellDied = true),
             )
             handle = null
-            bashPid = null
+            shellPid = null
         }
     }
 
@@ -207,7 +220,7 @@ class PersistentSandboxShell(
         // Startup pid probe — handled regardless of whether a sink is active.
         if (line.startsWith(PID_PROBE_PREFIX) && line.endsWith(RS)) {
             val pidText = line.substring(PID_PROBE_PREFIX.length, line.length - 1)
-            pidText.toIntOrNull()?.let { bashPid = it }
+            pidText.toIntOrNull()?.let { shellPid = it }
             return
         }
         val sink = currentSink.get() ?: return
@@ -219,7 +232,7 @@ class PersistentSandboxShell(
                 val exit = parts[1].toIntOrNull() ?: -1
                 val pid = parts[2].toIntOrNull() ?: 0
                 val cwd = parts[3]
-                sink.done.complete(Result(exitCode = exit, cwd = cwd, bashPid = pid))
+                sink.done.complete(Result(exitCode = exit, cwd = cwd, shellPid = pid))
                 return
             }
         }
