@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.compose.ui.graphics.toArgb
@@ -161,7 +162,7 @@ class MveKeyboardService : InputMethodService() {
     private fun renderRows() {
         val root = rootView ?: return
         root.removeAllViews()
-        val keyH = if (mode == Mode.PC) dp(42) else dp(48)
+        val keyH = if (mode == Mode.PC) dp(48) else dp(56)
         for (row in rowsFor()) {
             val rowView = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -177,7 +178,7 @@ class MveKeyboardService : InputMethodService() {
                 rowView.addView(
                     keyView(key),
                     LinearLayout.LayoutParams(0, keyH, weight).apply {
-                        setMargins(dp(2), dp(3), dp(2), dp(3))
+                        setMargins(dp(2), dp(4), dp(2), dp(4))
                     },
                 )
             }
@@ -259,7 +260,7 @@ class MveKeyboardService : InputMethodService() {
 
             "⌄" -> requestHideSelf(0)
 
-            "space" -> ic.commitText(" ", 1)
+            "space" -> handleSpace(ic)
 
             "⇧" -> {
                 shifted = !shifted
@@ -339,12 +340,53 @@ class MveKeyboardService : InputMethodService() {
                 return
             }
         }
-        val out = if (mode != Mode.SYMBOLS && shifted && key.length == 1) key.uppercase() else key
+        // Auto-capitalize the first letter of a sentence (light autocorrect).
+        val autoCap = mode == Mode.ABC && !shifted && key.length == 1 && key[0].isLetter() && shouldAutoCap(ic)
+        val cap = shifted || autoCap
+        val out = if (mode != Mode.SYMBOLS && cap && key.length == 1) key.uppercase() else key
         ic.commitText(out, 1)
         if (shifted && mode == Mode.ABC) {
             shifted = false
             renderRows()
         }
+    }
+
+    /** Whether the next letter should be capitalized — start of text, or after a sentence end. */
+    private fun shouldAutoCap(ic: InputConnection): Boolean {
+        val before = ic.getTextBeforeCursor(2, 0)
+        if (before.isNullOrEmpty()) return true
+        val last = before.last()
+        if (last == '\n') return true
+        if (before.length >= 2 && last == ' ') {
+            val prev = before[before.length - 2]
+            if (prev == '.' || prev == '!' || prev == '?') return true
+        }
+        return false
+    }
+
+    /** Space key: fix a common typo in the just-typed word, and turn "word  " into "word. ". */
+    private fun handleSpace(ic: InputConnection) {
+        autocorrectLastWord(ic)
+        val before = ic.getTextBeforeCursor(2, 0)
+        if (before != null && before.length == 2 && before[1] == ' ' && before[0].isLetterOrDigit()) {
+            // Double space → ". "
+            ic.deleteSurroundingText(1, 0)
+            ic.commitText(". ", 1)
+        } else {
+            ic.commitText(" ", 1)
+        }
+    }
+
+    /** Replace the word right before the cursor if it's a known common typo/contraction. */
+    private fun autocorrectLastWord(ic: InputConnection) {
+        val text = ic.getTextBeforeCursor(40, 0)?.toString() ?: return
+        if (text.isEmpty() || text.last().isWhitespace()) return
+        val word = text.takeLastWhile { !it.isWhitespace() }
+        if (word.isEmpty()) return
+        val fix = AUTOCORRECT[word.lowercase()] ?: return
+        val corrected = if (word.first().isUpperCase()) fix.replaceFirstChar { it.uppercaseChar() } else fix
+        ic.deleteSurroundingText(word.length, 0)
+        ic.commitText(corrected, 1)
     }
 
     private fun keyCodeFor(key: String): Int {
@@ -367,5 +409,24 @@ class MveKeyboardService : InputMethodService() {
     companion object {
         // Matches OverlayTaskbarService.BAR_HEIGHT_DP so the keys land on the taskbar's top.
         private const val TASKBAR_DP = 50
+
+        // A small, high-confidence autocorrect dictionary (common typos + contractions),
+        // applied to the just-typed word when space is pressed. Deliberately conservative
+        // so it rarely "corrects" something you meant.
+        private val AUTOCORRECT = mapOf(
+            "i" to "I",
+            "teh" to "the", "hte" to "the", "taht" to "that", "waht" to "what", "adn" to "and",
+            "nad" to "and", "jsut" to "just", "wnat" to "want", "knwo" to "know", "thnk" to "think",
+            "agian" to "again", "becuase" to "because", "becasue" to "because", "wich" to "which",
+            "thier" to "their", "recieve" to "receive", "seperate" to "separate",
+            "definately" to "definitely", "occured" to "occurred", "untill" to "until",
+            "tommorow" to "tomorrow", "wierd" to "weird", "freind" to "friend", "alot" to "a lot",
+            "dont" to "don't", "cant" to "can't", "wont" to "won't", "isnt" to "isn't",
+            "doesnt" to "doesn't", "didnt" to "didn't", "wasnt" to "wasn't", "couldnt" to "couldn't",
+            "wouldnt" to "wouldn't", "shouldnt" to "shouldn't", "im" to "I'm", "ive" to "I've",
+            "ill" to "I'll", "id" to "I'd", "youre" to "you're", "theyre" to "they're",
+            "thats" to "that's", "whats" to "what's", "theres" to "there's", "hes" to "he's",
+            "shes" to "she's",
+        )
     }
 }

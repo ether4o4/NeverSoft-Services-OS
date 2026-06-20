@@ -307,11 +307,13 @@ class OverlayTaskbarService :
         }
         startMenuView = view
 
-        // Full-screen so the hosted StartDrawer (which sizes + scrims itself) renders
-        // exactly like the in-app one. Focusable for the search keyboard.
+        // Stop a little above the taskbar (a small gap) instead of covering it — the
+        // hosted StartDrawer scrims/sizes itself within this window. Focusable for search.
+        val menuHeight = (resources.displayMetrics.heightPixels - dp(BAR_HEIGHT_DP) - navBarHeightPx() - dp(10))
+            .coerceAtLeast(dp(240))
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
+            menuHeight,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT,
