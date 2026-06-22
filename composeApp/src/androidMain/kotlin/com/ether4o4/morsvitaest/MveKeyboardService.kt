@@ -407,7 +407,7 @@ class MveKeyboardService : InputMethodService() {
     }
 
     companion object {
-        // Matches OverlayTaskbarService.BAR_HEIGHT_DP so the keys land on the taskbar's top.
+        // Height of the launcher taskbar in dp, so the keys land on the taskbar's top edge.
         private const val TASKBAR_DP = 50
 
         // A small, high-confidence autocorrect dictionary (common typos + contractions),

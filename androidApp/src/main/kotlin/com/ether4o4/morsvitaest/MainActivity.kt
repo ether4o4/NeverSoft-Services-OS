@@ -116,10 +116,6 @@ class MainActivity : ComponentActivity() {
         // close and reopen the app for scheduling to resume. `startForegroundService`
         // is idempotent when the service is already up.
         autoStartDaemon()
-        // Start the permanent overlay taskbar (if enabled). Done from the
-        // foreground, where starting a foreground service is always allowed; the
-        // service then keeps the bar up on its own — no background re-assert needed.
-        reconcileTaskbar()
         // Re-assert immersive mode (some OEMs reset it when returning to the app).
         applyImmersive(get<AppSettings>().isFullscreenLauncherEnabled())
     }
@@ -138,17 +134,6 @@ class MainActivity : ComponentActivity() {
             controller.hide(WindowInsetsCompat.Type.navigationBars())
         } else {
             controller.show(WindowInsetsCompat.Type.navigationBars())
-        }
-    }
-
-    private fun reconcileTaskbar() {
-        val settings: AppSettings = get()
-        if (settings.isPersistentTaskbarEnabled() && android.provider.Settings.canDrawOverlays(this)) {
-            // Permanent: keep the overlay bar on screen whether MVE is in the
-            // foreground or background — it never disappears.
-            OverlayTaskbarService.show(this)
-        } else {
-            OverlayTaskbarService.stop(this)
         }
     }
 

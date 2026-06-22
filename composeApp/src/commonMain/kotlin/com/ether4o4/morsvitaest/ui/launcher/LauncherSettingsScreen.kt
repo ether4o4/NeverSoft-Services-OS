@@ -33,13 +33,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ether4o4.morsvitaest.Platform
 import com.ether4o4.morsvitaest.SystemSetting
-import com.ether4o4.morsvitaest.applyPersistentTaskbar
+import com.ether4o4.morsvitaest.currentPlatform
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.openSystemSetting
-import com.ether4o4.morsvitaest.persistentTaskbarHasPermission
-import com.ether4o4.morsvitaest.persistentTaskbarSupported
-import com.ether4o4.morsvitaest.requestPersistentTaskbarPermission
 import com.ether4o4.morsvitaest.saveLauncherImage
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
@@ -286,55 +284,9 @@ fun LauncherSettingsContent(
             )
         }
 
-        if (persistentTaskbarSupported()) {
+        if (currentPlatform is Platform.Mobile.Android) {
             Spacer(Modifier.height(18.dp))
             SectionLabel("Taskbar")
-            var persistentTaskbar by remember { mutableStateOf(settings.isPersistentTaskbarEnabled()) }
-            var needsPermission by remember {
-                mutableStateOf(persistentTaskbar && !persistentTaskbarHasPermission())
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Keep taskbar over all apps", color = Color.White, fontSize = 15.sp)
-                    Text(
-                        "Floats the taskbar — with a one-tap AI chat — on top of other apps " +
-                            "(Messages, Phone, browsers…).",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 12.sp,
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
-                Switch(
-                    checked = persistentTaskbar,
-                    onCheckedChange = {
-                        persistentTaskbar = it
-                        settings.setPersistentTaskbarEnabled(it)
-                        if (it && !persistentTaskbarHasPermission()) {
-                            requestPersistentTaskbarPermission()
-                        }
-                        applyPersistentTaskbar(it)
-                        needsPermission = it && !persistentTaskbarHasPermission()
-                    },
-                )
-            }
-            if (needsPermission) {
-                Text(
-                    "Grant “Display over other apps” permission, then return here. " +
-                        "The bar appears once you leave MorsVitaEst.",
-                    color = Color(0xFFE5A14D),
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 6.dp, start = 4.dp),
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
             var fullscreenLauncher by remember { mutableStateOf(settings.isFullscreenLauncherEnabled()) }
             Row(
                 modifier = Modifier

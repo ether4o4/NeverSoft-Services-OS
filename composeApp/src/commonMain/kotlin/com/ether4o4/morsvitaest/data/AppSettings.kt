@@ -366,13 +366,6 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_LAUNCHER_LABELS, shown)
     }
 
-    // Persistent system-wide taskbar (floats over other apps via an overlay).
-    fun isPersistentTaskbarEnabled(): Boolean = settings.getBoolean(KEY_PERSISTENT_TASKBAR, false)
-
-    fun setPersistentTaskbarEnabled(enabled: Boolean) {
-        settings.putBoolean(KEY_PERSISTENT_TASKBAR, enabled)
-    }
-
     // Full-screen launcher: hide the system navigation bar (gesture pill) on MVE's
     // own window so the taskbar sits flush at the very bottom — like a desktop OS.
     // Observed as a flow so the Activity can apply immersive mode the moment it changes.
@@ -836,7 +829,6 @@ class AppSettings(internal val settings: Settings) {
 
         const val KEY_LAUNCHER_WALLPAPER = "launcher_wallpaper"
         const val KEY_LAUNCHER_LABELS = "launcher_labels"
-        const val KEY_PERSISTENT_TASKBAR = "launcher_persistent_taskbar"
         const val KEY_FULLSCREEN_LAUNCHER = "launcher_fullscreen_immersive"
         const val KEY_WINDOWED_APPS = "launcher_windowed_apps"
         const val KEY_LAUNCHER_NOTE = "launcher_note"

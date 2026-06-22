@@ -109,25 +109,6 @@ enum class SystemApp {
 expect fun openSystemApp(app: SystemApp): Boolean
 
 /**
- * Persistent taskbar — a system overlay bar that stays on screen over every other
- * app. Only meaningful on Android (needs the "Display over other apps" overlay
- * permission + a foreground service); other platforms report unsupported.
- */
-expect fun persistentTaskbarSupported(): Boolean
-
-/** Whether the "Display over other apps" overlay permission has been granted. */
-expect fun persistentTaskbarHasPermission(): Boolean
-
-/** Opens the system screen where the user grants the overlay permission. */
-expect fun requestPersistentTaskbarPermission()
-
-/**
- * Start or stop the persistent overlay taskbar service to match [enabled]. A no-op
- * if unsupported or (when enabling) the overlay permission isn't granted yet.
- */
-expect fun applyPersistentTaskbar(enabled: Boolean)
-
-/**
  * Persist a picked image's [bytes] into app storage under [name] and return its
  * absolute path (or null on failure / unsupported platform). Used for the
  * customizable launcher wallpaper and Start orb.
