@@ -76,7 +76,9 @@ fun WidgetsContent(onOpenAssistant: () -> Unit = {}) {
     LaunchedEffect(Unit) {
         while (true) {
             now = Clock.System.now()
-            delay(1_000)
+            // Date-resolution display: tick on the minute boundary, not every second,
+            // so the whole panel (and its embedded chat) doesn't recompose 60x/min.
+            delay(60_000 - now.toEpochMilliseconds() % 60_000)
         }
     }
     val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
@@ -139,7 +141,9 @@ fun NotificationsPanel(
     LaunchedEffect(Unit) {
         while (true) {
             now = Clock.System.now()
-            delay(1_000)
+            // Date-resolution display: tick on the minute boundary, not every second,
+            // so the whole panel (and its embedded chat) doesn't recompose 60x/min.
+            delay(60_000 - now.toEpochMilliseconds() % 60_000)
         }
     }
     val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
@@ -327,7 +331,7 @@ private fun SystemWidget(c: Color) {
     LaunchedEffect(Unit) {
         while (true) {
             stats = getSystemStats()
-            delay(3_000)
+            delay(10_000)
         }
     }
     WidgetCard(c) {

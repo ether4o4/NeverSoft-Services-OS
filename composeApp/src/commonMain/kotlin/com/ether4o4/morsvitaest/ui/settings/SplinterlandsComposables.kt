@@ -942,6 +942,8 @@ private fun SplinterlandsCountdown(deadlineMs: Long) {
         if (deadlineMs > 0L) {
             while (true) {
                 remaining = ((deadlineMs - kotlin.time.Clock.System.now().toEpochMilliseconds()) / 1000).coerceAtLeast(0L)
+                // Stop once it reaches 0 instead of ticking 1Hz forever after expiry.
+                if (remaining == 0L) break
                 kotlinx.coroutines.delay(1.seconds)
             }
         }

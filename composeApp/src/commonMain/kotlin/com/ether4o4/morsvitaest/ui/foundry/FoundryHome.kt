@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -105,11 +104,11 @@ fun FoundryHome(
 
     var showSources by remember { mutableStateOf(false) }
 
+    // No full-screen background panel: the News box, Heartbeat box, and the pill
+    // float on their own (each carries the theme), with nothing boxed behind them.
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0B0D11))
-            .background(surface)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(Foundry.pagePadding),
@@ -122,13 +121,13 @@ fun FoundryHome(
                 navigationTabBar()
             }
         }
-        TitlePlate(content)
-        Spacer(Modifier.height(Foundry.gridGap))
 
+        // Floating themed pill — re-tints with the launcher theme via [surface].
         FoundryPill(
-            label = "⚖  COMPARE YOUR FAVORITE LLMS",
+            label = "⚖  TRY MULTI-CHAT",
             onClick = { onNavigate(FoundryDestination.Compare) },
             intent = FoundryIntent.Secondary,
+            brush = surface,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(Foundry.gridGap))
@@ -165,25 +164,6 @@ fun FoundryHome(
             onDismiss = { showSources = false },
         )
     }
-}
-
-// ────────────────────────────────────────────────────────────────────
-// Title plate
-// ────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TitlePlate(content: Color) {
-    Text(
-        text = "MORS VITA EST",
-        color = content,
-        fontWeight = FontWeight.Bold,
-        fontSize = 26.sp,
-        letterSpacing = 5.sp,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-    )
 }
 
 // ────────────────────────────────────────────────────────────────────

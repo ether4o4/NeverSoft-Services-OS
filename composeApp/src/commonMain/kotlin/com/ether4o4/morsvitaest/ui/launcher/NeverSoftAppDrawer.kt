@@ -154,8 +154,10 @@ internal fun StartDrawer(
     LaunchedEffect(Unit) { reveal.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 380f)) }
 
     val q = query.trim()
-    val builtInShown = apps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
-    val installedShown = installedApps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
+    // Remember the filtered lists so typing in search doesn't re-scan the full
+    // (often 100+) app list on every keystroke and reset LazyColumn item identity.
+    val builtInShown = remember(apps, q) { apps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) } }
+    val installedShown = remember(installedApps, q) { installedApps.filter { q.isBlank() || it.label.contains(q, ignoreCase = true) } }
     // The assistant chat lives in the widget/notification pop-up now, so it's no
     // longer shown as a Start-menu tile (drops the old MVE mascot image here too).
     val pinnedShown = startPins.filter { it != "assistant" }.mapNotNull { id -> apps.firstOrNull { it.id == id } }

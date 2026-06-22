@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
@@ -59,13 +60,16 @@ fun FoundryPill(
     intent: FoundryIntent = FoundryIntent.Neutral,
     enabled: Boolean = true,
     minHeight: Dp = 44.dp,
+    // When set, paints the pill with this brush (e.g. the live launcher theme)
+    // instead of the intent's fixed metal finish, so it re-tints with the theme.
+    brush: Brush? = null,
 ) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
             .heightIn(min = minHeight)
             .clip(Foundry.pillShape)
-            .background(brush = intent.brush(), shape = Foundry.pillShape)
+            .background(brush = brush ?: intent.brush(), shape = Foundry.pillShape)
             .background(brush = Foundry.glossOverlay, shape = Foundry.pillShape)
             .border(Foundry.bevel, Foundry.pillShape)
             .clickable(

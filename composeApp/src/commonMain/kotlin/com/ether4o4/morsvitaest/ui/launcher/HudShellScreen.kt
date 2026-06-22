@@ -882,22 +882,40 @@ private fun MatrixRail(modifier: Modifier, seed: Int, columns: Int = 2) {
     val textMeasurer = rememberTextMeasurer()
     var frameNanos by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) {
+        // Cap the rain at ~30fps: it reads identically but cuts redraws + text
+        // measurement (and battery) versus advancing on every vsync.
+        var last = 0L
         while (true) {
-            withFrameNanos { frameNanos = it }
+            withFrameNanos { now ->
+                if (now - last >= 33_000_000L) {
+                    last = now
+                    frameNanos = now
+                }
+            }
         }
     }
     // Deterministic per-column speeds/phases from the seed.
     val speeds = remember(seed) { List(columns) { 90f + ((seed * 37 + it * 53) % 90) } }
     val phases = remember(seed) { List(columns) { ((seed * 101 + it * 211) % 1000) * 7f } }
-    val glyphStyle = remember {
-        TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+    val tail = 9
+    // Per-tail-index glyph styles, precomputed once — avoids a TextStyle allocation
+    // for every glyph on every frame (was glyphStyle.copy(color = ...) in the draw loop).
+    val glyphStyles = remember {
+        val base = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        List(tail) { i ->
+            val color = if (i == 0) {
+                Color(0xFFCFFFF6)
+            } else {
+                HudCyan.copy(alpha = (0.75f - i * 0.08f).coerceAtLeast(0.08f))
+            }
+            base.copy(color = color)
+        }
     }
 
     Canvas(modifier = modifier) {
         val t = frameNanos / 1_000_000_000f
         val cellH = 14.dp.toPx()
         val colW = size.width / columns
-        val tail = 9
         for (c in 0 until columns) {
             val travel = size.height + tail * cellH
             val headY = ((t * speeds[c] + phases[c]) % travel) - tail * cellH / 2f
@@ -907,13 +925,11 @@ private fun MatrixRail(modifier: Modifier, seed: Int, columns: Int = 2) {
                 // Shimmering glyph choice, deterministic per cell+tick.
                 val tick = (t * 9).toInt()
                 val g = MatrixGlyphs[((y / cellH).toInt() * 31 + c * 17 + seed * 13 + tick * 7).mod(MatrixGlyphs.size)]
-                val alpha = if (i == 0) 0.95f else (0.75f - i * 0.08f).coerceAtLeast(0.08f)
-                val color = if (i == 0) Color(0xFFCFFFF6) else HudCyan.copy(alpha = alpha)
                 drawText(
                     textMeasurer = textMeasurer,
                     text = g.toString(),
                     topLeft = Offset(c * colW + colW * 0.22f, y),
-                    style = glyphStyle.copy(color = color),
+                    style = glyphStyles[i],
                 )
             }
         }

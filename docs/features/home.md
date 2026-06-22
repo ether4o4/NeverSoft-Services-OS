@@ -1,6 +1,6 @@
 # Home & Navigation
 
-**Last verified:** 2026-06-20
+**Last verified:** 2026-06-22
 
 The app opens to a brushed-metal home screen (Page 1). A two-tab bar — **Home** and **Workspace** —
 switches between the home and the chat/sandbox workspace. The bar is shown on the home for every
@@ -9,12 +9,12 @@ screens, while phones rely on the workspace's own controls and the system back g
 
 ## Home (Page 1)
 
-The whole page and both of its boxes are tinted with the **launcher theme** — the same color that
-paints the taskbar, Start menu, keyboard, and widgets — and re-tint live the moment the theme changes.
-The page is split into two equal-height boxes:
+The home has no background panel of its own: a floating **Multi-chat pill** and two equal-height
+boxes (News and Heartbeat) sit directly on the screen with nothing boxed behind them. The pill and
+both boxes are tinted with the **launcher theme** — the same color that paints the taskbar, Start
+menu, keyboard, and widgets — and re-tint live the moment the theme changes.
 
-- **Title plate** — the wordmark.
-- **Compare action** — a prominent button that opens the workspace on its Multi chat tab (see [compare.md](compare.md)).
+- **Multi-chat pill** — a floating, themed pill at the top that opens the workspace on its Multi chat tab (see [compare.md](compare.md)).
 - **News box (top)** — a manual-refresh news reader. Each story is one of the user's RSS/Atom sources'
   newest items and shows the story's **own** article picture (pulled from the feed's media / enclosure /
   inline-image markup), not the website's favicon. Tapping a row opens the article in the browser. A
@@ -47,7 +47,7 @@ of the spots the first-run tour points out.
 |---|---|
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/App.kt` | Navigation graph, the Home/Workspace tab bar, and route wiring |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/workspace/WorkspaceScreen.kt` | The unified workspace: Chat / Multi chat / Shell tab strip + settings gear |
-| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHome.kt` | Home layout: title plate, compare action, themed News box + Heartbeat box, news-sources sheet |
+| `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHome.kt` | Home layout: floating themed Multi-chat pill + themed News box + Heartbeat box, news-sources sheet (no background panel) |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryHomeViewModel.kt` | Builds the heartbeat feed and the RSS news feed; manual refresh + source management |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/data/NewsRepository.kt` | Fetches and parses RSS/Atom sources into stories with real article thumbnails |
 | `composeApp/src/commonMain/kotlin/com/ether4o4/morsvitaest/ui/foundry/FoundryComponents.kt` | Brushed-metal pills, cards, and tiles |
