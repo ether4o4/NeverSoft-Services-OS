@@ -121,6 +121,60 @@ fun WidgetsContent(onOpenAssistant: () -> Unit = {}) {
 }
 
 /**
+ * The launcher's Widgets page: the live in-app widgets (weather, system, calendar,
+ * note) plus the user's chosen home-screen app widgets from any installed app
+ * (Android). Everything is tinted with the launcher theme and re-tints live.
+ */
+@OptIn(ExperimentalTime::class)
+@Composable
+fun LauncherWidgetsBoard(modifier: Modifier = Modifier) {
+    val settings = koinInject<AppSettings>()
+    val appearance by settings.launcherAppearanceFlow.collectAsStateWithLifecycle()
+    val theme = remember(appearance) { resolveLauncherTheme(settings.getLauncherTheme()) }
+    val c = theme.content
+    var now by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Clock.System.now()
+            delay(60_000 - now.toEpochMilliseconds() % 60_000)
+        }
+    }
+    val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
+    val months = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    )
+    val monthName = months[local.month.ordinal]
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .then(
+                if (theme.glass) {
+                    Modifier.neverSoftGlassClear()
+                } else {
+                    Modifier.background(theme.panel)
+                },
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        WeatherWidget(c)
+        Spacer(Modifier.height(14.dp))
+        SystemWidget(c)
+        Spacer(Modifier.height(14.dp))
+        CalendarWidget(local.year, local.month.ordinal, local.day, monthName, c)
+        Spacer(Modifier.height(14.dp))
+        NoteWidget(settings, c)
+        Spacer(Modifier.height(14.dp))
+        // Any installed app's home-screen widgets (Android hosts these; no-op elsewhere).
+        AppWidgetsSection(contentColor = c, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/**
  * The Widgets window, opened from the taskbar clock — a themed, resizable glass
  * panel of live widgets (clock, weather, system, calendar, sticky note). No
  * quick toggles. Drag the top-right grip to resize, just like the Start menu.

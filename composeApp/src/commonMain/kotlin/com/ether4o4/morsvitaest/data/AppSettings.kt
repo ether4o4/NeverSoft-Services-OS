@@ -404,14 +404,22 @@ class AppSettings(internal val settings: Settings) {
     }
 
     // Bumped whenever a launcher appearance setting (theme / orb / dock pins) changes, so
-    // the persistent overlay taskbar can observe it and re-read. The overlay bar is a
-    // long-lived view (not recreated like the in-app launcher), so it can't see the change
-    // any other way.
+    // long-lived launcher surfaces (the Foundry home, the Widgets board) can observe it
+    // and re-tint live.
     private val _launcherAppearanceFlow = MutableStateFlow(0)
     val launcherAppearanceFlow: StateFlow<Int> = _launcherAppearanceFlow
 
     private fun bumpLauncherAppearance() {
         _launcherAppearanceFlow.value++
+    }
+
+    // Home-screen app widgets the user added to the launcher Widgets page, stored as the
+    // list of AppWidget host ids (Android only; empty elsewhere).
+    fun getHostedWidgetIds(): List<Int> =
+        settings.getString(KEY_HOSTED_WIDGETS, "").split(',').mapNotNull { it.trim().toIntOrNull() }
+
+    fun setHostedWidgetIds(ids: List<Int>) {
+        settings.putString(KEY_HOSTED_WIDGETS, ids.joinToString(","))
     }
 
     // Start orb + app pins. Dock pins and Start-menu pins are independent
@@ -848,6 +856,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_START_MENU_H = "launcher_start_menu_h"
         const val KEY_WIDGET_PANEL_W = "launcher_widget_panel_w"
         const val KEY_WIDGET_PANEL_H = "launcher_widget_panel_h"
+        const val KEY_HOSTED_WIDGETS = "launcher_hosted_widgets"
 
         // Basic memory guidance shared by every chat variant. The advanced `## Structured
         // Learning` block lives in `ChatSystemPromptBuilder.DEFAULT_STRUCTURED_LEARNING_SECTION`

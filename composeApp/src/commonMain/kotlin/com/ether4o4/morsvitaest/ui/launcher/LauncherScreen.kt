@@ -359,7 +359,7 @@ fun LauncherScreen(
                             }
                         }
 
-                        else -> EmptyDesktopPage()
+                        else -> WidgetsPage()
                     }
                 }
                 PageDots(
@@ -596,12 +596,10 @@ private fun FileExplorerChooser(
     )
 }
 
-/** Right page — reserved for widgets. */
+/** Right page — the live Widgets board: in-app widgets + any app's home-screen widgets. */
 @Composable
-private fun EmptyDesktopPage() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Widgets coming soon", color = Color.White.copy(alpha = 0.30f), fontSize = 14.sp)
-    }
+private fun WidgetsPage() {
+    LauncherWidgetsBoard(modifier = Modifier.fillMaxSize())
 }
 
 @Composable
