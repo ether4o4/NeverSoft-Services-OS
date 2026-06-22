@@ -67,10 +67,11 @@ fun WorkspaceScreen(
     isSandboxAvailable: Boolean,
     navigationTabBar: (@Composable () -> Unit)? = null,
     initialTab: WorkspaceTab = WorkspaceTab.Chat,
+    embedded: Boolean = false,
 ) {
     val tabs = remember(isSandboxAvailable) {
         if (isSandboxAvailable) {
-            listOf(WorkspaceTab.Chat, WorkspaceTab.MultiChat, WorkspaceTab.Shell)
+            listOf(WorkspaceTab.Chat, WorkspaceTab.Shell, WorkspaceTab.MultiChat)
         } else {
             listOf(WorkspaceTab.Chat, WorkspaceTab.MultiChat)
         }
@@ -85,8 +86,10 @@ fun WorkspaceScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Foundry.background)
-            .statusBarsPadding(),
+            // Embedded in the launcher clock pop-up: no opaque page background or
+            // status-bar padding — the pop-up supplies the glass frame and insets.
+            .then(if (embedded) Modifier else Modifier.background(Foundry.background))
+            .then(if (embedded) Modifier else Modifier.statusBarsPadding()),
     ) {
         WorkspaceTabStrip(
             selected = selected,

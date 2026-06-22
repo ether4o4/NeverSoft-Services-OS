@@ -122,16 +122,6 @@ fun FoundryHome(
             }
         }
 
-        // Floating themed pill — re-tints with the launcher theme via [surface].
-        FoundryPill(
-            label = "⚖  TRY MULTI-CHAT",
-            onClick = { onNavigate(FoundryDestination.Compare) },
-            intent = FoundryIntent.Secondary,
-            brush = surface,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(Foundry.gridGap))
-
         // News box (top) — real stories with article thumbnails; manual refresh.
         NewsBox(
             items = newsItems,

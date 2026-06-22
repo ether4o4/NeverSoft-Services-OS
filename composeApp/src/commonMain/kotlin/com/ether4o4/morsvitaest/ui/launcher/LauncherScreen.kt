@@ -468,6 +468,7 @@ fun LauncherScreen(
             NotificationsPanel(
                 onClose = { showWidgets = false },
                 onOpenAssistant = { openWindow(DesktopApp.Assistant) },
+                onOpenSettings = { openWindow(DesktopApp.Settings) },
             )
         }
 

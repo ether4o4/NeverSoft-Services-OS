@@ -47,11 +47,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ether4o4.morsvitaest.Platform
 import com.ether4o4.morsvitaest.SystemStats
+import com.ether4o4.morsvitaest.currentPlatform
 import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.getSystemStats
 import com.ether4o4.morsvitaest.ui.chat.ChatScreenContent
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
+import com.ether4o4.morsvitaest.ui.workspace.WorkspaceScreen
 import com.ether4o4.morsvitaest.weatherNow
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DatePeriod
@@ -191,6 +194,7 @@ fun LauncherWidgetsBoard(modifier: Modifier = Modifier) {
 fun NotificationsPanel(
     onClose: () -> Unit,
     onOpenAssistant: () -> Unit,
+    onOpenSettings: () -> Unit = {},
 ) {
     val settings = koinInject<AppSettings>()
     val theme = resolveLauncherTheme(settings.getLauncherTheme())
@@ -267,8 +271,18 @@ fun NotificationsPanel(
                 }
                 Spacer(Modifier.height(8.dp))
 
-                // The agent chat fills the pop-up — widgets live on the Widgets page now.
-                WidgetAgentChat(modifier = Modifier.fillMaxWidth().weight(1f))
+                // CHAT / SHELL / MULTI CHAT tabs + a settings gear — the same unified
+                // workspace as Page 2, hosted inside the clock pop-up.
+                Box(Modifier.fillMaxWidth().weight(1f)) {
+                    WorkspaceScreen(
+                        chatViewModel = koinViewModel<ChatViewModel>(),
+                        textToSpeech = null,
+                        onNavigateToSettings = onOpenSettings,
+                        onOpenHelp = {},
+                        isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
+                        embedded = true,
+                    )
+                }
             }
 
             // Drag the top-left grip to resize; bottom-right corner stays put.

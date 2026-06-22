@@ -9,12 +9,12 @@ screens, while phones rely on the workspace's own controls and the system back g
 
 ## Home (Page 1)
 
-The home has no background panel of its own: a floating **Multi-chat pill** and two equal-height
-boxes (News and Heartbeat) sit directly on the screen with nothing boxed behind them. The pill and
-both boxes are tinted with the **launcher theme** — the same color that paints the taskbar, Start
-menu, keyboard, and widgets — and re-tint live the moment the theme changes.
+The home has no background panel of its own: two equal-height boxes (News and Heartbeat) sit directly
+on the screen with nothing boxed behind them. Both boxes are tinted with the **launcher theme** — the
+same color that paints the taskbar, Start menu, keyboard, and widgets — and re-tint live the moment
+the theme changes. (Multi chat is no longer a pill here; it's a tab in the clock pop-up's
+Chat / Shell / Multi chat workspace.)
 
-- **Multi-chat pill** — a floating, themed pill at the top that opens the workspace on its Multi chat tab (see [compare.md](compare.md)).
 - **News box (top)** — a manual-refresh news reader. Each story is one of the user's RSS/Atom sources'
   newest items and shows the story's **own** article picture (pulled from the feed's media / enclosure /
   inline-image markup), not the website's favicon. Tapping a row opens the article in the browser. A
