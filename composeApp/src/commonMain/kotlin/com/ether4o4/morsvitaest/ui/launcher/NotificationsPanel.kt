@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -191,25 +195,13 @@ fun NotificationsPanel(
     val settings = koinInject<AppSettings>()
     val theme = resolveLauncherTheme(settings.getLauncherTheme())
     val c = theme.content
-    var now by remember { mutableStateOf(Clock.System.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = Clock.System.now()
-            // Date-resolution display: tick on the minute boundary, not every second,
-            // so the whole panel (and its embedded chat) doesn't recompose 60x/min.
-            delay(60_000 - now.toEpochMilliseconds() % 60_000)
-        }
-    }
-    val local = now.toLocalDateTime(TimeZone.currentSystemDefault())
-    val months = listOf(
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
-    )
-    val monthName = months[local.month.ordinal]
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
+            // Edge-to-edge: lift the whole pop-up above the keyboard so the chat's
+            // input and messages stay visible while typing instead of hiding behind it.
+            .imePadding()
             .background(Color.Black.copy(alpha = 0.35f))
             .clickable { onClose() },
     ) {
@@ -243,6 +235,10 @@ fun NotificationsPanel(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    // The pop-up is its own floating window: neutralize the chat's
+                    // status/nav-bar insets so it doesn't pad against the screen edges here
+                    // (the chat applies them itself for full-screen use).
+                    .consumeWindowInsets(WindowInsets.systemBars)
                     .clip(RoundedCornerShape(8.dp))
                     .then(
                         if (theme.glass) {
@@ -271,24 +267,8 @@ fun NotificationsPanel(
                 }
                 Spacer(Modifier.height(8.dp))
 
-                // The persistent agent chat lives at the top of the widget pop-up.
-                WidgetAgentChat(modifier = Modifier.fillMaxWidth().weight(0.55f))
-                Spacer(Modifier.height(10.dp))
-
-                // Widgets scroll below the chat.
-                Column(
-                    modifier = Modifier.fillMaxWidth().weight(0.45f).verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    WeatherWidget(c)
-                    Spacer(Modifier.height(14.dp))
-                    SystemWidget(c)
-                    Spacer(Modifier.height(14.dp))
-                    CalendarWidget(local.year, local.month.ordinal, local.day, monthName, c)
-                    Spacer(Modifier.height(14.dp))
-                    NoteWidget(settings, c)
-                    Spacer(Modifier.height(8.dp))
-                }
+                // The agent chat fills the pop-up — widgets live on the Widgets page now.
+                WidgetAgentChat(modifier = Modifier.fillMaxWidth().weight(1f))
             }
 
             // Drag the top-left grip to resize; bottom-right corner stays put.
