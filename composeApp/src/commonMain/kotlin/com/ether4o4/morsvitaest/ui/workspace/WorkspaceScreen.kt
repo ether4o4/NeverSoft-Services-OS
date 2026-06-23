@@ -41,7 +41,7 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 enum class WorkspaceTab(val label: String) {
     Chat("CHAT"),
-    MultiChat("MULTI CHAT"),
+    MultiChat("MULTI LLM"),
     Shell("SHELL"),
 }
 
