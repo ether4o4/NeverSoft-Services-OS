@@ -55,6 +55,7 @@ import com.ether4o4.morsvitaest.getSystemStats
 import com.ether4o4.morsvitaest.ui.chat.ChatScreenContent
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.ui.workspace.WorkspaceScreen
+import com.ether4o4.morsvitaest.ui.workspace.WorkspaceTab
 import com.ether4o4.morsvitaest.weatherNow
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DatePeriod
@@ -219,14 +220,25 @@ fun NotificationsPanel(
         val reveal = remember { Animatable(0f) }
         LaunchedEffect(Unit) { reveal.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 380f)) }
 
-        // Hugs the bottom-right; the bottom-right corner is fixed and the
-        // top-left grip grows it out to the left / upward.
+        // MULTI LLM (two-pane compare) is cramped in the compact box, so that tab takes
+        // the whole screen; CHAT / SHELL stay in the bottom-right floating box.
+        var activeTab by remember { mutableStateOf(WorkspaceTab.Chat) }
+        val expanded = activeTab == WorkspaceTab.MultiChat
+
+        // Hugs the bottom-right (compact) or fills the screen (expanded).
         Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 62.dp)
-                .fillMaxWidth(wFrac)
-                .fillMaxHeight(hFrac)
+                .align(if (expanded) Alignment.Center else Alignment.BottomEnd)
+                .then(
+                    if (expanded) {
+                        Modifier.fillMaxSize()
+                    } else {
+                        Modifier
+                            .padding(bottom = 62.dp)
+                            .fillMaxWidth(wFrac)
+                            .fillMaxHeight(hFrac)
+                    },
+                )
                 .graphicsLayer {
                     val p = reveal.value
                     alpha = p
@@ -281,31 +293,34 @@ fun NotificationsPanel(
                         onOpenHelp = {},
                         isSandboxAvailable = currentPlatform is Platform.Mobile.Android,
                         embedded = true,
+                        onTabSelected = { activeTab = it },
                     )
                 }
             }
 
-            // Drag the top-left grip to resize; bottom-right corner stays put.
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(4.dp)
-                    .size(30.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(c.copy(alpha = 0.18f))
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragEnd = { settings.setWidgetPanelSize(wFrac, hFrac) },
-                        ) { change, drag ->
-                            change.consume()
-                            // Bottom-right is fixed: drag left widens, drag up grows taller.
-                            wFrac = (wFrac - drag.x / maxWpx).coerceIn(0.45f, 1f)
-                            hFrac = (hFrac - drag.y / maxHpx).coerceIn(0.4f, 0.92f)
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("⤢", color = c, fontSize = 16.sp)
+            // Drag the top-left grip to resize (compact mode only; MULTI LLM is full-screen).
+            if (!expanded) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(4.dp)
+                        .size(30.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(c.copy(alpha = 0.18f))
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragEnd = { settings.setWidgetPanelSize(wFrac, hFrac) },
+                            ) { change, drag ->
+                                change.consume()
+                                // Bottom-right is fixed: drag left widens, drag up grows taller.
+                                wFrac = (wFrac - drag.x / maxWpx).coerceIn(0.45f, 1f)
+                                hFrac = (hFrac - drag.y / maxHpx).coerceIn(0.4f, 0.92f)
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("⤢", color = c, fontSize = 16.sp)
+                }
             }
         }
     }

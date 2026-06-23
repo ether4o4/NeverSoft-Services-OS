@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +69,7 @@ fun WorkspaceScreen(
     navigationTabBar: (@Composable () -> Unit)? = null,
     initialTab: WorkspaceTab = WorkspaceTab.Chat,
     embedded: Boolean = false,
+    onTabSelected: (WorkspaceTab) -> Unit = {},
 ) {
     val tabs = remember(isSandboxAvailable) {
         if (isSandboxAvailable) {
@@ -82,6 +84,7 @@ fun WorkspaceScreen(
         mutableStateOf((initialTab.takeIf { it in tabs } ?: WorkspaceTab.Chat).name)
     }
     val selected = WorkspaceTab.entries.firstOrNull { it.name == selectedName && it in tabs } ?: WorkspaceTab.Chat
+    LaunchedEffect(selected) { onTabSelected(selected) }
 
     Column(
         modifier = Modifier
