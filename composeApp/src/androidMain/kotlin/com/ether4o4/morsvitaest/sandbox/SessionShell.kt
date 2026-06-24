@@ -2,6 +2,7 @@ package com.ether4o4.morsvitaest.sandbox
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotApplyConflictException
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.ether4o4.morsvitaest.TerminalLine
 
@@ -68,10 +69,27 @@ class SessionShell(
         // Add+trim must commit as a single snapshot. Otherwise a LazyColumn
         // measure pass can capture size=N+1 then read index N after the trim
         // shrunk the list — IndexOutOfBoundsException under heavy bursts.
-        Snapshot.withMutableSnapshot {
-            transcript.add(line)
-            val excess = transcript.size - MAX_TRANSCRIPT_LINES
-            if (excess > 0) transcript.subList(0, excess).clear()
+        //
+        // But this runs on the shell's background reader thread, so the snapshot
+        // apply can lose a race with the UI thread and throw
+        // SnapshotApplyConflictException — which used to crash the whole app on a
+        // burst of command output. The conflict is transient (the other snapshot
+        // has already committed), so retry; only after many failures fall back to
+        // direct, individually conflict-tolerant ops so the terminal never crashes.
+        repeat(64) {
+            try {
+                Snapshot.withMutableSnapshot {
+                    transcript.add(line)
+                    val excess = transcript.size - MAX_TRANSCRIPT_LINES
+                    if (excess > 0) transcript.subList(0, excess).clear()
+                }
+                return
+            } catch (_: SnapshotApplyConflictException) {
+                // Lost the apply race; a fresh snapshot sees the committed change.
+            }
         }
+        transcript.add(line)
+        val excess = transcript.size - MAX_TRANSCRIPT_LINES
+        if (excess > 0) transcript.subList(0, excess).clear()
     }
 }
