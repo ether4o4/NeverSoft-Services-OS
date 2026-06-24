@@ -723,7 +723,22 @@ class RemoteDataRepository(
             // error in the UI. With an empty tool list, LiteRTInferenceEngine sets
             // automaticToolCalling = false, so the parser is bypassed entirely on the retry.
             println("LiteRT: tool-call parser failed (${e.message?.take(200)}). Falling back to plain chat.")
-            engine.chat(messages = inferenceMessages, systemPrompt = systemPrompt, tools = emptyList())
+            try {
+                engine.chat(messages = inferenceMessages, systemPrompt = systemPrompt, tools = emptyList())
+            } catch (e2: RuntimeException) {
+                if (e2 is kotlinx.coroutines.CancellationException) throw e2
+                // A prompt that simply doesn't fit the model's context window throws a raw
+                // JNI "token ids are too long" — surface a clear, actionable message instead
+                // of the cryptic native error.
+                val m = e2.message.orEmpty()
+                if ("too long" in m || "maximum number of tokens" in m || "INVALID_ARGUMENT" in m) {
+                    throw RuntimeException(
+                        "This message is too large for the on-device model's $contextTokens-token context. " +
+                            "Shorten your persona/soul in Settings, raise the model's context size, or start a new chat.",
+                    )
+                }
+                throw e2
+            }
         }
     }
 
