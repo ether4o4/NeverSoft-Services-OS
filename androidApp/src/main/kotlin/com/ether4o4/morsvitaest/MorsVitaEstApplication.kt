@@ -22,6 +22,7 @@ class MorsVitaEstApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        installCrashHandler()
         startKoin {
             androidContext(this@MorsVitaEstApplication)
             modules(appModule, sandboxModule)
@@ -40,5 +41,27 @@ class MorsVitaEstApplication : Application() {
                 taskScheduler.appInForeground = false
             }
         })
+    }
+
+    /**
+     * Persist the stack trace of any uncaught (Kotlin/Java) exception to
+     * `last_crash.txt` so MainActivity can show it on the next launch — turning a
+     * silent force-close into a report the user can read and share without a PC or
+     * adb. Native crashes (SIGSEGV/SIGABRT) bypass this handler and aren't captured.
+     */
+    private fun installCrashHandler() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            runCatching {
+                val report = buildString {
+                    append("MorsVitaEst crashed at ")
+                    append(java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date()))
+                    append("\nThread: ").append(thread.name).append('\n').append('\n')
+                    append(throwable.stackTraceToString())
+                }
+                java.io.File(filesDir, "last_crash.txt").writeText(report)
+            }
+            previous?.uncaughtException(thread, throwable)
+        }
     }
 }

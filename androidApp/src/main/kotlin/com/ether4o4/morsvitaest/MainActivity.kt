@@ -105,6 +105,7 @@ class MainActivity : ComponentActivity() {
                 },
             )
         }
+        maybeShowCrashReport()
     }
 
     override fun onStart() {
@@ -141,6 +142,31 @@ class MainActivity : ComponentActivity() {
         val daemonController: DaemonController = get()
         if (daemonController is AndroidDaemonController && daemonController.shouldAutoStart()) {
             daemonController.start()
+        }
+    }
+
+    /**
+     * If the previous run captured an uncaught-exception crash (see
+     * MorsVitaEstApplication.installCrashHandler), show it on launch as a copyable
+     * dialog so the user can read and share the stack trace without a PC. Cleared
+     * after it's read once.
+     */
+    private fun maybeShowCrashReport() {
+        val file = java.io.File(filesDir, "last_crash.txt")
+        if (!file.exists()) return
+        val report = runCatching { file.readText() }.getOrNull()
+        runCatching { file.delete() }
+        if (report.isNullOrBlank()) return
+        runCatching {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("MorsVitaEst closed unexpectedly last time")
+                .setMessage(report.take(8000))
+                .setPositiveButton("Copy") { _, _ ->
+                    val cm = getSystemService(android.content.ClipboardManager::class.java)
+                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("MorsVitaEst crash", report))
+                }
+                .setNegativeButton("Dismiss", null)
+                .show()
         }
     }
 
