@@ -2,10 +2,6 @@ package com.ether4o4.morsvitaest.ui.launcher
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -50,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -780,13 +777,25 @@ private fun ActiveMascot(modifier: Modifier = Modifier) {
         var visible by remember { mutableStateOf(true) }
         var ghost by remember { mutableStateOf(false) }
 
-        // Fast little bounce that sells the "running" cycle.
-        val runCycle = rememberInfiniteTransition()
-        val bob by runCycle.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(240, easing = LinearEasing), RepeatMode.Reverse),
-        )
+        // Fast little bounce that sells the "running" cycle — driven by a frame loop
+        // that ticks only while he's actually running, so leaning/teleporting lets the
+        // animation clock idle instead of bouncing (and waking every frame) forever.
+        var bob by remember { mutableFloatStateOf(0f) }
+        LaunchedEffect(running) {
+            if (!running) {
+                bob = 0f
+            } else {
+                var start = 0L
+                while (true) {
+                    withFrameNanos { now ->
+                        if (start == 0L) start = now
+                        // 0→1→0 triangle, 240ms per leg (matches the old tween bounce).
+                        val phase = ((now - start) / 1_000_000f % 480f) / 240f
+                        bob = if (phase <= 1f) phase else 2f - phase
+                    }
+                }
+            }
+        }
 
         LaunchedEffect(maxX) {
             while (true) {
