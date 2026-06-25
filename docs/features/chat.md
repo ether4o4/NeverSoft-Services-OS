@@ -1,6 +1,6 @@
 # Chat & Conversations
 
-**Last verified:** 2026-06-07
+**Last verified:** 2026-06-25
 
 MorsVitaEst's chat system manages the message history, conversation persistence, file attachments, and speech output. Conversations are service-independent — switching providers does not affect which conversation is loaded or restored. Multiple conversations are persisted and browsable via a history sheet.
 
@@ -86,11 +86,12 @@ Multiple files can be attached to a single prompt. Each file is added one at a t
 - Shown as a filename chip in the user message bubble
 
 ### General behavior
-- The attachment button is shown whenever the active service supports file attachments (text files work with all remote models); it is hidden when the active service runs on-device, since on-device services do not support attachments
+- The attachment button is shown whenever the active service supports file attachments (text files work with all remote models). On-device services show it only when the active local model is vision-capable (Gemma 4 E2B/E4B), and then only image formats are offered — the local engine has no text/PDF ingestion path
 - Unsupported file types (e.g., `.zip`) show an error message
 - Files exceeding the per-category size limit show a size error; size is checked by stat before the file is read, so multi-gigabyte attachments are rejected without allocating memory for the full contents
 - Long filenames in chips are truncated with an ellipsis while preserving the extension
 - File attachments persist across conversation save/restore via an `attachments` list on each message; older conversations saved with a single-file schema are migrated on load
+- Large attachment binaries (images, PDFs) are stored as **sidecar blob files** rather than inline in the conversation record, so the conversation store doesn't re-serialize multi-megabyte base64 on every save (which previously caused GC-pause stutters). The record keeps only a small reference; the bytes are rehydrated when the conversation is opened, and orphaned blobs are swept at startup
 
 ## Speech Output (TTS)
 
@@ -101,7 +102,7 @@ Multiple files can be attached to a single prompt. Each file is added one at a t
 ## Conversation Storage
 
 - Conversations are persisted through the platform's secure settings store (see [encryption.md](encryption.md))
-- The full conversation list is serialized as `ConversationsData` (versioned, currently v2)
+- The full conversation list is serialized as `ConversationsData` (versioned, currently v2). Large attachment binaries are kept out of this blob and stored as sidecar files (see File Attachments above), so a save serializes only small text + references — not the image/PDF bytes
 - Conversations are upserted — updating a conversation replaces the existing entry by ID, new conversations are appended
 - Each conversation also retains a rolling tail of its sandbox shell transcript (last ~10,000 characters) so that follow-up commands in a resumed conversation see the prior shell context
 - Older builds stored conversations in an encrypted `conversations.enc` file (XOR with a 32-byte random key); on first load that file is decrypted and migrated into secure settings, then deleted

@@ -16,6 +16,11 @@ data class Attachment(
     val data: String,
     val mimeType: String,
     val fileName: String? = null,
+    // When set, the binary payload lives in a sidecar blob file keyed by this ref
+    // instead of inline in `data` (which is then empty on disk). Keeps the persisted
+    // conversation JSON small so large images/PDFs don't get re-serialized on every
+    // save. Rehydrated back into `data` when the conversation is opened.
+    val blobRef: String? = null,
 )
 
 @Serializable

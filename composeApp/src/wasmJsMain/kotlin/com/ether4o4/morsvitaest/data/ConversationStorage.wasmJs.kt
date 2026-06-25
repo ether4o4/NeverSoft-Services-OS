@@ -20,3 +20,29 @@ actual fun readLegacyConversationFile(): ByteArray? {
 actual fun deleteLegacyConversationFile() {
     localStorage.removeItem(LEGACY_STORAGE_KEY)
 }
+
+private const val BLOB_KEY_PREFIX = "convblob_"
+
+actual fun conversationBlobExists(ref: String): Boolean =
+    localStorage.getItem("$BLOB_KEY_PREFIX$ref") != null
+
+@OptIn(ExperimentalEncodingApi::class)
+actual fun writeConversationBlob(ref: String, bytes: ByteArray) {
+    // localStorage has a small quota; failures are non-fatal (the blob just won't persist).
+    runCatching { localStorage.setItem("$BLOB_KEY_PREFIX$ref", Base64.encode(bytes)) }
+}
+
+@OptIn(ExperimentalEncodingApi::class)
+actual fun readConversationBlob(ref: String): ByteArray? =
+    localStorage.getItem("$BLOB_KEY_PREFIX$ref")?.let { runCatching { Base64.decode(it) }.getOrNull() }
+
+actual fun sweepConversationBlobs(referenced: Set<String>) {
+    val toRemove = mutableListOf<String>()
+    for (i in 0 until localStorage.length) {
+        val key = localStorage.key(i) ?: continue
+        if (key.startsWith(BLOB_KEY_PREFIX) && key.removePrefix(BLOB_KEY_PREFIX) !in referenced) {
+            toRemove.add(key)
+        }
+    }
+    toRemove.forEach { localStorage.removeItem(it) }
+}

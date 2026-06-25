@@ -1764,7 +1764,16 @@ class RemoteDataRepository(
             // Prefer the modern `attachments` field. Fall back to the legacy single-file
             // fields for conversations saved before multi-attachment support.
             val attachments = when {
-                m.attachments.isNotEmpty() -> m.attachments.toImmutableList()
+                m.attachments.isNotEmpty() -> m.attachments.map { a ->
+                    // Rehydrate any externalized payload from its sidecar blob so the rest
+                    // of the app sees the usual inline base64.
+                    if (a.data.isEmpty() && a.blobRef != null) {
+                        val bytes = runCatching { readConversationBlob(a.blobRef) }.getOrNull()
+                        if (bytes != null) a.copy(data = Base64.encode(bytes)) else a
+                    } else {
+                        a
+                    }
+                }.toImmutableList()
 
                 m.data != null && m.mimeType != null ->
                     persistentListOf(Attachment(data = m.data, mimeType = m.mimeType, fileName = m.fileName))
