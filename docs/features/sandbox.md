@@ -1,6 +1,6 @@
 # Linux Sandbox
 
-**Last verified:** 2026-05-29
+**Last verified:** 2026-06-25
 
 MorsVitaEst ships a self-contained Alpine Linux environment on Android so the assistant — and the user, via the in-app Terminal — can run real shell commands. The agent can install packages, write and run scripts, hit the network, and reach external servers over SSH/SFTP/FTP. The sandbox runs the user-space `proot` runtime against an Alpine 3.21 minirootfs extracted into the app's private storage; no root or system access is required.
 
@@ -29,6 +29,8 @@ The agent's shell tool, `apk` operations from the Packages tab, and the Terminal
 ### Pre-installed tooling
 
 The first-run install pulls a fixed set of packages: `bash`, `curl`, `wget`, `git`, `jq`, `python3` (with pip), `nodejs`, plus remote-server tooling — `openssh-client` (provides `ssh`/`scp`/`sftp`), `lftp` (FTP and FTPS), and `rsync`. Anything else is one `apk add` away.
+
+Python packages install system-wide with `pip install <name>`. Alpine marks its system Python as externally-managed (PEP 668), which normally makes a bare `pip install` abort with "externally-managed environment"; because this is a disposable single-user sandbox, `PIP_BREAK_SYSTEM_PACKAGES=1` is set in the shell environment for every command, so installs just work without a virtualenv. The env var is applied per-command by the proot executor, so it also covers sandboxes that were provisioned before this behavior shipped. There is no `pkg` (Termux) or `python-pip` (Debian) — `apk add` handles system packages, `pip install` handles Python libraries.
 
 `~/.ssh` is part of `/root`, which is bind-mounted to durable app storage, so SSH keys, `known_hosts`, and SSH config survive restarts.
 

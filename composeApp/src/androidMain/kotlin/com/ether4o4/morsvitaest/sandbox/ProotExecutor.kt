@@ -153,6 +153,12 @@ class ProotExecutor(
             "LD_LIBRARY_PATH=$libDir",
             "PROOT_TMP_DIR=$tmpPath",
             "PROOT_LOADER=$loaderPath",
+            // Alpine's system Python is marked externally-managed (PEP 668), so a plain
+            // `pip install <pkg>` aborts with "externally-managed environment". This is a
+            // disposable single-user sandbox, not a distro to protect, so let pip install
+            // system-wide. Set as an env var (not just /etc/pip.conf) so it also applies to
+            // sandboxes that were already provisioned before this shipped.
+            "PIP_BREAK_SYSTEM_PACKAGES=1",
         )
         return baseEnv + extraEnv.map { (k, v) -> "$k=$v" }.toTypedArray()
     }
