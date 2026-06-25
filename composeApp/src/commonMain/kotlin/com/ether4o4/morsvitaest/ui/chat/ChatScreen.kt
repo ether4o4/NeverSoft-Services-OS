@@ -73,6 +73,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -92,6 +93,7 @@ import com.ether4o4.morsvitaest.ui.chat.composables.PendingSmsBanners
 import com.ether4o4.morsvitaest.ui.chat.composables.QuestionInput
 import com.ether4o4.morsvitaest.ui.chat.composables.ServiceSelector
 import com.ether4o4.morsvitaest.ui.chat.composables.ProjectPickerSheet
+import com.ether4o4.morsvitaest.ui.chat.composables.TemplatePickerSheet
 import com.ether4o4.morsvitaest.ui.chat.composables.TopBar
 import com.ether4o4.morsvitaest.ui.chat.composables.TrailingIcon
 import com.ether4o4.morsvitaest.ui.chat.composables.UserMessage
@@ -470,6 +472,7 @@ private fun ChatModeScreen(
 ) {
     var showHistorySheet by remember { mutableStateOf(false) }
     var showProjects by remember { mutableStateOf(false) }
+    var showTemplates by remember { mutableStateOf(false) }
     var isSandboxOpen by rememberSaveable { mutableStateOf(initialSandboxOpen) }
     // Hoisted here so the draft survives toggling the sandbox/terminal view, which
     // removes QuestionInput from composition and would otherwise drop the text.
@@ -535,6 +538,19 @@ private fun ChatModeScreen(
 
             if (showProjects) {
                 ProjectPickerSheet(onDismiss = { showProjects = false })
+            }
+
+            if (showTemplates) {
+                TemplatePickerSheet(
+                    onPick = { template ->
+                        questionInputText = TextFieldValue(
+                            text = template.prompt,
+                            selection = TextRange(template.prompt.length),
+                        )
+                        showTemplates = false
+                    },
+                    onDismiss = { showTemplates = false },
+                )
             }
 
             HeartbeatBanner(
@@ -628,6 +644,7 @@ private fun ChatModeScreen(
                                 isUsingSharedKey = uiState.showPrivacyInfo,
                                 onStartInteractiveMode = uiState.actions.enterInteractiveMode
                                     .takeUnless { primaryIsOnDevice },
+                                onPickTemplate = { showTemplates = true },
                             )
                         } else {
                             val listState = rememberLazyListState()

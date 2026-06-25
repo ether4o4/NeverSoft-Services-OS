@@ -113,7 +113,7 @@ Multiple files can be attached to a single prompt. Each file is added one at a t
 - **Scroll to bottom**: a small floating action button (down arrow) appears when the user has scrolled up past the latest messages; tapping it animates back to the bottom
 - **Messages**: user (right-aligned, with optional image preview), assistant (Markdown-rendered + action buttons), tool executing (spinner), loading indicator, error with retry. When the fallback chain answered with an alternate service rather than the user's selected one, a small "Answered by …" label is shown under the assistant message naming the service that produced the response
 - **Input**: text field, send/stop button, attachment button, file chip
-- **Empty state**: animated logo + welcome message
+- **Empty state**: animated logo + welcome message, plus a **Templates ▸** button that opens a sheet of generic starting prompts (Code, Explain, Research, Write a message, Plan, Shell task); picking one drops its prompt into the message box (it does not auto-send)
 - **Drag-and-drop**: supported for file attachments
 - **History sheet**: bottom sheet listing saved conversations with title, date, active highlight, and delete
 

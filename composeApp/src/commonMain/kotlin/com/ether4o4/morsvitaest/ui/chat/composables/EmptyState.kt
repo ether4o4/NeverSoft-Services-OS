@@ -40,6 +40,7 @@ internal fun EmptyState(
     modifier: Modifier,
     isUsingSharedKey: Boolean,
     onStartInteractiveMode: (() -> Unit)? = null,
+    onPickTemplate: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier,
@@ -60,6 +61,19 @@ internal fun EmptyState(
                 onClick = onStartInteractiveMode,
             )
             Spacer(Modifier.height(8.dp))
+        }
+        if (onPickTemplate != null) {
+            Spacer(Modifier.height(if (onStartInteractiveMode != null) 0.dp else 16.dp))
+            Text(
+                text = "Templates ▸",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .handCursor()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onPickTemplate)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
         }
         if (isUsingSharedKey) {
             val linkColor = MaterialTheme.colorScheme.primary
