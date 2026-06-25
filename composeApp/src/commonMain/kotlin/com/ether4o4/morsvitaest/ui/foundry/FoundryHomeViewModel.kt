@@ -150,7 +150,14 @@ class FoundryHomeViewModel(
             ?.ifBlank { "Heartbeat update" }
             ?: "Heartbeat update"
         val summary = lines.drop(1).joinToString(" ").ifBlank { cleaned }.take(240)
-        return FoundryFeedItem(title = title, source = "Heartbeat", summary = summary, thumbnailUrl = thumbnailUrl)
+        return FoundryFeedItem(
+            title = title,
+            source = "Heartbeat",
+            summary = summary,
+            thumbnailUrl = thumbnailUrl,
+            // Keep the full digest so the card can expand into a readable report.
+            body = cleaned,
+        )
     }
 
     // endregion

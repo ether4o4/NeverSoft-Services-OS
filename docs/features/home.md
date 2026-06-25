@@ -1,6 +1,6 @@
 # Home & Navigation
 
-**Last verified:** 2026-06-22
+**Last verified:** 2026-06-25
 
 The app opens to a brushed-metal home screen (Page 1). A two-tab bar — **Home** and **Workspace** —
 switches between the home and the chat/sandbox workspace. The bar is shown on the home for every
@@ -22,9 +22,11 @@ Chat / Shell / Multi chat workspace.)
   RSS/Atom source links or remove them; until the user adds any, a built-in set of image-rich tech
   sources is used. When empty, a hint points to the refresh and add-source actions.
 - **Heartbeat box (bottom)** — the assistant's "what's new" updates: each assistant message in the
-  dedicated heartbeat conversation is a card, newest first, with an inline-image thumbnail when the
-  update carries one. Pull down (or tap ↻) to run a heartbeat immediately and reload. When there are no
-  updates yet, a hint points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
+  dedicated heartbeat conversation is a card, newest first. A card shows the headline plus a one-line
+  preview collapsed; **tapping it expands the full report**, with any source URLs rendered as tappable
+  links — so a multi-bullet research digest is readable in place instead of crushed into the summary.
+  Pull down (or tap ↻) to run a heartbeat immediately and reload. When there are no updates yet, a hint
+  points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
 
 The provider/MCP integration entries (Services, MCP, Hugging Face, Ollama, LLM chooser) are **not** on
 this page; they live in Settings, reachable from the settings gear.

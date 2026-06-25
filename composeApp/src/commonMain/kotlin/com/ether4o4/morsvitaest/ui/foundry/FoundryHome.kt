@@ -43,8 +43,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -169,6 +176,9 @@ data class FoundryFeedItem(
     val summary: String,
     val thumbnailUrl: String? = null,
     val link: String? = null,
+    // Full report text for heartbeat entries — shown when the card is expanded so a
+    // multi-bullet digest is readable in full instead of crushed into the summary line.
+    val body: String? = null,
 )
 
 /** A themed surface box that carries the launcher theme (opaque base + theme
@@ -295,7 +305,7 @@ private fun HeartbeatBox(
                         )
                     }
                 } else {
-                    items(items) { item -> FeedRow(item = item, content = content, thumbWidth = 56.dp, thumbHeight = 56.dp) }
+                    items(items) { item -> HeartbeatReportRow(item = item, content = content) }
                 }
             }
         }
@@ -389,6 +399,76 @@ private fun FeedRow(
             )
         }
     }
+}
+
+/**
+ * A heartbeat entry rendered as a tappable report card. Collapsed it shows the headline
+ * plus a one-line preview; tapping expands it to the full digest with any source URLs
+ * turned into tappable links — so a multi-bullet research report is readable in place
+ * instead of being crushed into the summary line.
+ */
+@Composable
+private fun HeartbeatReportRow(item: FoundryFeedItem, content: Color) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Foundry.tileShape)
+            .background(Color.Black.copy(alpha = 0.20f), Foundry.tileShape)
+            .clickable { expanded = !expanded }
+            .padding(10.dp),
+    ) {
+        Text(
+            text = item.title,
+            color = content,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+            maxLines = if (expanded) Int.MAX_VALUE else 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = "HEARTBEAT",
+            color = content.copy(alpha = 0.6f),
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+        )
+        Spacer(Modifier.height(4.dp))
+        if (expanded) {
+            Text(
+                text = linkifiedReport(item.body ?: item.summary, content),
+                color = content.copy(alpha = 0.82f),
+                fontSize = 11.sp,
+            )
+        } else {
+            Text(
+                text = item.summary,
+                color = content.copy(alpha = 0.75f),
+                fontSize = 11.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+private val REPORT_URL = Regex("""https?://[^\s)]+""")
+
+/** Builds an annotated string from [text] with bare http(s) URLs rendered as tappable,
+ *  underlined links. Plain function (not composable) — cheap enough to run on expand. */
+private fun linkifiedReport(text: String, content: Color): AnnotatedString = buildAnnotatedString {
+    var last = 0
+    for (match in REPORT_URL.findAll(text)) {
+        if (match.range.first > last) append(text.substring(last, match.range.first))
+        withLink(LinkAnnotation.Url(match.value)) {
+            withStyle(SpanStyle(color = content, textDecoration = TextDecoration.Underline)) {
+                append(match.value)
+            }
+        }
+        last = match.range.last + 1
+    }
+    if (last < text.length) append(text.substring(last))
 }
 
 // ────────────────────────────────────────────────────────────────────
