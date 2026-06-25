@@ -61,7 +61,9 @@ class IosLiteRTInferenceEngine : LocalInferenceEngine {
     private fun requireBridge(): LiteRTSwiftBridge = LiteRTBridgeRegistry.bridge
         ?: throw IllegalStateException("LiteRTSwiftBridge not installed. iosApp must call MorsVitaEstLiteRTBridgeInstaller.install().")
 
-    override suspend fun initialize(model: DownloadedModel, contextTokens: Int) {
+    // [enableVision] is accepted to satisfy the interface but ignored here: the iOS Swift
+    // bridge path is text-only for now, so image attachments never reach this engine.
+    override suspend fun initialize(model: DownloadedModel, contextTokens: Int, enableVision: Boolean) {
         idleReleaseJob?.cancel()
         if (currentModelId == model.id && currentContextTokens == contextTokens && _engineState.value == EngineState.READY) return
 

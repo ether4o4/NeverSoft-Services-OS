@@ -16,6 +16,9 @@ data class LocalModel(
     val maxContextTokens: Int,
     val kvPerTokenBytes: Int,
     val isRecommended: Boolean = false,
+    // True for multimodal models (Gemma 4 E2B/E4B) that accept image input. Gates both
+    // the chat attach button and whether the engine loads a vision backend for this model.
+    val supportsVision: Boolean = false,
 )
 
 enum class DevicePerformance {
@@ -46,6 +49,9 @@ data class DownloadedModel(
     val displayName: String,
     val filePath: String,
     val sizeBytes: Long,
+    // Carried from the catalog [LocalModel] so the engine knows whether to enable a
+    // vision backend when an image is attached. Defaults false for text-only models.
+    val supportsVision: Boolean = false,
 )
 
 enum class EngineState {
@@ -58,6 +64,9 @@ enum class EngineState {
 data class InferenceMessage(
     val role: String,
     val content: String,
+    // Decoded image bytes for a multimodal user turn (vision models only). Null for
+    // text-only turns. Only the last user message's image is sent to the engine.
+    val imageBytes: ByteArray? = null,
 )
 
 /**
@@ -122,7 +131,13 @@ interface LocalInferenceEngine {
 
     val currentModelId: String?
 
-    suspend fun initialize(model: DownloadedModel, contextTokens: Int = 0)
+    /**
+     * Loads [model] into the engine. [enableVision] requests a vision backend so the next
+     * [chat] can accept image input — only ever true for a vision-capable model with an
+     * image actually attached, since a non-null vision backend costs extra memory and
+     * sending image content without one crashes the native runtime.
+     */
+    suspend fun initialize(model: DownloadedModel, contextTokens: Int = 0, enableVision: Boolean = false)
     suspend fun release()
 
     /**

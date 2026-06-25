@@ -12,6 +12,7 @@ val MODEL_CATALOG = listOf(
         maxContextTokens = 32_768,
         kvPerTokenBytes = 50_000,
         isRecommended = true,
+        supportsVision = true,
     ),
     LocalModel(
         id = "gemma-4-e4b-it",
@@ -23,6 +24,7 @@ val MODEL_CATALOG = listOf(
         defaultContextTokens = 8_192,
         maxContextTokens = 32_768,
         kvPerTokenBytes = 75_000,
+        supportsVision = true,
     ),
     LocalModel(
         id = "qwen3-0.6b",

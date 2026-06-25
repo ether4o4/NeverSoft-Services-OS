@@ -119,6 +119,11 @@ private const val SEND_WINDOW_INPUT_RATIO = 0.8
 // by relevance before being included or dropped.
 private const val TRUNCATE_KEEP_FIRST = 2
 
+// Raster image formats offered to on-device vision models. Deliberately excludes SVG (the
+// bitmap compressor can't rasterize it) and stays images-only — the local engine has no
+// text/PDF ingestion path.
+private val ON_DEVICE_IMAGE_EXTENSIONS = listOf("jpg", "jpeg", "png", "webp")
+
 // Always preserve the most recent N messages — the immediate thread state
 // the user is currently in. Middle messages between the first slice and
 // these are retrieved by relevance to the current user prompt.
@@ -674,7 +679,15 @@ class RemoteDataRepository(
         val storedContext = appSettings.getModelContextTokens(model.id)
         val contextTokens = if (storedContext > 0) storedContext else catalogModel?.defaultContextTokens ?: 0
 
-        val needsInit = engine.engineState.value != EngineState.READY || engine.currentModelId != model.id
+        // Image input is only sent when the active model is vision-capable (Gemma 4) and the
+        // latest user turn actually carries an image. This gates loading a vision backend.
+        val lastUserMessage = messages.lastOrNull { it.role == History.Role.USER }
+        val imageAttachment = lastUserMessage?.attachments?.firstOrNull { it.mimeType.startsWith("image/") }
+        val sendImage = model.supportsVision && imageAttachment != null
+
+        // Force the init path when an image is present so a vision backend is loaded (and the
+        // user sees the status while the vision encoder warms up).
+        val needsInit = engine.engineState.value != EngineState.READY || engine.currentModelId != model.id || sendImage
         if (needsInit) {
             val statusEntry = History(
                 role = History.Role.TOOL_EXECUTING,
@@ -684,12 +697,12 @@ class RemoteDataRepository(
             )
             history.update { it + statusEntry }
             try {
-                engine.initialize(model, contextTokens)
+                engine.initialize(model, contextTokens, enableVision = sendImage)
             } finally {
                 history.update { h -> h.filter { it.id != statusEntry.id } }
             }
         } else {
-            engine.initialize(model, contextTokens)
+            engine.initialize(model, contextTokens, enableVision = sendImage)
         }
 
         // Callers pass either a CHAT_LOCAL system prompt (chat + silent paths) or null
@@ -707,7 +720,15 @@ class RemoteDataRepository(
 
         val inferenceMessages = truncateHistoryToFitWindow(messages, contextTokens).mapNotNull { msg ->
             when (msg.role) {
-                History.Role.USER -> InferenceMessage(role = "user", content = msg.content)
+                History.Role.USER -> {
+                    // Only the latest user turn's image is sent; decode it lazily here.
+                    val imageBytes = if (sendImage && msg.id == lastUserMessage?.id) {
+                        imageAttachment?.let { Base64.decode(it.data) }
+                    } else {
+                        null
+                    }
+                    InferenceMessage(role = "user", content = msg.content, imageBytes = imageBytes)
+                }
                 History.Role.ASSISTANT -> InferenceMessage(role = "assistant", content = msg.content)
                 else -> null
             }
@@ -1681,8 +1702,30 @@ class RemoteDataRepository(
 
     override fun supportedFileExtensions(): List<String> {
         val service = currentService()
-        if (service.isOnDevice) return emptyList()
+        if (service.isOnDevice) {
+            // On-device vision models (Gemma 4 E2B/E4B) accept image input only — no text/PDF,
+            // which the local engine can't ingest. Offer just raster formats the bitmap
+            // compressor and vision encoder reliably handle (no SVG).
+            return if (currentOnDeviceModelSupportsVision()) ON_DEVICE_IMAGE_EXTENSIONS else emptyList()
+        }
         return if (service.supportsPdf) supportedFileExtensions + "pdf" else supportedFileExtensions
+    }
+
+    /**
+     * True when the active on-device instance's selected (or first downloaded) model is
+     * vision-capable. Mirrors the model selection in [askWithLocalEngine] so the chat attach
+     * button appears exactly when an image would actually be accepted.
+     */
+    private fun currentOnDeviceModelSupportsVision(): Boolean {
+        val engine = localInferenceEngine ?: return false
+        val onDeviceInstance = getConfiguredServiceInstances()
+            .filter { appSettings.getInstanceEnabled(it.instanceId) }
+            .firstOrNull { Service.fromId(it.serviceId).isOnDevice }
+            ?: return false
+        val modelId = appSettings.getInstanceModelId(onDeviceInstance.instanceId)
+        val downloaded = engine.getDownloadedModels()
+        val model = downloaded.find { it.id == modelId } ?: downloaded.firstOrNull() ?: return false
+        return model.supportsVision
     }
 
     override fun currentService(): Service {

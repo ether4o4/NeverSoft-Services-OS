@@ -1,6 +1,7 @@
 package com.ether4o4.morsvitaest.inference
 
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
@@ -44,6 +45,9 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
     override var currentModelId: String? = null
         private set
     private var currentContextTokens: Int = 0
+    // Whether the loaded engine has a vision backend. A vision backend is loaded lazily —
+    // only when an image is actually sent — so text-only chats don't pay its memory cost.
+    private var currentVisionEnabled: Boolean = false
 
     private val _engineState = MutableStateFlow(EngineState.UNINITIALIZED)
     override val engineState: StateFlow<EngineState> = _engineState
@@ -57,10 +61,17 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
     private val _downloadError = MutableStateFlow<DownloadError?>(null)
     override val downloadError: StateFlow<DownloadError?> = _downloadError
 
-    override suspend fun initialize(model: DownloadedModel, contextTokens: Int) {
+    override suspend fun initialize(model: DownloadedModel, contextTokens: Int, enableVision: Boolean) {
+        // Only request a vision backend for a model that actually supports it — sending image
+        // content to a model without a vision backend crashes the native runtime (SIGSEGV).
+        val wantVision = enableVision && model.supportsVision
         withContext(Dispatchers.IO) {
             idleReleaseJob?.cancel()
-            if (currentModelId == model.id && currentContextTokens == contextTokens && _engineState.value == EngineState.READY) return@withContext
+            if (currentModelId == model.id && currentContextTokens == contextTokens &&
+                currentVisionEnabled == wantVision && _engineState.value == EngineState.READY
+            ) {
+                return@withContext
+            }
             _engineState.value = EngineState.INITIALIZING
             try {
                 val modelFile = File(model.filePath)
@@ -93,6 +104,10 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
                     val config = EngineConfig(
                         modelPath = model.filePath,
                         backend = backend,
+                        // Match the vision backend to the compute backend so the GPU attempt
+                        // uses GPU vision and the CPU fallback uses CPU vision. Null unless an
+                        // image is actually being sent, keeping text-only chats lean.
+                        visionBackend = if (wantVision) backend else null,
                         cacheDir = getModelCacheDirectory(),
                         maxNumTokens = maxTokens,
                     )
@@ -128,6 +143,7 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
                 conversation = newEngine.createConversation()
                 currentModelId = model.id
                 currentContextTokens = contextTokens
+                currentVisionEnabled = wantVision
                 _engineState.value = EngineState.READY
             } catch (e: Exception) {
                 _engineState.value = EngineState.ERROR
@@ -145,6 +161,7 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
             conversation = null
             engine = null
             currentModelId = null
+            currentVisionEnabled = false
             _engineState.value = EngineState.UNINITIALIZED
             runCatching { convToClose?.close() }
             runCatching { engineToClose?.close() }
@@ -196,9 +213,17 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
             conversation = conv
 
             val lastMessage = sanitizeForLiteRt(messages[lastUserIndex].content) ?: ""
+            // Only attach the image when the engine was loaded with a vision backend; sending
+            // image content to an engine without one is the SIGSEGV path we guard against.
+            val lastImage = messages[lastUserIndex].imageBytes?.takeIf { currentVisionEnabled }
             val response = try {
                 withTimeout(INFERENCE_TIMEOUT_MS.milliseconds) {
-                    conv.sendMessage(lastMessage)
+                    if (lastImage != null) {
+                        // Image must precede the text in the Contents list (SDK processes in order).
+                        conv.sendMessage(Contents.of(Content.ImageBytes(lastImage), Content.Text(lastMessage)))
+                    } else {
+                        conv.sendMessage(lastMessage)
+                    }
                 }
             } catch (e: TimeoutCancellationException) {
                 throw InferenceTimeoutException()
@@ -251,6 +276,7 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
                     displayName = model.displayName,
                     filePath = modelFile.absolutePath,
                     sizeBytes = modelFile.length(),
+                    supportsVision = model.supportsVision,
                 )
             } else {
                 null
