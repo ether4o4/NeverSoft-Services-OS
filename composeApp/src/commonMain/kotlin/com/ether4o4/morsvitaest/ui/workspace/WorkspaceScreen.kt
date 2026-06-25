@@ -1,16 +1,21 @@
 package com.ether4o4.morsvitaest.ui.workspace
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,16 +25,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ether4o4.morsvitaest.ui.chat.ChatScreen
 import com.ether4o4.morsvitaest.ui.chat.ChatViewModel
 import com.ether4o4.morsvitaest.ui.compare.CompareScreen
 import com.ether4o4.morsvitaest.ui.foundry.Foundry
-import com.ether4o4.morsvitaest.ui.foundry.FoundryIconChip
-import com.ether4o4.morsvitaest.ui.foundry.FoundryIntent
-import com.ether4o4.morsvitaest.ui.foundry.FoundryPill
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxTabsContent
 import com.ether4o4.morsvitaest.ui.settings.SandboxUiState
 import com.ether4o4.morsvitaest.ui.settings.SandboxViewModel
@@ -156,19 +161,45 @@ private fun WorkspaceTabStrip(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Compact, borderless text tabs — no metal pill / red+grey borders.
             tabs.forEach { tab ->
-                FoundryPill(
-                    label = tab.label,
-                    onClick = { onSelect(tab) },
-                    intent = if (tab == selected) FoundryIntent.Primary else FoundryIntent.Neutral,
-                    minHeight = 40.dp,
-                    modifier = Modifier.weight(1f),
+                val isSelected = tab == selected
+                Text(
+                    text = tab.label,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    },
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { onSelect(tab) }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                 )
             }
-            // Tap-to-help and Settings live together at the end of the strip so both
-            // are reachable from every tab.
-            FoundryIconChip(glyph = "?", onClick = onOpenHelp, size = 40.dp, contentDescription = "Help")
-            FoundryIconChip(glyph = "⚙", onClick = onOpenSettings, size = 40.dp, contentDescription = "Settings")
+            Spacer(Modifier.weight(1f))
+            // Tap-to-help and Settings sit at the end of the strip.
+            Text(
+                text = "?",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable { onOpenHelp() }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+            )
+            Text(
+                text = "⚙",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable { onOpenSettings() }
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+            )
         }
     }
 }
