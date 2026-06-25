@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -47,6 +48,7 @@ internal fun TopBar(
     isChatHistoryEmpty: Boolean,
     hasSavedConversations: Boolean,
     onNavigateToSettings: () -> Unit,
+    onOpenProjects: (() -> Unit)? = null,
     isSandboxAvailable: Boolean,
     isSandboxOpen: Boolean,
     isShellExecuting: Boolean,
@@ -69,6 +71,9 @@ internal fun TopBar(
                 if (textToSpeech != null) {
                     SpeechToggleButton(textToSpeech, isSpeechOutputEnabled, isSpeaking, actions)
                 }
+                if (onOpenProjects != null) {
+                    ProjectsButton(onOpenProjects)
+                }
                 if (showSettingsButton) {
                     SettingsButton(onNavigateToSettings)
                 }
@@ -80,6 +85,9 @@ internal fun TopBar(
             Spacer(Modifier.weight(1f))
             if (textToSpeech != null) {
                 SpeechToggleButton(textToSpeech, isSpeechOutputEnabled, isSpeaking, actions)
+            }
+            if (onOpenProjects != null) {
+                ProjectsButton(onOpenProjects)
             }
             if (showSettingsButton) {
                 SettingsButton(onNavigateToSettings)
@@ -97,6 +105,20 @@ private fun SettingsButton(onNavigateToSettings: () -> Unit) {
         Icon(
             imageVector = vectorResource(Res.drawable.ic_settings),
             contentDescription = stringResource(Res.string.settings_content_description),
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+}
+
+@Composable
+private fun ProjectsButton(onOpenProjects: () -> Unit) {
+    IconButton(
+        modifier = Modifier.handCursor(),
+        onClick = onOpenProjects,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Folder,
+            contentDescription = "Projects",
             tint = MaterialTheme.colorScheme.onBackground,
         )
     }

@@ -91,6 +91,7 @@ import com.ether4o4.morsvitaest.ui.chat.composables.HeartbeatBanner
 import com.ether4o4.morsvitaest.ui.chat.composables.PendingSmsBanners
 import com.ether4o4.morsvitaest.ui.chat.composables.QuestionInput
 import com.ether4o4.morsvitaest.ui.chat.composables.ServiceSelector
+import com.ether4o4.morsvitaest.ui.chat.composables.ProjectPickerSheet
 import com.ether4o4.morsvitaest.ui.chat.composables.TopBar
 import com.ether4o4.morsvitaest.ui.chat.composables.TrailingIcon
 import com.ether4o4.morsvitaest.ui.chat.composables.UserMessage
@@ -468,6 +469,7 @@ private fun ChatModeScreen(
     previewSandboxLines: ImmutableList<TerminalLine> = persistentListOf(),
 ) {
     var showHistorySheet by remember { mutableStateOf(false) }
+    var showProjects by remember { mutableStateOf(false) }
     var isSandboxOpen by rememberSaveable { mutableStateOf(initialSandboxOpen) }
     // Hoisted here so the draft survives toggling the sandbox/terminal view, which
     // removes QuestionInput from composition and would otherwise drop the text.
@@ -518,6 +520,7 @@ private fun ChatModeScreen(
                 isChatHistoryEmpty = uiState.history.isEmpty(),
                 hasSavedConversations = filteredConversations.any { it.id != uiState.currentConversationId },
                 onNavigateToSettings = onNavigateToSettings,
+                onOpenProjects = { showProjects = true },
                 isSandboxAvailable = isSandboxAvailable,
                 isSandboxOpen = isSandboxOpen,
                 isShellExecuting = isShellExecuting,
@@ -529,6 +532,10 @@ private fun ChatModeScreen(
                 navigationTabBar = navigationTabBar,
                 showSettingsButton = showSettingsButton,
             )
+
+            if (showProjects) {
+                ProjectPickerSheet(onDismiss = { showProjects = false })
+            }
 
             HeartbeatBanner(
                 visible = uiState.hasUnreadHeartbeat,
