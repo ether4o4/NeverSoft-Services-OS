@@ -651,6 +651,26 @@ class AppSettings(internal val settings: Settings) {
         settings.putString(KEY_EMAIL_PENDING, json)
     }
 
+    // Outreach guardrails — dedup set of already-contacted addresses + a per-local-day
+    // send counter, so autonomous cold outreach can't double-contact or exceed the cap.
+    fun getOutreachContactedJson(): String = settings.getString(KEY_OUTREACH_CONTACTED, "")
+
+    fun setOutreachContactedJson(json: String) {
+        settings.putString(KEY_OUTREACH_CONTACTED, json)
+    }
+
+    fun getOutreachDailyJson(): String = settings.getString(KEY_OUTREACH_DAILY, "")
+
+    fun setOutreachDailyJson(json: String) {
+        settings.putString(KEY_OUTREACH_DAILY, json)
+    }
+
+    fun getOutreachDailyCap(): Int = settings.getInt(KEY_OUTREACH_DAILY_CAP, 5)
+
+    fun setOutreachDailyCap(cap: Int) {
+        settings.putInt(KEY_OUTREACH_DAILY_CAP, cap)
+    }
+
     // SMS (FOSS-only, Android-only — settings layer is platform-agnostic, feature gate
     // is enforced by the READ_SMS permission being declared only in foss/AndroidManifest.xml)
     fun isSmsEnabled(): Boolean = settings.getBoolean(KEY_SMS_ENABLED, false)
@@ -800,6 +820,10 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_EMAIL_SYNC_PREFIX = "email_sync_"
         const val KEY_EMAIL_POLL_INTERVAL = "email_poll_interval"
         const val KEY_EMAIL_PENDING = "email_pending"
+
+        const val KEY_OUTREACH_CONTACTED = "outreach_contacted"
+        const val KEY_OUTREACH_DAILY = "outreach_daily"
+        const val KEY_OUTREACH_DAILY_CAP = "outreach_daily_cap"
 
         const val KEY_SMS_ENABLED = "sms_enabled"
         const val KEY_SMS_POLL_INTERVAL = "sms_poll_interval"

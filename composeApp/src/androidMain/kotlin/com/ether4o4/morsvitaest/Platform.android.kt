@@ -486,7 +486,7 @@ actual fun getAvailableTools(): List<Tool> {
         }
 
         if (appSettings.isEmailEnabled()) {
-            addAll(EmailTools.getEmailTools(emailStore))
+            addAll(EmailTools.getEmailTools(emailStore, appSettings))
         }
 
         // SMS read tools: triple-gated. `isSmsSupported` is only true on FOSS builds

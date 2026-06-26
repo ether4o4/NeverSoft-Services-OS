@@ -147,7 +147,7 @@ actual fun getAvailableTools(): List<Tool> = buildList {
         addAll(HeartbeatTools.getHeartbeatTools(IosKoinHelper.memoryStore, IosKoinHelper.appSettings))
     }
     if (IosKoinHelper.appSettings.isEmailEnabled()) {
-        addAll(EmailTools.getEmailTools(IosKoinHelper.emailStore))
+        addAll(EmailTools.getEmailTools(IosKoinHelper.emailStore, IosKoinHelper.appSettings))
     }
     addAll(IosKoinHelper.mcpServerManager.getEnabledMcpTools())
 }

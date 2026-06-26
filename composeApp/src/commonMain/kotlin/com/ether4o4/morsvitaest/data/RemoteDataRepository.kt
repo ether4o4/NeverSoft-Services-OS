@@ -240,6 +240,13 @@ internal val LOCAL_TOOL_ALLOWLIST = setOf(
     "memory_forget",
     "memory_reinforce",
     "execute_shell_command",
+    // Email send tools are simple (few string params) so on-device Gemma can drive them —
+    // no reason to force a cloud model for everyday "send/reply/outreach" actions. Reading
+    // still flows in via the heartbeat's email context. send_outreach_email is the
+    // guardrailed path (dedup + hard daily cap) for cold/bulk sends.
+    "compose_email",
+    "reply_email",
+    "send_outreach_email",
 )
 
 private data class LoopChatResult(

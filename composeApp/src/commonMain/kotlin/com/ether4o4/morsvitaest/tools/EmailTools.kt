@@ -1,8 +1,14 @@
 package com.ether4o4.morsvitaest.tools
 
+import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.data.EmailAccount
 import com.ether4o4.morsvitaest.data.EmailStore
+import com.ether4o4.morsvitaest.data.OutreachStore
 import com.ether4o4.morsvitaest.email.ImapClient
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import com.ether4o4.morsvitaest.email.ServerAutoDetect
 import com.ether4o4.morsvitaest.email.SmtpClient
 import com.ether4o4.morsvitaest.network.tools.ParameterSchema
@@ -390,6 +396,82 @@ object EmailTools {
         }
     }
 
+    @OptIn(ExperimentalTime::class)
+    fun sendOutreachEmailTool(emailStore: EmailStore, appSettings: AppSettings) = object : Tool {
+        override val schema = ToolSchema(
+            name = "send_outreach_email",
+            description = "Send a cold-outreach email (e.g. pitching the user's music to a curator) WITH GUARDRAILS. " +
+                "Use this — never compose_email — for any bulk or cold outreach. It refuses to email an address " +
+                "that was already contacted, and it enforces a hard daily send cap that you cannot exceed no matter " +
+                "what (when the cap is reached, stop sending until tomorrow). One recipient per call. Keep each " +
+                "message short, genuinely personalized, and include a one-line unsubscribe/opt-out so it isn't spam.",
+            parameters = mapOf(
+                "account_id" to ParameterSchema(type = "string", description = "The account ID to send from", required = true),
+                "to" to ParameterSchema(type = "string", description = "Recipient email address — must be a real, public address", required = true),
+                "subject" to ParameterSchema(type = "string", description = "Email subject line", required = true),
+                "body" to ParameterSchema(type = "string", description = "Personalized email body. Include a polite one-line unsubscribe.", required = true),
+            ),
+        )
+
+        override suspend fun execute(args: Map<String, Any>): Any {
+            val accountId = args["account_id"]?.toString()
+                ?: return mapOf("success" to false, "error" to "Missing account_id")
+            val to = args["to"]?.toString()?.trim()
+                ?: return mapOf("success" to false, "error" to "Missing to")
+            val subject = args["subject"]?.toString()
+                ?: return mapOf("success" to false, "error" to "Missing subject")
+            val body = args["body"]?.toString()
+                ?: return mapOf("success" to false, "error" to "Missing body")
+
+            val outreach = OutreachStore(appSettings)
+            if (outreach.isContacted(to)) {
+                return mapOf(
+                    "success" to false,
+                    "skipped" to true,
+                    "reason" to "already_contacted",
+                    "message" to "$to was already contacted before — skipped to avoid duplicate outreach. Pick a different curator.",
+                )
+            }
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+            val cap = outreach.dailyCap()
+            val sentToday = outreach.sentToday(today)
+            if (sentToday >= cap) {
+                return mapOf(
+                    "success" to false,
+                    "cap_reached" to true,
+                    "message" to "Daily outreach cap of $cap reached ($sentToday sent today). Send no more until tomorrow.",
+                )
+            }
+
+            val account = emailStore.getAccount(accountId)
+                ?: return mapOf("success" to false, "error" to "Account not found: $accountId")
+
+            return try {
+                withSmtpSession(account, emailStore) { smtp, from ->
+                    val success = smtp.sendReply(from = account.email, to = to, subject = subject, body = body, inReplyTo = null)
+                    if (success) {
+                        // Record only after a confirmed send, so a rejected message neither
+                        // burns a cap slot nor blocks a legitimate retry to the same address.
+                        outreach.markContacted(to)
+                        outreach.recordSent(today)
+                        mapOf(
+                            "success" to true,
+                            "message" to "Outreach sent to $to",
+                            "from" to from,
+                            "sent_today" to (sentToday + 1),
+                            "daily_cap" to cap,
+                            "remaining_today" to (cap - sentToday - 1),
+                        )
+                    } else {
+                        mapOf("success" to false, "error" to "SMTP server rejected the message")
+                    }
+                }
+            } catch (e: Exception) {
+                mapOf("success" to false, "error" to "Failed to send outreach: ${e.message}")
+            }
+        }
+    }
+
     fun searchEmailTool(emailStore: EmailStore) = object : Tool {
         override val schema = ToolSchema(
             name = "search_email",
@@ -495,6 +577,14 @@ object EmailTools {
         descriptionRes = Res.string.tool_search_email_description,
     )
 
+    val sendOutreachEmailToolInfo = ToolInfo(
+        id = "send_outreach_email",
+        name = "Send Outreach Email",
+        description = "Send guardrailed cold-outreach email (dedup + hard daily cap)",
+        nameRes = null,
+        descriptionRes = null,
+    )
+
     val emailToolDefinitions = listOf(
         setupEmailToolInfo,
         checkEmailToolInfo,
@@ -502,14 +592,16 @@ object EmailTools {
         replyEmailToolInfo,
         composeEmailToolInfo,
         searchEmailToolInfo,
+        sendOutreachEmailToolInfo,
     )
 
-    fun getEmailTools(emailStore: EmailStore): List<Tool> = listOf(
+    fun getEmailTools(emailStore: EmailStore, appSettings: AppSettings): List<Tool> = listOf(
         setupEmailTool(emailStore),
         checkEmailTool(emailStore),
         readEmailTool(emailStore),
         replyEmailTool(emailStore),
         composeEmailTool(emailStore),
         searchEmailTool(emailStore),
+        sendOutreachEmailTool(emailStore, appSettings),
     )
 }

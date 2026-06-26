@@ -25,6 +25,9 @@ class LocalToolAllowlistTest {
             "memory_forget",
             "memory_reinforce",
             "execute_shell_command",
+            "compose_email",
+            "reply_email",
+            "send_outreach_email",
         )
         assertEquals(expected, LOCAL_TOOL_ALLOWLIST)
     }
