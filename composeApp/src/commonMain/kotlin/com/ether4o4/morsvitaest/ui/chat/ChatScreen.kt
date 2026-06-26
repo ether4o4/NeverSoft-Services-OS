@@ -54,6 +54,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -476,7 +477,10 @@ private fun ChatModeScreen(
     var isSandboxOpen by rememberSaveable { mutableStateOf(initialSandboxOpen) }
     // Hoisted here so the draft survives toggling the sandbox/terminal view, which
     // removes QuestionInput from composition and would otherwise drop the text.
-    var questionInputText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+    // Held as the MutableState object (not a `by` delegate) so the input bar can read
+    // `.value` in its own scope — typing then recomposes only the input bar, not this
+    // whole screen (its message list, top bar, and remember blocks).
+    val questionInputState = rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(""))
     }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -543,7 +547,7 @@ private fun ChatModeScreen(
             if (showTemplates) {
                 TemplatePickerSheet(
                     onPick = { template ->
-                        questionInputText = TextFieldValue(
+                        questionInputState.value = TextFieldValue(
                             text = template.prompt,
                             selection = TextRange(template.prompt.length),
                         )
@@ -918,19 +922,9 @@ private fun ChatModeScreen(
             }
 
             if (!isSandboxOpen) {
-                QuestionInput(
-                    files = uiState.files,
-                    addFile = uiState.actions.addFile,
-                    removeFile = uiState.actions.removeFile,
-                    ask = uiState.actions.ask,
-                    supportedFileExtensions = uiState.supportedFileExtensions,
-                    textState = questionInputText,
-                    onTextStateChange = { questionInputText = it },
-                    isLoading = uiState.isLoading,
-                    cancel = uiState.actions.cancel,
-                    availableServices = uiState.availableServices,
-                    onSelectService = uiState.actions.selectService,
-                )
+                // Isolated into its own composable that reads the draft `.value` internally,
+                // so a keystroke recomposes only the input bar — not the whole chat screen.
+                ChatInputBar(textState = questionInputState, uiState = uiState)
             }
         }
         SnackbarHost(
@@ -951,6 +945,32 @@ private fun ChatModeScreen(
             onConversationSelected = { isSandboxOpen = false },
         )
     }
+}
+
+/**
+ * The bottom message-input bar, split out from [ChatModeScreen] so the draft text it
+ * reads (`textState.value`) recomposes only this composable on each keystroke — the
+ * surrounding screen (message list, top bar, derived state) is left untouched. [uiState]
+ * is `@Immutable`, so passing it here costs nothing while typing.
+ */
+@Composable
+private fun ChatInputBar(
+    textState: MutableState<TextFieldValue>,
+    uiState: ChatUiState,
+) {
+    QuestionInput(
+        files = uiState.files,
+        addFile = uiState.actions.addFile,
+        removeFile = uiState.actions.removeFile,
+        ask = uiState.actions.ask,
+        supportedFileExtensions = uiState.supportedFileExtensions,
+        textState = textState.value,
+        onTextStateChange = { textState.value = it },
+        isLoading = uiState.isLoading,
+        cancel = uiState.actions.cancel,
+        availableServices = uiState.availableServices,
+        onSelectService = uiState.actions.selectService,
+    )
 }
 
 private data class ExecutingToolsState(
