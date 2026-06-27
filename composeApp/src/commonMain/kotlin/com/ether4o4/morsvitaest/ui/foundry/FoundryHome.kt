@@ -2,7 +2,6 @@
 
 package com.ether4o4.morsvitaest.ui.foundry
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -61,6 +60,8 @@ import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.data.DataRepository
 import com.ether4o4.morsvitaest.data.HeartbeatRunState
 import com.ether4o4.morsvitaest.data.HeartbeatStatus
+import com.ether4o4.morsvitaest.ui.launcher.glassHairline
+import com.ether4o4.morsvitaest.ui.launcher.glassPanel
 import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
 import com.ether4o4.morsvitaest.ui.launcher.surfaceBrush
 import org.koin.compose.koinInject
@@ -198,10 +199,10 @@ private fun ThemedBox(
 ) {
     Column(
         modifier = modifier
-            .clip(Foundry.cardShapeLarge)
-            .background(Color(0xFF11151B), Foundry.cardShapeLarge)
-            .background(surface, Foundry.cardShapeLarge)
-            .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), Foundry.cardShapeLarge)
+            // Glossy glass: themed translucent sweep + top gloss sheen + bright hairline,
+            // no opaque base — so the wallpaper/background shows through like real glass.
+            .glassPanel(surface, Foundry.cardShapeLarge)
+            .border(glassHairline, Foundry.cardShapeLarge)
             .padding(10.dp),
         content = content,
     )

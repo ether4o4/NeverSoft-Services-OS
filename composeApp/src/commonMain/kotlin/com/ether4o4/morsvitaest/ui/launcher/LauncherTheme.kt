@@ -1,9 +1,12 @@
 package com.ether4o4.morsvitaest.ui.launcher
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
@@ -77,6 +80,33 @@ internal val launcherThemes = listOf(
 )
 
 internal fun resolveLauncherTheme(id: String): LauncherTheme = launcherThemes.firstOrNull { it.id == id } ?: launcherThemes.first()
+
+// ─── Shared glossy-glass surface ────────────────────────────────────────────
+// One source of truth for the "clean shiny glass" look. Performant by design:
+// translucency + gradients, no live blur — so applying it broadly doesn't jank.
+
+/** Top gloss highlight — a bright sheen across the upper edge fading out; the shiny lip. */
+internal val glassGloss: Brush = Brush.verticalGradient(
+    0.0f to Color.White.copy(alpha = 0.22f),
+    0.45f to Color.White.copy(alpha = 0.05f),
+    1.0f to Color.Transparent,
+)
+
+/** Bright hairline edge for glass panels — bright at the top, faint toward the bottom. */
+internal val glassHairline: BorderStroke = BorderStroke(
+    1.dp,
+    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.40f), Color.White.copy(alpha = 0.08f))),
+)
+
+/**
+ * The clean, glossy glass-panel fill used across the app: the themed translucent
+ * [surface] sweep with a top gloss sheen layered on, clipped to [shape]. Pair with a
+ * `.border(glassHairline, shape)` for the bright edge. No live blur — cheap to draw.
+ */
+internal fun Modifier.glassPanel(surface: Brush, shape: Shape): Modifier = this
+    .clip(shape)
+    .background(surface, shape)
+    .background(glassGloss, shape)
 
 /**
  * The themed surface fill shared by the taskbar, Start menu and widgets window.

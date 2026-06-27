@@ -255,15 +255,10 @@ fun NotificationsPanel(
                     // status/nav-bar insets so it doesn't pad against the screen edges here
                     // (the chat applies them itself for full-screen use).
                     .consumeWindowInsets(WindowInsets.systemBars)
-                    .clip(RoundedCornerShape(8.dp))
-                    .then(
-                        if (theme.glass) {
-                            Modifier.neverSoftGlassClear()
-                        } else {
-                            Modifier.background(theme.panel)
-                        },
-                    )
-                    .border(1.dp, c.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                    // Same glossy glass as the home boxes — themed translucent surface +
+                    // gloss sheen + bright hairline — so the pop-up matches the rest of the OS.
+                    .glassPanel(theme.surfaceBrush(), RoundedCornerShape(8.dp))
+                    .border(glassHairline, RoundedCornerShape(8.dp))
                     .clickable(enabled = false) {}
                     .padding(16.dp),
             ) {
