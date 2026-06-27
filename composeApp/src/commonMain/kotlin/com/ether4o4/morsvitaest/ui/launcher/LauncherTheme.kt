@@ -88,17 +88,10 @@ internal fun resolveLauncherTheme(id: String): LauncherTheme = launcherThemes.fi
 /** Specular top-lip highlight — a bright sheen concentrated at the very top edge
  *  (like light catching the curved lip of real glass), falling off fast. */
 internal val glassGloss: Brush = Brush.verticalGradient(
-    0.0f to Color.White.copy(alpha = 0.32f),
-    0.10f to Color.White.copy(alpha = 0.12f),
-    0.28f to Color.White.copy(alpha = 0.03f),
+    0.0f to Color.White.copy(alpha = 0.30f),
+    0.10f to Color.White.copy(alpha = 0.10f),
+    0.28f to Color.White.copy(alpha = 0.02f),
     1.0f to Color.Transparent,
-)
-
-/** Depth shade toward the bottom — a faint darkening that reads as glass thickness. */
-internal val glassDepth: Brush = Brush.verticalGradient(
-    0.0f to Color.Transparent,
-    0.72f to Color.Transparent,
-    1.0f to Color.Black.copy(alpha = 0.14f),
 )
 
 /** Bright hairline edge for glass panels — bright at the top, faint toward the bottom. */
@@ -108,15 +101,23 @@ internal val glassHairline: BorderStroke = BorderStroke(
 )
 
 /**
- * The glossy glass-panel fill used across the app: the themed translucent [surface]
- * sweep, a faint bottom depth shade (glass thickness), and a bright specular top lip,
- * clipped to [shape]. Pair with `.border(glassHairline, shape)` for the bright edge.
- * No live blur — three cheap gradient fills, so the look spreads without jank.
+ * Opaque base under [glassPanel]. Keeping the panel opaque (not see-through) means the
+ * GPU doesn't blend the whole wallpaper through it — critical for performance: full
+ * translucency over the wallpaper multiplies overdraw and stutters weaker devices.
+ * The gloss + hairline still read as glossy glass over this solid base.
+ */
+internal val glassBase: Color = Color(0xFF11151B)
+
+/**
+ * The glossy glass-panel fill used across the app: an opaque base, the themed [surface]
+ * sweep, and a bright specular top lip, clipped to [shape]. Pair with
+ * `.border(glassHairline, shape)` for the bright edge. Deliberately NOT translucent and
+ * NO live blur — overdraw is the enemy on mobile, so this stays cheap to draw everywhere.
  */
 internal fun Modifier.glassPanel(surface: Brush, shape: Shape): Modifier = this
     .clip(shape)
+    .background(glassBase, shape)
     .background(surface, shape)
-    .background(glassDepth, shape)
     .background(glassGloss, shape)
 
 /**
