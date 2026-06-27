@@ -54,15 +54,19 @@ class MemoryStore(private val appSettings: AppSettings) {
         category: MemoryCategory = MemoryCategory.GENERAL,
         source: String? = null,
     ): MemoryEntry = mutex.withLock {
+        // Compress the model's auto-stored memory so it's reference-dense — more useful
+        // memories fit the on-device memory budget. User-edited memories (updateContent)
+        // are left verbatim.
+        val compressed = compressMemoryText(content)
         val memories = loadMemories()
         val now = Clock.System.now().toEpochMilliseconds()
         val existing = memories.indexOfFirst { it.key == key }
         val entry = if (existing >= 0) {
-            val updated = memories[existing].copy(content = content, updatedAt = now, category = category, source = source ?: memories[existing].source)
+            val updated = memories[existing].copy(content = compressed, updatedAt = now, category = category, source = source ?: memories[existing].source)
             memories[existing] = updated
             updated
         } else {
-            val newEntry = MemoryEntry(key = key, content = content, createdAt = now, updatedAt = now, category = category, source = source)
+            val newEntry = MemoryEntry(key = key, content = compressed, createdAt = now, updatedAt = now, category = category, source = source)
             memories.add(newEntry)
             newEntry
         }
@@ -102,4 +106,32 @@ class MemoryStore(private val appSettings: AppSettings) {
     }
 
     fun getAllMemories(): List<MemoryEntry> = loadMemories()
+}
+
+private val MEMORY_FILLER_REPLACEMENTS: List<Pair<Regex, String>> = listOf(
+    Regex("""\bit is important to note that\b""", RegexOption.IGNORE_CASE) to "",
+    Regex("""\bit should be noted that\b""", RegexOption.IGNORE_CASE) to "",
+    Regex("""\bplease note that\b""", RegexOption.IGNORE_CASE) to "",
+    Regex("""\bkeep in mind that\b""", RegexOption.IGNORE_CASE) to "",
+    Regex("""\bdue to the fact that\b""", RegexOption.IGNORE_CASE) to "because",
+    Regex("""\bin order to\b""", RegexOption.IGNORE_CASE) to "to",
+    Regex("""\bin the event that\b""", RegexOption.IGNORE_CASE) to "if",
+    Regex("""\bat this point in time\b""", RegexOption.IGNORE_CASE) to "now",
+    Regex("""\ba large number of\b""", RegexOption.IGNORE_CASE) to "many",
+)
+private val MEMORY_WHITESPACE = Regex("""\s+""")
+
+/**
+ * Conservative, meaning-preserving compression for a stored memory: collapses runs of
+ * whitespace and swaps a handful of verbose filler phrases for terse equivalents. It
+ * deliberately does NOT strip articles, pronouns, subjects ("the user"), or negations —
+ * aggressive keyword-stripping would risk corrupting a memory's meaning. The goal is to
+ * keep memories reference-dense so more fit the fixed on-device memory budget.
+ */
+fun compressMemoryText(text: String): String {
+    var result = text
+    for ((pattern, replacement) in MEMORY_FILLER_REPLACEMENTS) {
+        result = pattern.replace(result, replacement)
+    }
+    return MEMORY_WHITESPACE.replace(result, " ").trim()
 }

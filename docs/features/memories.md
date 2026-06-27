@@ -1,6 +1,6 @@
 # Memories
 
-**Last verified:** 2026-05-14
+**Last verified:** 2026-06-27
 
 MorsVitaEst's memory system allows the AI to learn and retain information across conversations. Memories are stored persistently, injected into every system prompt for context, and can be reinforced over time. Well-established memories can be promoted into permanent behavior via the heartbeat feature.
 
@@ -36,7 +36,7 @@ The process of graduating a well-reinforced memory into the permanent soul/syste
 
 ## Memory Lifecycle
 
-1. AI stores a memory using `memory_store` (general) or `memory_learn` (categorized)
+1. AI stores a memory using `memory_store` (general) or `memory_learn` (categorized). The content is run through a conservative, meaning-preserving compression (`compressMemoryText`) on store — whitespace is collapsed and a few verbose filler phrases are swapped for terse equivalents — so memories stay reference-dense and more of them fit the on-device memory budget. Articles, pronouns, subjects, and negations are left intact; user-edited memories (manual edits in Settings) are kept verbatim.
 2. If a memory with the same key exists, it is updated
 3. On subsequent conversations, AI can reinforce memories that prove useful via `memory_reinforce`
 4. AI can remove outdated memories via `memory_forget`

@@ -890,6 +890,7 @@ class AppSettings(internal val settings: Settings) {
                 "All your stored memories are listed in the system prompt grouped by category.\n\n" +
                 "When you learn important information about the user (name, preferences, projects, goals, etc.), " +
                 "proactively use the memory_store tool to save it.\n" +
+                "Write each memory tersely — the key facts and keywords only, no filler or full sentences — so it stays quick to scan.\n" +
                 "Use the memory_forget tool to remove outdated or incorrect memories.\n" +
                 "Do not store trivial or transient information."
     }
