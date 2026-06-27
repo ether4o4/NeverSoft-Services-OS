@@ -2060,6 +2060,28 @@ class RemoteDataRepository(
         appSettings.setSchedulingEnabled(enabled)
     }
 
+    override fun getHeartbeatStatus(): HeartbeatStatus {
+        val config = heartbeatManager.getConfig()
+        fun status(state: HeartbeatRunState) =
+            HeartbeatStatus(state, config.activeHoursStart, config.activeHoursEnd)
+
+        // Order mirrors the scheduler's own gating: master switch, then heartbeat toggle,
+        // then the budget governor, then the active-hours window.
+        if (!appSettings.isSchedulingEnabled()) return status(HeartbeatRunState.SCHEDULING_OFF)
+        if (!config.enabled) return status(HeartbeatRunState.HEARTBEAT_OFF)
+        val budget = budgetManager?.mayRunAutonomous()
+        if (budget is BudgetDecision.Paused) {
+            return status(
+                if (budget.reason == PauseReason.MANUAL) HeartbeatRunState.KILL_SWITCH else HeartbeatRunState.BUDGET_PAUSED,
+            )
+        }
+        val hour = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour
+        if (hour < config.activeHoursStart || hour >= config.activeHoursEnd) {
+            return status(HeartbeatRunState.ASLEEP)
+        }
+        return status(HeartbeatRunState.ACTIVE)
+    }
+
     override fun getScheduledTasks(): List<ScheduledTask> = taskStore.getAllTasks()
 
     override suspend fun cancelScheduledTask(id: String) {

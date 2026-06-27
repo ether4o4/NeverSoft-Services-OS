@@ -58,6 +58,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.ether4o4.morsvitaest.data.AppSettings
+import com.ether4o4.morsvitaest.data.DataRepository
+import com.ether4o4.morsvitaest.data.HeartbeatRunState
+import com.ether4o4.morsvitaest.data.HeartbeatStatus
 import com.ether4o4.morsvitaest.ui.launcher.resolveLauncherTheme
 import com.ether4o4.morsvitaest.ui.launcher.surfaceBrush
 import org.koin.compose.koinInject
@@ -104,6 +107,9 @@ fun FoundryHome(
     // Resolve the live launcher theme so the home matches the taskbar / Start menu
     // / keyboard and re-tints the instant the theme changes anywhere in the OS.
     val settings = koinInject<AppSettings>()
+    // Recomputed each composition (cheap settings + clock read), so returning to the home
+    // after toggling scheduling / budget shows the current heartbeat status.
+    val heartbeatStatus = koinInject<DataRepository>().getHeartbeatStatus()
     val appearance by settings.launcherAppearanceFlow.collectAsStateWithLifecycle()
     val theme = remember(appearance) { resolveLauncherTheme(settings.getLauncherTheme()) }
     val surface = theme.surfaceBrush()
@@ -145,6 +151,7 @@ fun FoundryHome(
         // Heartbeat box (bottom) — the assistant's "what's new" updates.
         HeartbeatBox(
             items = feedItems,
+            status = heartbeatStatus,
             onRefresh = onRefreshFeed,
             isRefreshing = isRefreshing,
             surface = surface,
@@ -278,6 +285,7 @@ private fun NewsBox(
 @Composable
 private fun HeartbeatBox(
     items: List<FoundryFeedItem>,
+    status: HeartbeatStatus,
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
     surface: Brush,
@@ -287,6 +295,16 @@ private fun HeartbeatBox(
     ThemedBox(surface = surface, modifier = modifier) {
         BoxHeader(label = "HEARTBEAT", content = content) {
             FoundryIconChip(glyph = "↻", onClick = onRefresh, size = 34.dp, contentDescription = "Refresh heartbeat")
+        }
+        // Surface a pause/asleep reason at the top so a quiet heartbeat is never a mystery.
+        val statusMessage = heartbeatStatusMessage(status)
+        if (statusMessage != null) {
+            HeartbeatStatusBanner(
+                text = statusMessage,
+                alert = status.state != HeartbeatRunState.ASLEEP,
+                content = content,
+            )
+            Spacer(Modifier.height(8.dp))
         }
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -300,7 +318,11 @@ private fun HeartbeatBox(
                 if (items.isEmpty()) {
                     item {
                         EmptyRow(
-                            text = "No updates yet — pull down to refresh, or turn on Heartbeat in Settings.",
+                            text = if (statusMessage != null) {
+                                "No updates yet."
+                            } else {
+                                "No updates yet — pull down to refresh, or turn on Heartbeat in Settings."
+                            },
                             content = content,
                         )
                     }
@@ -309,6 +331,48 @@ private fun HeartbeatBox(
                 }
             }
         }
+    }
+}
+
+/** Plain-language reason the heartbeat isn't running, with the fix. Null when it's
+ *  running normally (ACTIVE) and nothing needs to be said. */
+private fun heartbeatStatusMessage(status: HeartbeatStatus): String? = when (status.state) {
+    HeartbeatRunState.ACTIVE -> null
+    HeartbeatRunState.SCHEDULING_OFF ->
+        "Paused — background scheduling is off. Turn it on in Settings → Agent."
+    HeartbeatRunState.HEARTBEAT_OFF ->
+        "Heartbeat is off. Enable it in Settings → Agent."
+    HeartbeatRunState.BUDGET_PAUSED ->
+        "Paused — daily token budget reached. Resumes after midnight, or raise it in Settings → Budget."
+    HeartbeatRunState.KILL_SWITCH ->
+        "Paused — autonomous activity is switched off. Re-enable it in Settings → Budget."
+    HeartbeatRunState.ASLEEP ->
+        "Sleeping until ${status.activeHoursStart}:00 — outside active hours."
+}
+
+/** Status pill at the top of the heartbeat box. [alert] tints it amber for real pauses;
+ *  the sleeping (outside-hours) case stays neutral since it resumes on its own. */
+@Composable
+private fun HeartbeatStatusBanner(text: String, alert: Boolean, content: Color) {
+    val tint = if (alert) Color(0xFFFFB74D) else content.copy(alpha = 0.7f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Foundry.tileShape)
+            .background(tint.copy(alpha = 0.16f), Foundry.tileShape)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (alert) "⏸" else "🌙",
+            fontSize = 12.sp,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = text,
+            color = content.copy(alpha = 0.9f),
+            fontSize = 11.sp,
+        )
     }
 }
 

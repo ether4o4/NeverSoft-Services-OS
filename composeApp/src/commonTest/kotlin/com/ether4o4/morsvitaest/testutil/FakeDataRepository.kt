@@ -10,6 +10,8 @@ import com.ether4o4.morsvitaest.data.FallbackStatus
 import com.ether4o4.morsvitaest.data.FreeMode
 import com.ether4o4.morsvitaest.data.HeartbeatConfig
 import com.ether4o4.morsvitaest.data.HeartbeatLogEntry
+import com.ether4o4.morsvitaest.data.HeartbeatRunState
+import com.ether4o4.morsvitaest.data.HeartbeatStatus
 import com.ether4o4.morsvitaest.data.ImportSection
 import com.ether4o4.morsvitaest.data.MemoryEntry
 import com.ether4o4.morsvitaest.data.Project
@@ -443,6 +445,10 @@ class FakeDataRepository : DataRepository {
     override fun setSchedulingEnabled(enabled: Boolean) {
         schedulingEnabled = enabled
     }
+
+    override fun getHeartbeatStatus(): HeartbeatStatus = HeartbeatStatus(
+        if (schedulingEnabled) HeartbeatRunState.ACTIVE else HeartbeatRunState.SCHEDULING_OFF,
+    )
 
     override fun getScheduledTasks(): List<ScheduledTask> = scheduledTasks.toList()
 

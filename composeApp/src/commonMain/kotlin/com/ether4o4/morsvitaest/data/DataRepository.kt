@@ -95,6 +95,9 @@ interface DataRepository {
     // Scheduling management
     fun isSchedulingEnabled(): Boolean
     fun setSchedulingEnabled(enabled: Boolean)
+
+    /** Why the heartbeat is (or isn't) running right now, for the home status indicator. */
+    fun getHeartbeatStatus(): HeartbeatStatus
     fun getScheduledTasks(): List<ScheduledTask>
     suspend fun cancelScheduledTask(id: String)
 

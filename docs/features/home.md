@@ -26,7 +26,10 @@ Chat / Shell / Multi chat workspace.)
   preview collapsed; **tapping it expands the full report**, with any source URLs rendered as tappable
   links — so a multi-bullet research digest is readable in place instead of crushed into the summary.
   Pull down (or tap ↻) to run a heartbeat immediately and reload. When there are no updates yet, a hint
-  points to the Heartbeat settings. See [heartbeat.md](heartbeat.md).
+  points to the Heartbeat settings. If the heartbeat isn't currently running, a **status banner** at the
+  top of the box says why and how to fix it — scheduling off, heartbeat disabled, daily token budget
+  reached, autonomous kill-switch on, or simply asleep outside active hours — so a quiet heartbeat is
+  never a silent mystery. See [heartbeat.md](heartbeat.md).
 
 The provider/MCP integration entries (Services, MCP, Hugging Face, Ollama, LLM chooser) are **not** on
 this page; they live in Settings, reachable from the settings gear.
