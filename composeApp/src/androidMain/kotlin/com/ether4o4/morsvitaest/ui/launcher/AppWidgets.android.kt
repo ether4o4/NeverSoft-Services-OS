@@ -13,11 +13,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -40,13 +46,24 @@ import org.koin.compose.koinInject
 
 private const val APPWIDGET_HOST_ID = 0x4D5645 // "MVE"
 
+/** One row in the widget picker: the provider plus its pre-resolved widget + app labels. */
+private data class WidgetChoice(
+    val info: AppWidgetProviderInfo,
+    val widgetLabel: String,
+    val appLabel: String,
+)
+
 /**
  * Android implementation: hosts the user's chosen home-screen app widgets via an
- * [AppWidgetHost] and lets them pick more through the system widget picker.
+ * [AppWidgetHost] and lets them add a widget from ANY installed app.
  *
- * The picker (ACTION_APPWIDGET_PICK) is the launcher-app flow: the system binds the
- * chosen widget to the id we allocate, then we run its configure activity if it has
- * one. Works best when MorsVitaEst is the device's default launcher.
+ * Adding flow (works whether or not MorsVitaEst is the default launcher):
+ *   1. Show a custom picker listing every provider from [AppWidgetManager.getInstalledProviders].
+ *   2. Allocate an id and try [AppWidgetManager.bindAppWidgetIdIfAllowed]. When MorsVitaEst
+ *      holds the (default-launcher) bind permission this succeeds silently; otherwise it
+ *      returns false and we launch the system `ACTION_APPWIDGET_BIND` consent dialog so the
+ *      user can grant binding for that one widget.
+ *   3. Run the widget's configure activity if it declares one, then host it.
  */
 @Composable
 actual fun AppWidgetsSection(contentColor: Color, modifier: Modifier) {
@@ -64,6 +81,8 @@ actual fun AppWidgetsSection(contentColor: Color, modifier: Modifier) {
 
     var widgetIds by remember { mutableStateOf(settings.getHostedWidgetIds()) }
     var pendingConfigureId by remember { mutableStateOf(-1) }
+    var pendingBindId by remember { mutableStateOf(-1) }
+    var showPicker by remember { mutableStateOf(false) }
 
     fun add(id: Int) {
         if (id !in widgetIds) {
@@ -80,7 +99,7 @@ actual fun AppWidgetsSection(contentColor: Color, modifier: Modifier) {
         settings.setHostedWidgetIds(next)
     }
 
-    // Step 2 — the widget's own configuration screen (when it declares one).
+    // The widget's own configuration screen (when it declares one), run after a successful bind.
     val configureLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
@@ -91,27 +110,49 @@ actual fun AppWidgetsSection(contentColor: Color, modifier: Modifier) {
         }
     }
 
-    // Step 1 — the system widget picker. On OK the system has bound the widget to the
-    // allocated id; configure it if it asks, otherwise add it straight away.
-    val pickLauncher = rememberLauncherForActivityResult(
+    // Once an id is bound to a provider, run its configure activity (if any) or host it directly.
+    fun configureOrAdd(id: Int) {
+        val info = appWidgetManager.getAppWidgetInfo(id)
+        val configure = info?.configure
+        if (configure != null) {
+            pendingConfigureId = id
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
+                component = configure
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+            }
+            if (runCatching { configureLauncher.launch(intent) }.isFailure) add(id)
+        } else {
+            add(id)
+        }
+    }
+
+    // System consent dialog for binding — needed when MorsVitaEst isn't the default launcher.
+    val bindLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
-        val id = result.data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1) ?: -1
-        if (result.resultCode == Activity.RESULT_OK && id != -1) {
-            val info = appWidgetManager.getAppWidgetInfo(id)
-            val configure = info?.configure
-            if (configure != null) {
-                pendingConfigureId = id
-                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
-                    component = configure
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
-                }
-                if (runCatching { configureLauncher.launch(intent) }.isFailure) add(id)
-            } else {
-                add(id)
+        val id = pendingBindId
+        pendingBindId = -1
+        if (id != -1) {
+            if (result.resultCode == Activity.RESULT_OK) configureOrAdd(id) else runCatching { host.deleteAppWidgetId(id) }
+        }
+    }
+
+    fun pick(info: AppWidgetProviderInfo) {
+        showPicker = false
+        val id = host.allocateAppWidgetId()
+        val allowed = runCatching { appWidgetManager.bindAppWidgetIdIfAllowed(id, info.provider) }.getOrDefault(false)
+        if (allowed) {
+            configureOrAdd(id)
+        } else {
+            pendingBindId = id
+            val bindIntent = Intent(AppWidgetManager.ACTION_APPWIDGET_BIND).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider)
             }
-        } else if (id != -1) {
-            runCatching { host.deleteAppWidgetId(id) }
+            if (runCatching { bindLauncher.launch(bindIntent) }.isFailure) {
+                pendingBindId = -1
+                runCatching { host.deleteAppWidgetId(id) }
+            }
         }
     }
 
@@ -161,22 +202,72 @@ actual fun AppWidgetsSection(contentColor: Color, modifier: Modifier) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .border(1.dp, contentColor.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
-                .clickable {
-                    val newId = host.allocateAppWidgetId()
-                    val pick = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
-                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, newId)
-                        // Empty custom lists keep some OEM pickers from NPE-ing.
-                        putParcelableArrayListExtra(AppWidgetManager.EXTRA_CUSTOM_INFO, ArrayList<AppWidgetProviderInfo>())
-                        putParcelableArrayListExtra(AppWidgetManager.EXTRA_CUSTOM_EXTRAS, ArrayList<Bundle>())
-                    }
-                    if (runCatching { pickLauncher.launch(pick) }.isFailure) {
-                        runCatching { host.deleteAppWidgetId(newId) }
-                    }
-                }
+                .clickable { showPicker = true }
                 .padding(vertical = 14.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text("＋  Add a widget", color = contentColor, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
     }
+
+    if (showPicker) {
+        WidgetPickerDialog(
+            appWidgetManager = appWidgetManager,
+            onPick = { pick(it) },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+/** Lists every installed widget provider on the device (label + owning app) so the user can
+ *  add a widget from any app — not just the ones a default-launcher picker would surface. */
+@Composable
+private fun WidgetPickerDialog(
+    appWidgetManager: AppWidgetManager,
+    onPick: (AppWidgetProviderInfo) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val pm = context.packageManager
+    // Each row carries the resolved labels so the list doesn't re-resolve them on every recompose.
+    val choices = remember {
+        runCatching {
+            appWidgetManager.installedProviders.map { info ->
+                val widgetLabel = runCatching { info.loadLabel(pm) }.getOrNull()?.takeIf { it.isNotBlank() }
+                    ?: info.provider.shortClassName.substringAfterLast('.')
+                val appLabel = runCatching {
+                    pm.getApplicationLabel(pm.getApplicationInfo(info.provider.packageName, 0)).toString()
+                }.getOrNull() ?: info.provider.packageName
+                WidgetChoice(info, widgetLabel, appLabel)
+            }.sortedWith(compareBy({ it.appLabel.lowercase() }, { it.widgetLabel.lowercase() }))
+        }.getOrDefault(emptyList())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        title = { Text("Add a widget") },
+        text = {
+            if (choices.isEmpty()) {
+                Text("No widgets are available on this device.")
+            } else {
+                LazyColumn(modifier = Modifier.heightIn(max = 440.dp)) {
+                    items(choices) { choice ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onPick(choice.info) }
+                                .padding(vertical = 10.dp, horizontal = 6.dp),
+                        ) {
+                            Text(choice.widgetLabel, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Spacer(Modifier.height(2.dp))
+                            Text(choice.appLabel, fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
