@@ -74,7 +74,7 @@ When the last LiteRT service instance is removed, all downloaded models are auto
 3. **Memory check** -- verifies sufficient RAM (model size + 512 MB headroom) before loading
 4. **Persistent across messages** -- stays loaded for the duration of the conversation
 5. **Inference timeout** -- individual inference calls are capped at 2 minutes
-6. **Auto-release** -- released after 5 minutes of inactivity to free memory (always re-armed, even on errors)
+6. **Auto-release** -- released after an idle period to free memory (always re-armed, even on errors). The delay is governed by the **chat-engine persistence toggle** (the ⚡ in the workspace tab strip): on (default) keeps the model warm for ~5 minutes for instant resume; off shortens it to ~30 s so the model is freed soon after the chat is idle/closed — lighter on weak devices. This is enforced via the engine's idle-release timer (which is cancelled whenever *any* chat surface starts inference), not a close-event hook, so it's safe even though the single engine is shared across the chat pop-up, Page 2, and the Assistant window. It applies to every on-device inference, including daemon/heartbeat-triggered ones; the toggle changes only engine memory, never conversation history.
 7. **Status indicator** -- the chat shows "Initializing {model name}" with a pulsing dot during engine load
 
 ## Platform Differences

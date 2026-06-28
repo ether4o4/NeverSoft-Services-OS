@@ -91,6 +91,10 @@ fun WorkspaceScreen(
     val selected = WorkspaceTab.entries.firstOrNull { it.name == selectedName && it in tabs } ?: WorkspaceTab.Chat
     LaunchedEffect(selected) { onTabSelected(selected) }
 
+    // On-device chat-engine persistence toggle: ON keeps the model loaded for instant resume,
+    // OFF frees it from memory ~30s after the chat is idle (lighter on weaker devices).
+    var chatPersistent by remember { mutableStateOf(chatViewModel.isChatEnginePersistent()) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -105,6 +109,11 @@ fun WorkspaceScreen(
             onSelect = { selectedName = it.name },
             onOpenSettings = onNavigateToSettings,
             onOpenHelp = onOpenHelp,
+            chatEnginePersistent = chatPersistent,
+            onToggleChatEnginePersistent = {
+                chatPersistent = it
+                chatViewModel.setChatEnginePersistent(it)
+            },
             navigationTabBar = navigationTabBar,
             modifier = Modifier
                 .fillMaxWidth()
@@ -144,6 +153,8 @@ private fun WorkspaceTabStrip(
     onSelect: (WorkspaceTab) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenHelp: () -> Unit,
+    chatEnginePersistent: Boolean,
+    onToggleChatEnginePersistent: (Boolean) -> Unit,
     navigationTabBar: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -180,6 +191,21 @@ private fun WorkspaceTabStrip(
                 )
             }
             Spacer(Modifier.weight(1f))
+            // Chat-engine persistence toggle: ⚡ bright = keep the on-device model loaded for
+            // instant resume; dim = free it from memory ~30s after the chat is idle.
+            Text(
+                text = "⚡",
+                color = if (chatEnginePersistent) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                },
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable { onToggleChatEnginePersistent(!chatEnginePersistent) }
+                    .padding(horizontal = 7.dp, vertical = 6.dp),
+            )
             // Tap-to-help and Settings sit at the end of the strip.
             Text(
                 text = "?",

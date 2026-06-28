@@ -105,6 +105,10 @@ interface DataRepository {
     fun isDynamicUiEnabled(): Boolean
     fun setDynamicUiEnabled(enabled: Boolean)
 
+    /** On-device chat engine memory persistence: true keeps the model warm, false frees it sooner. */
+    fun isChatEnginePersistent(): Boolean
+    fun setChatEnginePersistent(enabled: Boolean)
+
     // Theme mode
     fun getThemeMode(): ThemeMode
     fun setThemeMode(mode: ThemeMode)

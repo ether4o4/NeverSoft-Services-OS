@@ -147,6 +147,14 @@ interface LocalInferenceEngine {
      */
     fun releaseInBackground()
 
+    /**
+     * Sets whether the loaded model should stay warm between uses. `true` keeps the normal
+     * long idle-release (instant resume); `false` shortens it so the model is freed from
+     * memory soon after the last use of any chat surface. Safe to call anytime — it only
+     * changes the post-inference idle delay, never releasing during an active generation.
+     */
+    fun setIdleReleaseEnabled(persistent: Boolean)
+
     suspend fun chat(
         messages: List<InferenceMessage>,
         systemPrompt: String?,

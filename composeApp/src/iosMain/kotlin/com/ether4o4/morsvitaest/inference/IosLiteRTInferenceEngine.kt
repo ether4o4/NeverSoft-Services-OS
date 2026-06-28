@@ -46,6 +46,9 @@ class IosLiteRTInferenceEngine : LocalInferenceEngine {
         private set
     private var currentContextTokens: Int = 0
 
+    // Post-inference idle-release delay; shortened when chat-engine persistence is off.
+    private var idleReleaseMs: Long = IDLE_RELEASE_PERSISTENT_MS
+
     private val _engineState = MutableStateFlow(EngineState.UNINITIALIZED)
     override val engineState: StateFlow<EngineState> = _engineState
 
@@ -106,6 +109,13 @@ class IosLiteRTInferenceEngine : LocalInferenceEngine {
         idleReleaseJob = scope.launch { release() }
     }
 
+    override fun setIdleReleaseEnabled(persistent: Boolean) {
+        idleReleaseMs = if (persistent) IDLE_RELEASE_PERSISTENT_MS else IDLE_RELEASE_TRANSIENT_MS
+        if (!persistent && _engineState.value == EngineState.READY && idleReleaseJob?.isActive == true) {
+            scheduleIdleRelease()
+        }
+    }
+
     override suspend fun chat(
         messages: List<InferenceMessage>,
         systemPrompt: String?,
@@ -142,7 +152,7 @@ class IosLiteRTInferenceEngine : LocalInferenceEngine {
     private fun scheduleIdleRelease() {
         idleReleaseJob?.cancel()
         idleReleaseJob = scope.launch {
-            delay(IDLE_RELEASE_MS.milliseconds)
+            delay(idleReleaseMs.milliseconds)
             release()
         }
     }
@@ -234,7 +244,8 @@ class IosLiteRTInferenceEngine : LocalInferenceEngine {
     }
 
     companion object {
-        private const val IDLE_RELEASE_MS = 5L * 60 * 1000
+        private const val IDLE_RELEASE_PERSISTENT_MS = 5L * 60 * 1000
+        private const val IDLE_RELEASE_TRANSIENT_MS = 30L * 1000
         private const val INFERENCE_TIMEOUT_MS = 120_000L
         private const val DOWNLOAD_SPACE_BUFFER_BYTES = 500L * 1024 * 1024
         private const val GPU_DRAIN_DELAY_MS = 750L

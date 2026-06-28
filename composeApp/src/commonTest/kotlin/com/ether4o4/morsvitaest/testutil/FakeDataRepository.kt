@@ -398,6 +398,13 @@ class FakeDataRepository : DataRepository {
         dynamicUiEnabled = enabled
     }
 
+    private var chatEnginePersistent = true
+    override fun isChatEnginePersistent(): Boolean = chatEnginePersistent
+
+    override fun setChatEnginePersistent(enabled: Boolean) {
+        chatEnginePersistent = enabled
+    }
+
     private var themeMode: ThemeMode = ThemeMode.System
 
     override fun getThemeMode(): ThemeMode = themeMode

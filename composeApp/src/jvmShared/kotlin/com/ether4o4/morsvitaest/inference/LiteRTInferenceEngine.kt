@@ -49,6 +49,11 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
     // only when an image is actually sent — so text-only chats don't pay its memory cost.
     private var currentVisionEnabled: Boolean = false
 
+    // Post-inference idle-release delay. Long by default (keep the model warm for instant
+    // resume); shortened when the user turns chat-engine persistence off, so memory is
+    // reclaimed soon after the last use of any chat surface.
+    private var idleReleaseMs: Long = IDLE_RELEASE_PERSISTENT_MS
+
     private val _engineState = MutableStateFlow(EngineState.UNINITIALIZED)
     override val engineState: StateFlow<EngineState> = _engineState
 
@@ -173,6 +178,16 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
         idleReleaseJob = scope.launch { release() }
     }
 
+    override fun setIdleReleaseEnabled(persistent: Boolean) {
+        idleReleaseMs = if (persistent) IDLE_RELEASE_PERSISTENT_MS else IDLE_RELEASE_TRANSIENT_MS
+        // If we just switched to transient while the engine sits idle with the long timer
+        // already counting down, re-arm so the shorter delay takes effect now. During an
+        // active generation the idle job is cancelled (chat() entry), so this no-ops there.
+        if (!persistent && _engineState.value == EngineState.READY && idleReleaseJob?.isActive == true) {
+            scheduleIdleRelease()
+        }
+    }
+
     override suspend fun chat(
         messages: List<InferenceMessage>,
         systemPrompt: String?,
@@ -248,13 +263,14 @@ class LiteRTInferenceEngine : LocalInferenceEngine {
     private fun scheduleIdleRelease() {
         idleReleaseJob?.cancel()
         idleReleaseJob = scope.launch {
-            delay(IDLE_RELEASE_MS.milliseconds)
+            delay(idleReleaseMs.milliseconds)
             release()
         }
     }
 
     companion object {
-        private const val IDLE_RELEASE_MS = 5L * 60 * 1000 // 5 minutes
+        private const val IDLE_RELEASE_PERSISTENT_MS = 5L * 60 * 1000 // 5 min — keep the model warm
+        private const val IDLE_RELEASE_TRANSIENT_MS = 30L * 1000 // 30 s — free the model soon after use
         private const val INFERENCE_TIMEOUT_MS = 120_000L // 2 minutes
         private const val MIN_MEMORY_HEADROOM_BYTES = 512L * 1024 * 1024 // 512 MB
         private const val DOWNLOAD_SPACE_BUFFER_BYTES = 500L * 1024 * 1024 // 500 MB

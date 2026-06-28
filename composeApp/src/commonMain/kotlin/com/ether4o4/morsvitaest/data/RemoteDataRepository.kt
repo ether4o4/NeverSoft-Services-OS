@@ -322,6 +322,12 @@ class RemoteDataRepository(
 
     private val prettyJson = Json { prettyPrint = true }
 
+    init {
+        // Apply the saved chat-engine persistence policy at startup so a relaunch honors the
+        // toggle; otherwise the engine would default to the long idle-release delay.
+        localInferenceEngine?.setIdleReleaseEnabled(appSettings.isChatEnginePersistent())
+    }
+
     /**
      * Source attribution for the next LLM call's token usage, set at each top-level entry point
      * (interactive [ask] vs. background [askWithTools]). Calls are serialized by the scheduler's
@@ -2021,6 +2027,14 @@ class RemoteDataRepository(
 
     override fun setDynamicUiEnabled(enabled: Boolean) {
         appSettings.setDynamicUiEnabled(enabled)
+    }
+
+    override fun isChatEnginePersistent(): Boolean = appSettings.isChatEnginePersistent()
+
+    override fun setChatEnginePersistent(enabled: Boolean) {
+        appSettings.setChatEnginePersistent(enabled)
+        // Push the new policy into the engine so the idle-release delay updates immediately.
+        localInferenceEngine?.setIdleReleaseEnabled(enabled)
     }
 
     override fun getThemeMode(): ThemeMode = appSettings.getThemeMode()

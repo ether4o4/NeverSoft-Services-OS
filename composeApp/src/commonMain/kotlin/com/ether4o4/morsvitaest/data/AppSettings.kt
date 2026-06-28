@@ -308,6 +308,14 @@ class AppSettings(internal val settings: Settings) {
         settings.putBoolean(KEY_SCHEDULING_ENABLED, enabled)
     }
 
+    // On-device chat engine persistence: true (default) keeps the model warm between uses;
+    // false frees it from memory soon after the chat box is idle/closed.
+    fun isChatEnginePersistent(): Boolean = settings.getBoolean(KEY_CHAT_ENGINE_PERSISTENT, true)
+
+    fun setChatEnginePersistent(enabled: Boolean) {
+        settings.putBoolean(KEY_CHAT_ENGINE_PERSISTENT, enabled)
+    }
+
     // Dynamic UI
     fun isDynamicUiEnabled(): Boolean = settings.getBoolean(KEY_DYNAMIC_UI_ENABLED, true)
 
@@ -804,6 +812,7 @@ class AppSettings(internal val settings: Settings) {
         const val KEY_SCHEDULED_TASKS = "scheduled_tasks"
         const val KEY_SCHEDULING_ENABLED = "scheduling_enabled"
         const val KEY_DYNAMIC_UI_ENABLED = "dynamic_ui_enabled"
+        const val KEY_CHAT_ENGINE_PERSISTENT = "chat_engine_persistent"
         const val KEY_OLED_MODE_ENABLED = "oled_mode_enabled"
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_DAEMON_ENABLED = "daemon_enabled"

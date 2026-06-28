@@ -125,6 +125,13 @@ class ChatViewModel(
         }
     }
 
+    /** On-device chat-engine persistence toggle (keep the model warm vs. free it sooner). */
+    fun isChatEnginePersistent(): Boolean = dataRepository.isChatEnginePersistent()
+
+    fun setChatEnginePersistent(enabled: Boolean) {
+        dataRepository.setChatEnginePersistent(enabled)
+    }
+
     val state = combine(
         _state,
         dataRepository.chatHistory,
