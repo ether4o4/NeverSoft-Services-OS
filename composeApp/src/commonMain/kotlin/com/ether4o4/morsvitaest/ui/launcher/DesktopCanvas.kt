@@ -165,6 +165,7 @@ import morsvitaest.composeapp.generated.resources.ns_mascot_face
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
@@ -358,22 +359,34 @@ internal fun DesktopCanvas(
                 modifier = Modifier
                     .offset { IntOffset(px.roundToInt(), py.roundToInt()) }
                     .pointerInput(item.id, maxWpx, maxHpx, cols) {
-                        var moved = false
+                        // Only count it as a MOVE once the finger travels a clear distance.
+                        // A long-press with little/no drag opens the item menu (rename / change
+                        // image / delete) instead — so removing an icon is reliable and isn't
+                        // hijacked by tiny finger jitter being treated as a drag.
+                        val moveThresholdPx = 20.dp.toPx()
+                        var totalDist = 0f
+                        var dragging = false
                         detectDragGesturesAfterLongPress(
-                            onDragStart = { moved = false },
-                            onDragEnd = { if (moved) persist() else editItem = item },
-                            onDragCancel = { if (moved) persist() },
+                            onDragStart = {
+                                totalDist = 0f
+                                dragging = false
+                            },
+                            onDragEnd = { if (dragging) persist() else editItem = item },
+                            onDragCancel = { if (dragging) persist() },
                         ) { change, drag ->
                             change.consume()
-                            moved = true
-                            val i = items.indexOfFirst { it.id == item.id }
-                            if (i >= 0) {
-                                val cur = items[i]
-                                val curX = if (cur.xFrac >= 0f) cur.xFrac * maxWpx else gridX()
-                                val curY = if (cur.yFrac >= 0f) cur.yFrac * maxHpx else gridY()
-                                val nx = (curX + drag.x).coerceIn(0f, (maxWpx - tileWpx).coerceAtLeast(0f))
-                                val ny = (curY + drag.y).coerceIn(0f, (maxHpx - tileHpx).coerceAtLeast(0f))
-                                items[i] = cur.copy(xFrac = nx / maxWpx, yFrac = ny / maxHpx)
+                            totalDist += abs(drag.x) + abs(drag.y)
+                            if (!dragging && totalDist >= moveThresholdPx) dragging = true
+                            if (dragging) {
+                                val i = items.indexOfFirst { it.id == item.id }
+                                if (i >= 0) {
+                                    val cur = items[i]
+                                    val curX = if (cur.xFrac >= 0f) cur.xFrac * maxWpx else gridX()
+                                    val curY = if (cur.yFrac >= 0f) cur.yFrac * maxHpx else gridY()
+                                    val nx = (curX + drag.x).coerceIn(0f, (maxWpx - tileWpx).coerceAtLeast(0f))
+                                    val ny = (curY + drag.y).coerceIn(0f, (maxHpx - tileHpx).coerceAtLeast(0f))
+                                    items[i] = cur.copy(xFrac = nx / maxWpx, yFrac = ny / maxHpx)
+                                }
                             }
                         }
                     },
@@ -817,7 +830,7 @@ private fun ItemMenuDialog(
                 if (!item.isFolder) {
                     TextButton(onClick = onChangeImage) { Text("Change image…") }
                 }
-                TextButton(onClick = onDelete) { Text("Delete", color = Color(0xFFE2557A)) }
+                TextButton(onClick = onDelete) { Text("Remove from home", color = Color(0xFFE2557A)) }
             }
         },
         confirmButton = {
