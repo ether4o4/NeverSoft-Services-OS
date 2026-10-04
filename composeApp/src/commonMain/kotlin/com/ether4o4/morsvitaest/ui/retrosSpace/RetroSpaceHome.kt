@@ -44,7 +44,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,11 +59,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ether4o4.morsvitaest.data.AppSettings
 import com.ether4o4.morsvitaest.data.DataRepository
 import com.ether4o4.morsvitaest.ui.settings.SettingsUiState
 import com.ether4o4.morsvitaest.ui.settings.SettingsViewModel
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 private val SpaceBg = Color(0xFF020814)
@@ -88,7 +85,6 @@ fun RetroSpaceHome(
 ) {
     val vm = koinViewModel<SettingsViewModel>()
     val state by vm.state.collectAsStateWithLifecycle()
-    val appSettings = koinInject<AppSettings>()
     val dataRepository = koinInject<DataRepository>()
     var selected by remember { mutableStateOf("Workspace") }
     var showVibe by remember { mutableStateOf(false) }
@@ -192,10 +188,10 @@ private fun SpaceBody(
     Column(modifier.fillMaxSize().padding(horizontal = if (compact) 10.dp else 18.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Card(
             colors = CardDefaults.cardColors(containerColor = Panel),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp).padding(bottom = 10.dp)
         ) {
-            Column(Modifier.padding(16.dp)) {
+            Column(Modifier.padding(if (compact) 13.dp else 15.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.AutoAwesome, null, tint = Cyan, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(8.dp))
@@ -203,7 +199,7 @@ private fun SpaceBody(
                         Text("CONTEXT CORE", color = TextDim, fontSize = 8.sp, letterSpacing = 1.5.sp)
                         Text(
                             if (state.activeProjectId == com.ether4o4.morsvitaest.data.Project.NONE_ID) "Workspace ready" else "Active project loaded",
-                            color = TextMain, fontSize = 18.sp, fontWeight = FontWeight.SemiBold
+                            color = TextMain, fontSize = 17.sp, fontWeight = FontWeight.SemiBold
                         )
                     }
                     Text(state.memories.size.toString() + " MEM", color = Violet, fontSize = 9.sp)
@@ -218,25 +214,39 @@ private fun SpaceBody(
         val modelCards = state.configuredServices.map { entry ->
             SpaceItem(
                 entry.selectedModel?.displayName ?: entry.service.displayName,
-                entry.selectedModel?.subtitle ?: "Configured provider",
+                entry.selectedModel?.subtitle ?: "Provider • tap to configure",
                 Icons.Filled.SmartToy,
                 if (entry.enabled) Cyan else TextDim,
                 SpaceAction.Models
             )
-        }.take(6)
+        }.take(4)
 
-        val cards = if (modelCards.isEmpty()) listOf(
-            SpaceItem("ADD AI MODEL", "Open provider manager", Icons.Filled.SmartToy, Cyan, SpaceAction.Models),
-            SpaceItem("PROJECTS", state.projects.size.toString() + " persistent", Icons.Filled.Folder, Blue, SpaceAction.Projects),
-            SpaceItem("MEMORY", state.memories.size.toString() + " stored", Icons.Filled.Storage, Violet, SpaceAction.Knowledge),
-            SpaceItem("MCP", state.mcpServers.size.toString() + " connected", Icons.Filled.Link, Cyan, SpaceAction.Connectors)
-        ) else modelCards
+        val projectCards = state.projects.map { project ->
+            SpaceItem(
+                project.name,
+                if (project.id == state.activeProjectId) "Active project" else "Persistent project",
+                Icons.Filled.Folder,
+                Blue,
+                SpaceAction.Projects
+            )
+        }.take(4)
+
+        val cards = when {
+            modelCards.isNotEmpty() -> modelCards
+            projectCards.isNotEmpty() -> projectCards
+            else -> listOf(
+                SpaceItem("NO AI SERVICES", "Add a provider in Models", Icons.Filled.SmartToy, Cyan, SpaceAction.Models),
+                SpaceItem("NO PROJECTS", "Create one in Projects", Icons.Filled.Folder, Blue, SpaceAction.Projects),
+                SpaceItem("MEMORY", state.memories.size.toString() + " stored", Icons.Filled.Storage, Violet, SpaceAction.Knowledge),
+                SpaceItem("MCP", state.mcpServers.size.toString() + " connected", Icons.Filled.Link, Cyan, SpaceAction.Connectors)
+            )
+        }
 
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = if (compact) 145.dp else 180.dp),
+            columns = GridCells.Adaptive(minSize = if (compact) 132.dp else 170.dp),
             modifier = Modifier.fillMaxWidth().weight(1f).widthIn(max = 760.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) { items(cards) { SpaceCard(it, selected == it.title) { onSelect(it) } } }
 
         Card(
@@ -244,7 +254,7 @@ private fun SpaceBody(
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp).padding(top = 8.dp)
         ) {
-            Column(Modifier.padding(14.dp)) {
+            Column(Modifier.padding(11.dp)) {
                 Text(selected, color = Cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text(
                     when (selected) {
@@ -278,10 +288,10 @@ private fun SpaceCard(item: SpaceItem, selected: Boolean, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(item.icon, null, tint = item.tint, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(7.dp))
-                Text(item.title, color = TextMain, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(item.title, color = TextMain, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(7.dp))
-            Text(item.subtitle, color = TextDim, fontSize = 9.sp)
+            Text(item.subtitle, color = TextDim, fontSize = 8.sp)
         }
     }
 }
