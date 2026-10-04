@@ -75,6 +75,7 @@ import com.ether4o4.morsvitaest.ui.launcher.NotificationsPanel
 import com.ether4o4.morsvitaest.ui.launcher.SpotlightContent
 import com.ether4o4.morsvitaest.ui.launcher.SpotlightScreen
 import com.ether4o4.morsvitaest.ui.launcher.WidgetsContent
+import com.ether4o4.morsvitaest.ui.retrosSpace.RetroSpaceHome
 import com.ether4o4.morsvitaest.ui.onboarding.SetupWizard
 import com.ether4o4.morsvitaest.ui.onboarding.WelcomeTour
 import com.ether4o4.morsvitaest.ui.sandbox.SandboxFilesContent
@@ -139,6 +140,10 @@ object Spotlight
 @Serializable
 @SerialName("home")
 object Home
+
+@Serializable
+@SerialName("retro.space")
+object RetroSpace
 
 @Serializable
 @SerialName("settings")
@@ -298,9 +303,26 @@ private fun AppContent(
 
                     NavHost(
                         navController,
-                        startDestination = Launcher,
+                        startDestination = RetroSpace,
                         modifier = Modifier.background(MaterialTheme.colorScheme.background),
                     ) {
+                        composable<RetroSpace> {
+                            RetroSpaceHome(
+                                onOpenSettings = { tab ->
+                                    navController.navigate(Settings(tab))
+                                },
+                                onOpenFiles = { navController.navigate(Files()) },
+                                onOpenTerminal = { navController.navigate(Shell) },
+                                onOpenBrowser = {
+                                    navController.navigate(
+                                        FoundryStub(
+                                            "BROWSER",
+                                            "Browser integration is reserved for the Retro-Space research surface. The MVE engine is already wired for tools, MCP, files, and provider-backed research."
+                                        )
+                                    )
+                                },
+                            )
+                        }
                         composable<Launcher> {
                             // NeverSoft OS desktop. Desktop icons, taskbar buttons,
                             // the Start menu, and the clock open apps as floating
