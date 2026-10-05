@@ -14,7 +14,7 @@ on:
 jobs:
   validate:
     name: Validate PKGBUILD
-    if: github.event_name != 'workflow_run'
+    if: ${{ (github.event_name != 'workflow_run') && !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     runs-on: ubuntu-latest
     container: archlinux:base-devel
     steps:
@@ -42,7 +42,7 @@ jobs:
 
   publish:
     name: Publish to AUR
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') && !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     runs-on: ubuntu-latest
     container: archlinux:base-devel
     steps:

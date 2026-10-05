@@ -91,11 +91,18 @@ fun LauncherSettingsContent(
     var showLabels by remember { mutableStateOf(settings.isLauncherLabelsShown()) }
     var wallpaperImage by remember { mutableStateOf(settings.getLauncherWallpaperImage()) }
     var orbImage by remember { mutableStateOf(settings.getLauncherOrbImage()) }
+    var importError by remember { mutableStateOf<String?>(null) }
 
     val wallpaperPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
         if (file != null) {
             scope.launch {
-                val path = saveLauncherImage("wp_${Random.nextInt(1_000_000)}.img", file.readBytes())
+                importError = null
+                val path = try {
+                    saveLauncherImage("wp_${Random.nextInt(1_000_000)}.img", file.readBytes())
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) { null }
+                if (path == null) importError = "Could not read this image. Your previous image is kept."
                 if (path != null) {
                     settings.setLauncherWallpaperImage(path)
                     wallpaperImage = path
@@ -106,7 +113,13 @@ fun LauncherSettingsContent(
     val orbPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
         if (file != null) {
             scope.launch {
-                val path = saveLauncherImage("orb_${Random.nextInt(1_000_000)}.img", file.readBytes())
+                importError = null
+                val path = try {
+                    saveLauncherImage("orb_${Random.nextInt(1_000_000)}.img", file.readBytes())
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) { null }
+                if (path == null) importError = "Could not read this image. Your previous image is kept."
                 if (path != null) {
                     settings.setLauncherOrbImage(path)
                     orbImage = path
@@ -122,6 +135,7 @@ fun LauncherSettingsContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
+        importError?.let { Text(it, color = NeverSoftAccent, modifier = Modifier.padding(bottom = 12.dp)) }
         SectionLabel("Wallpaper")
         launcherWallpapers.forEach { (id, colors) ->
             val selected = wallpaper == id

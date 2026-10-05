@@ -38,6 +38,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Cross-compile llama-server (aarch64-linux-musl via QEMU)
     runs-on: ubuntu-latest
     steps:

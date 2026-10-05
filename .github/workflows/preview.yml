@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     # The Unit Tests workflow pushes auto-fix commits back to PR branches; don't
     # rebuild a preview for those bot commits.
-    if: github.actor != 'github-actions[bot]'
+    if: ${{ (github.actor != 'github-actions[bot]') && !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     # Where preview releases are published. Defaults to this repo; set the repo
     # variable RELEASES_REPO (+ the RELEASES_REPO_TOKEN secret) to publish the
     # downloadable APK to a separate public repo while this one stays private.
