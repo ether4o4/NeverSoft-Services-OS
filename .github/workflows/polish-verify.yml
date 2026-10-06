@@ -46,6 +46,7 @@ jobs:
     permissions:
       contents: write
       actions: read
+      pull-requests: read
     concurrency:
       group: rolling-test-apk
       cancel-in-progress: false
@@ -69,6 +70,7 @@ jobs:
     permissions:
       contents: write
       actions: read
+      pull-requests: read
     concurrency:
       group: rolling-test-apk
       cancel-in-progress: false
@@ -91,6 +93,7 @@ jobs:
     permissions:
       contents: write
       actions: read
+      pull-requests: read
     concurrency:
       group: rolling-test-apk
       cancel-in-progress: false
