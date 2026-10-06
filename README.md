@@ -4,6 +4,18 @@
 
 # MorsVitaEst
 
+
+## Latest polish test APK
+
+[Download the newest verified test APK — rolling release page](https://github.com/ether4o4/NeverSoft-Services-OS/releases/tag/polish-test-latest)
+
+This separate prerelease channel contains **test APKs**, with source commit, package/version, native ABI and SHA-256 recorded on the release page. Open **Download newest verified test APK** on that page. Phone runtime testing is incomplete; test signing may differ from an installed/store version. Private repository downloads require GitHub access.
+
+While this PR remains unmerged, a successful **Polish verification** build on `polish/mobile-2026-10-05` refreshes the channel (remove/reapply the `polish-verify` PR label to run verification). The initial download reuses the already verified polish build. After merge, successful **Preview APK** builds on `main` also refresh it through `workflow_run`. Only trusted same-repository intended workflows/refs qualify; failed, older or diverging builds leave the working download intact. Versioned APK assets remain available, avoiding a replacement gap. Existing release channels keep their current behavior.
+
+The stable link opens a release page; the highlighted APK filename changes after each accepted build. The channel tag anchors `main`; the release body identifies the actual APK source commit. These README additions and future `main` automation take effect on the default branch only after this PR is merged.
+
+
 > An AI app where your conversations, memory, projects, and skills live on your device — not on a vendor's servers. Swap freely between Claude, ChatGPT, Gemini, OpenRouter, or a local model running on your phone. Your context follows you. Your data never leaves.
 
 The name means **death is life**. Finished systems should not stay frozen — they shed old shapes, absorb better ones, and keep becoming more useful without losing their center.

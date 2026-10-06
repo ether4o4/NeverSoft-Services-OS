@@ -1,0 +1,111 @@
+name: Polish verification
+on:
+  pull_request:
+    types: [labeled]
+    branches: [main]
+  workflow_run:
+    workflows: ["Preview APK"]
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: polish-${{ github.ref }}-${{ github.event_name }}-${{ github.event.label.name || github.event.workflow_run.id }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.event_name == 'pull_request' && github.event.label.name == 'polish-verify' && github.head_ref == 'polish/mobile-2026-10-05' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build and common desktop tests
+        run: |
+          chmod +x gradlew
+          ./gradlew :androidApp:assembleFossDebug :composeApp:desktopTest --no-daemon --max-workers=2
+      - name: Upload build and validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polish-validation
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            **/build/outputs/apk/**/*.apk
+            **/build/reports/**
+            frontend/build/
+            artifacts/reports/
+            artifacts/apk/
+  publish-seed:
+    if: github.event_name == 'pull_request' && github.event.label.name == 'publish-rolling-apk' && github.head_ref == 'polish/mobile-2026-10-05' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+    concurrency:
+      group: rolling-test-apk
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Check publisher safety regressions
+        run: python3 .github/scripts/test_rolling_apk.py
+      - name: Publish verified versioned test APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLING_MODE: seed
+        run: python3 .github/scripts/rolling_apk.py
+  publish-verified:
+    needs: verify
+    if: needs.verify.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+    concurrency:
+      group: rolling-test-apk
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Check publisher safety regressions
+        run: python3 .github/scripts/test_rolling_apk.py
+      - name: Publish verified versioned test APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLING_MODE: current
+        run: python3 .github/scripts/rolling_apk.py
+  publish-main:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+    concurrency:
+      group: rolling-test-apk
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Check publisher safety regressions
+        run: python3 .github/scripts/test_rolling_apk.py
+      - name: Publish verified versioned test APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLING_MODE: main
+        run: python3 .github/scripts/rolling_apk.py

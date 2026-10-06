@@ -1,6 +1,6 @@
 # Chat & Conversations
 
-**Last verified:** 2026-06-07
+**Last verified:** 2026-10-05 (source review; phone validation pending)
 
 MorsVitaEst's chat system manages the message history, conversation persistence, file attachments, and speech output. Conversations are service-independent — switching providers does not affect which conversation is loaded or restored. Multiple conversations are persisted and browsable via a history sheet.
 
@@ -130,3 +130,11 @@ Multiple files can be attached to a single prompt. Each file is added one at a t
 | `composeApp/src/commonMain/.../ui/chat/composables/HeartbeatBanner.kt` | Dismissable banner for heartbeat notifications |
 | `composeApp/src/commonMain/.../ui/chat/composables/TopBar.kt` | Top bar with new chat, history, TTS, and settings icons |
 | `composeApp/src/commonMain/.../ui/chat/composables/QuestionInput.kt` | Text input with send/stop button |
+
+## Android attachment memory
+
+Large gallery attachments are sampled before resizing to a maximum of 1024 pixels on the longest edge. Extremely narrow images retain at least one pixel on the short edge. Original attachment behavior and JPEG quality remain unchanged. Phone testing is pending.
+
+| Key File | Purpose |
+| --- | --- |
+| `composeApp/src/androidMain/kotlin/com/ether4o4/morsvitaest/Platform.android.kt` | Android attachment decoding and compression |

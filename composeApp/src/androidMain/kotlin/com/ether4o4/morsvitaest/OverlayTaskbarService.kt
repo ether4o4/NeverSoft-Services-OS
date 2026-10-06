@@ -165,7 +165,7 @@ class OverlayTaskbarService :
     private fun ensureBar() {
         if (barView != null) return
         if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "Taskbar needs the “Display over other apps” permission", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Taskbar needs the \"Display over other apps\" permission", Toast.LENGTH_LONG).show()
             return
         }
 

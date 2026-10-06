@@ -1,0 +1,9 @@
+{
+  "seed_run": 37361184589,
+  "seed_sha": "e98d1ba3c6c3cd8396f143ddde5100e9ca3cb712",
+  "seed_apk_sha": "92efaa9ee34d22143dd421f8eddaefc9d69516ccefef20c4c7e210eb5e2079ed",
+  "main_path": ".github/workflows/preview.yml",
+  "main_artifact": "morsvitaest-foss-debug-.*",
+  "selector": "\\.apk$",
+  "asset_prefix": "NeverSoft-Services-OS-test"
+}

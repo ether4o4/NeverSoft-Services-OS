@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   apk:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate APK
     runs-on: ubuntu-latest
     steps:
@@ -48,6 +49,7 @@ jobs:
           path: androidApp/build/outputs/apk/foss/release/androidApp-foss-release-signed.apk
 
   dmg:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate DMG
     runs-on: macos-latest
     steps:
@@ -72,6 +74,7 @@ jobs:
           path: composeApp/build/compose/binaries/main-release/dmg/*.dmg
 
   msi:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate MSI
     runs-on: windows-latest
     steps:
@@ -94,6 +97,7 @@ jobs:
           path: composeApp/build/compose/binaries/main-release/msi/*.msi
 
   deb:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate DEB
     runs-on: ubuntu-latest
     steps:
@@ -118,6 +122,7 @@ jobs:
           path: composeApp/build/compose/binaries/main-release/deb/*.deb
 
   rpm:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate RPM
     runs-on: ubuntu-latest
     steps:
@@ -144,6 +149,7 @@ jobs:
           path: composeApp/build/compose/binaries/main-release/rpm/*.rpm
 
   linux-tar:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate Linux Tarball
     runs-on: ubuntu-latest
     steps:
@@ -172,6 +178,7 @@ jobs:
           path: MorsVitaEst-linux-x86_64.tar.gz
 
   appimage:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate AppImage
     runs-on: ubuntu-latest
     steps:
@@ -242,6 +249,7 @@ jobs:
           path: MorsVitaEst-*.AppImage
 
   flatpak:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Generate Flatpak
     needs: [linux-tar]
     runs-on: ubuntu-latest
@@ -282,6 +290,7 @@ jobs:
           path: MorsVitaEst.flatpak
 
   play-store:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Upload AAB to Play Store
     runs-on: ubuntu-latest
     steps:
@@ -318,6 +327,7 @@ jobs:
         run: bundle exec fastlane android deploy
 
   release:
+    if: ${{ !startsWith(github.ref_name, 'polish/') && !startsWith(github.head_ref, 'polish/') }}
     name: Release APK, DMG, MSI, DEB, RPM, AppImage, Flatpak and Tarball
     needs: [apk, dmg, msi, deb, rpm, appimage, linux-tar, flatpak]
     runs-on: ubuntu-latest
